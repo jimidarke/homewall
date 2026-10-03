@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  ModuleScreen — generic module drill-down. For a `chart`/`image` drill it shows the
+  sidecar-rendered PNG big; the header carries the module's value-tile summary. Camera
+  drills route to LiveGroup instead (handled by MainScene). Back returns to home
+  (MainScene.onKeyEvent handles it; this screen consumes nothing).
+-->
+<component name="ModuleScreen" extends="Group">
+    <interface>
+        <field id="descriptor" type="assocarray" onChange="onDescriptor" />
+        <field id="values" type="assocarray" onChange="onValues" />
+        <field id="hubBase" type="string" value="" />
+        <field id="cacheBust" type="string" value="0" />
+        <function name="takeFocus" />
+    </interface>
+    <script type="text/brightscript" uri="ModuleScreen.brs" />
+    <script type="text/brightscript" uri="pkg:/source/Config.brs" />
+    <script type="text/brightscript" uri="pkg:/source/Api.brs" />
+    <children>
+        <!-- Dark glass over the rotating photo; the drill-down PNG is now dark-
+             themed (sidecar) so it reads as a card here. -->
+        <Rectangle id="bg" width="1920" height="1080" color="0x0A0E0DCC" />
+        <Rectangle translation="[0, 120]" width="1920" height="4" color="0x5B8C7FFF" />
+        <Label id="title" translation="[60, 44]" color="0xFAF6EEFF"
+               font="font:LargeBoldSystemFont" text="" />
+        <Label id="hero" translation="[60, 158]" width="1800" color="0xFAF6EEFF"
+               font="font:MediumBoldSystemFont" text="" />
+        <!-- chart/image drill: a sidecar-rendered PNG -->
+        <Poster id="card" translation="[60, 240]" width="1120" height="720"
+                loadDisplayMode="scaleToFit" />
+        <!-- agenda drill: a scrollable list of AgendaRow (timeline / calendar) -->
+        <MarkupList id="agendaList" visible="false"
+                    itemComponentName="AgendaRow"
+                    translation="[60, 236]"
+                    itemSize="[1440, 66]"
+                    itemSpacing="[0, 8]"
+                    drawFocusFeedback="false"
+                    vertFocusAnimationStyle="floatingFocus" />
+        <Label id="hint" translation="[60, 1016]" color="0xF3EFE6B3"
+               font="font:SmallSystemFont" text="Back" />
+    </children>
+</component>

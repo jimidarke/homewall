@@ -1,0 +1,59 @@
+{
+  "blocks": [
+    {
+      "items": [
+        {
+          "label": "Now",
+          "value": "15°"
+        },
+        {
+          "label": "Condition",
+          "value": "Partly Cloudy"
+        },
+        {
+          "label": "Humidity",
+          "value": "38%"
+        },
+        {
+          "label": "Wind",
+          "sub": "W",
+          "value": "10 km/h"
+        }
+      ],
+      "type": "stats"
+    },
+    {
+      "days": [
+        {
+          "cond": "Sunny",
+          "glyph": "weather-sunny",
+          "hi": "19°",
+          "label": "Sun",
+          "lo": "7°",
+          "sub": "0%"
+        },
+        {
+          "cond": "Sunny",
+          "glyph": "weather-sunny",
+          "hi": "21°",
+          "label": "Mon",
+          "lo": "7°",
+          "sub": "0%"
+        },
+        {
+          "cond": "Sunny",
+          "glyph": "weather-sunny",
+          "hi": "19°",
+          "label": "Tue",
+          "lo": "6°",
+          "sub": "0%"
+        }
+      ],
+      "type": "forecast"
+    }
+  ],
+  "id": "weather",
+  "title": "Weather",
+  "ts": 1791061038,
+  "v": 1
+}

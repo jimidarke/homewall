@@ -1,0 +1,30 @@
+{
+  "$schema": "https://raw.githubusercontent.com/rokucommunity/brighterscript/master/bsconfig.schema.json",
+  "rootDir": ".",
+  "files": [
+    "manifest",
+    "source/**/*",
+    "components/**/*",
+    "images/**/*",
+    {
+      "src": "!**/*.spec.brs",
+      "dest": ""
+    }
+  ],
+  "outFile": "dist/haku.zip",
+  "createPackage": false,
+  "stagingDir": "out/.staging",
+  "autoImportComponentScript": false,
+  "diagnosticSeverityOverrides": {
+    "1011": "warn"
+  },
+  "rokuDeploy": {
+    "rootDir": ".",
+    "outDir": "dist",
+    "outFile": "haku",
+    "host": "${ROKU_IP}",
+    "username": "rokudev",
+    "password": "${ROKU_DEV_PASSWORD}",
+    "retainStagingFolder": false
+  }
+}

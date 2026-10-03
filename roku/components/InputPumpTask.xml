@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  InputPumpTask — listens for ECP /input?... events via roInput off the render
+  thread, and posts each event's parameter map onto m.top.event so MainScene's
+  observer can dispatch.
+-->
+<component name="InputPumpTask" extends="Task">
+    <interface>
+        <field id="event" type="assocarray" alwaysNotify="true" />
+    </interface>
+    <script type="text/brightscript" uri="InputPumpTask.brs" />
+</component>

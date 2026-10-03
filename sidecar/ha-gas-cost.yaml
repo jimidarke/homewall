@@ -1,0 +1,129 @@
+# Gas cost tracking: today's and this month's gas use and cost for the HAku
+# tablet (Gas tile and detail panel), and the price entity for HA's Energy
+# dashboard.  (deploy to HA as packages/gas_cost.yaml)
+#
+# Bill structure: FILL IN from a gas bill. Every figure below is a placeholder
+# (0), which keeps the cost sensors unavailable, so the tablet hides gas cost
+# until the price is set. Alberta gas is billed per GJ; the bill prints the
+# heat content (GJ per m³) used to convert the meter's m³.
+#   Energy charge (retailer):          $_.____/GJ   -> energy_per_gj
+#   Delivery, variable (ATCO):         $_.____/GJ   -> delivery_per_gj
+#   Riders / other per-GJ charges:     $_.____/GJ   -> riders_per_gj
+#   Heat content:                      0.0___ GJ/m³ -> gj_per_m3
+#   Fixed monthly (no usage component): $__.__      -> fixed_monthly
+#
+# Marginal $/m³ = (energy_per_gj + delivery_per_gj + riders_per_gj) x gj_per_m3
+#
+# After filling in:
+#   Settings -> Dashboards -> Energy -> Gas consumption (sensor.gas_meter_gas_meter_direct)
+#     -> Use a price calculated by an entity -> sensor.gas_marginal_cost_per_m3
+#   HA then creates the gas cost statistic (sensor.gas_meter_gas_meter_direct_cost)
+#   that the tablet's 7-day per-day costs read.
+#
+# INSTALL: copy to <config>/packages/gas_cost.yaml, register it under
+# homeassistant.packages (gas_cost: !include packages/gas_cost.yaml),
+# check_config, restart.
+#
+# RESULTING ENTITIES:
+#   sensor.gas_meter_total            the meter's last reading, kept across HA restarts
+#   sensor.gas_flow                   m³/h now; falls to 0 when the meter stops ticking -> tablet "now"
+#   sensor.gas_daily_usage            m³ so far today        -> tablet "today"
+#   sensor.gas_monthly_usage          m³ so far this month   -> tablet detail
+#   sensor.gas_marginal_cost_per_m3   CAD/m³ (0 until filled in)
+#   sensor.gas_cost_today             CAD, unavailable while the price is 0
+#   sensor.gas_monthly_cost           CAD estimate incl. the fixed charge, ditto
+
+# The meter (rtl_433 over MQTT) only reports when gas flows, and its MQTT state
+# isn't retained, so after an HA restart sensor.gas_meter_gas_meter_direct reads
+# "unknown" until the next burn. sensor.gas_meter_total keeps the last reading
+# (trigger-based template entities restore their state), and everything below
+# reads it instead.
+#
+# The UI helper sensor.home_gas_usage (a derivative of the raw meter) only
+# recalculates on a meter tick, so it holds the last burn's rate after the gas
+# stops. sensor.gas_flow recalculates every 5 minutes without a tick
+# (max_sub_interval), so it falls to 0 when nothing is burning.
+sensor:
+  - platform: derivative
+    source: sensor.gas_meter_total
+    name: Gas Flow
+    unique_id: haku_gas_flow
+    round: 2
+    unit_time: h
+    time_window: "00:10:00"
+    max_sub_interval: "00:05:00"
+
+utility_meter:
+  gas_daily:
+    source: sensor.gas_meter_total
+    name: Gas Daily Usage
+    cycle: daily
+    always_available: true
+  gas_monthly:
+    source: sensor.gas_meter_total
+    name: Gas Monthly Usage
+    cycle: monthly
+    always_available: true
+
+template:
+  - trigger:
+      - trigger: state
+        entity_id: sensor.gas_meter_gas_meter_direct
+        not_to:
+          - unknown
+          - unavailable
+      # A reading that lands while HA is still starting arrives before the state
+      # trigger is attached, so also look at startup and every 5 minutes.
+      - trigger: homeassistant
+        event: start
+      - trigger: time_pattern
+        minutes: "/5"
+    sensor:
+      - name: Gas Meter Total
+        unique_id: haku_gas_meter_total
+        unit_of_measurement: "m³"
+        device_class: gas
+        state_class: total_increasing
+        icon: mdi:meter-gas
+        # The meter's reading when it has one; otherwise the last one kept.
+        state: >
+          {% set v = states('sensor.gas_meter_gas_meter_direct') %}
+          {{ v | float if is_number(v) else this.state }}
+
+  - sensor:
+      - name: Gas Marginal Cost Per M3
+        unique_id: gas_marginal_cost_per_m3
+        unit_of_measurement: "CAD/m³"
+        device_class: monetary
+        icon: mdi:fire
+        state: >
+          {% set energy_per_gj = 0.0 %}
+          {% set delivery_per_gj = 0.0 %}
+          {% set riders_per_gj = 0.0 %}
+          {% set gj_per_m3 = 0.0 %}
+          {{ ((energy_per_gj + delivery_per_gj + riders_per_gj) * gj_per_m3) | round(5) }}
+
+      - name: Gas Cost Today
+        unique_id: gas_cost_today
+        unit_of_measurement: CAD
+        device_class: monetary
+        icon: mdi:cash
+        state: >
+          {{ (states('sensor.gas_daily_usage') | float(0)
+              * states('sensor.gas_marginal_cost_per_m3') | float(0)) | round(2) }}
+        availability: >
+          {{ has_value('sensor.gas_daily_usage')
+             and states('sensor.gas_marginal_cost_per_m3') | float(0) > 0 }}
+
+      - name: Gas Monthly Cost
+        unique_id: gas_monthly_cost
+        unit_of_measurement: CAD
+        device_class: monetary
+        icon: mdi:cash
+        state: >
+          {% set fixed_monthly = 0.0 %}
+          {{ (fixed_monthly + states('sensor.gas_monthly_usage') | float(0)
+              * states('sensor.gas_marginal_cost_per_m3') | float(0)) | round(2) }}
+        availability: >
+          {{ has_value('sensor.gas_monthly_usage')
+             and states('sensor.gas_marginal_cost_per_m3') | float(0) > 0 }}

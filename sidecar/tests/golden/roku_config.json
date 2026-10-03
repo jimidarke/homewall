@@ -1,0 +1,236 @@
+{
+  "background": {
+    "enabled": true,
+    "intervalMs": 20000
+  },
+  "grid": {
+    "cellH": 440,
+    "cellW": 432,
+    "cols": 4,
+    "gap": 24,
+    "originX": 60,
+    "originY": 160,
+    "rows": 2
+  },
+  "modules": [
+    {
+      "drill": {
+        "card": "/api/card/weather_forecast.png",
+        "type": "chart"
+      },
+      "entities": {
+        "forecast": "weather.edmonton_forecast",
+        "indoor": "weather.my_ecobee"
+      },
+      "feedKey": "weather",
+      "icon": "wx",
+      "id": "weather",
+      "kind": "weather",
+      "refreshMs": 30000,
+      "tile": {
+        "col": 0,
+        "h": 1,
+        "row": 0,
+        "type": "value",
+        "w": 1
+      },
+      "title": "Weather"
+    },
+    {
+      "drill": {
+        "type": "value"
+      },
+      "entities": {
+        "cost": "sensor.electricity_daily_cost",
+        "daily_energy": "sensor.emporia_total_daily_energy_kwh",
+        "power": "sensor.emporia_total_power"
+      },
+      "feedKey": "energy",
+      "icon": "bolt",
+      "id": "energy",
+      "kind": "energy",
+      "refreshMs": 30000,
+      "tile": {
+        "col": 1,
+        "h": 1,
+        "row": 0,
+        "type": "value",
+        "w": 1
+      },
+      "title": "Energy"
+    },
+    {
+      "drill": {
+        "type": "value"
+      },
+      "entities": {
+        "daily": "sensor.water_daily_usage",
+        "flow": "sensor.water_flow_lpm",
+        "hourly": "sensor.water_hourly_usage",
+        "monthly": "sensor.water_monthly_usage",
+        "total": "sensor.water_meter_total"
+      },
+      "feedKey": "water",
+      "icon": "drop",
+      "id": "water",
+      "kind": "water",
+      "maxFlowLpm": 10,
+      "refreshMs": 30000,
+      "tile": {
+        "col": 0,
+        "h": 1,
+        "row": 1,
+        "type": "value",
+        "w": 1
+      },
+      "title": "Water"
+    },
+    {
+      "drill": {
+        "route": "live",
+        "type": "camera"
+      },
+      "entities": {
+        "motion": {
+          "backyard": "binary_sensor.backyard_motion_occupancy",
+          "front": "binary_sensor.front_motion_occupancy"
+        }
+      },
+      "feedKey": "cameras",
+      "icon": "cam",
+      "id": "cameras",
+      "kind": "cameras",
+      "refreshMs": 10000,
+      "streams": [
+        "front",
+        "yard",
+        "side",
+        "backyard",
+        "mosaic"
+      ],
+      "tile": {
+        "col": 2,
+        "h": 1,
+        "row": 0,
+        "thumbCam": "mosaic",
+        "type": "camera",
+        "w": 1
+      },
+      "title": "Cameras"
+    },
+    {
+      "coalesceWindowSec": 300,
+      "drill": {
+        "type": "agenda"
+      },
+      "entities": {
+        "watch": [
+          "binary_sensor.front_doorcontact_contact",
+          "binary_sensor.back_doorcontact_contact",
+          "binary_sensor.bathroom_door_contact",
+          "binary_sensor.front_motion_occupancy",
+          "binary_sensor.backyard_motion_occupancy",
+          "binary_sensor.my_ecobee_occupancy",
+          "binary_sensor.shed_motion_occupancy",
+          "binary_sensor.water_in_tier_2",
+          "person.jimi",
+          "person.alex",
+          "person.robin"
+        ]
+      },
+      "feedKey": "timeline",
+      "icon": "activity",
+      "id": "timeline",
+      "kind": "timeline",
+      "lookbackHours": 12,
+      "refreshMs": 30000,
+      "tile": {
+        "col": 1,
+        "dropHeaders": true,
+        "h": 1,
+        "rotate": false,
+        "row": 1,
+        "type": "agenda",
+        "w": 1
+      },
+      "title": "Recent Activity"
+    },
+    {
+      "drill": {
+        "type": "agenda"
+      },
+      "entities": {
+        "calendars": [
+          "calendar.family"
+        ]
+      },
+      "feedKey": "calendar",
+      "icon": "cal",
+      "id": "calendar",
+      "kind": "calendar",
+      "lookaheadDays": 14,
+      "refreshMs": 60000,
+      "tile": {
+        "col": 2,
+        "h": 1,
+        "rotate": false,
+        "row": 1,
+        "type": "agenda",
+        "w": 1
+      },
+      "title": "Calendar"
+    },
+    {
+      "drill": {
+        "type": "value"
+      },
+      "entities": {
+        "flow": "sensor.home_gas_usage",
+        "total": "sensor.gas_meter_gas_meter_direct"
+      },
+      "feedKey": "gas",
+      "icon": "gas",
+      "id": "gas",
+      "kind": "gas",
+      "maxFlowM3h": 2,
+      "refreshMs": 30000,
+      "tile": {
+        "col": 3,
+        "h": 1,
+        "row": 0,
+        "type": "value",
+        "w": 1
+      },
+      "title": "Gas"
+    },
+    {
+      "drill": {
+        "type": "value"
+      },
+      "entities": {
+        "thermostat": "climate.my_ecobee"
+      },
+      "feedKey": "climate",
+      "icon": "temp",
+      "id": "climate",
+      "kind": "climate",
+      "refreshMs": 30000,
+      "tile": {
+        "col": 3,
+        "h": 1,
+        "row": 1,
+        "type": "value",
+        "w": 1
+      },
+      "title": "Thermostat"
+    }
+  ],
+  "sidecar": {
+    "base": "http://192.0.2.20:1986",
+    "config": "/api/config",
+    "state": "/api/state"
+  },
+  "site": "home",
+  "timezone": "America/Edmonton",
+  "version": 1
+}

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  Toast — top-centre notification strip.
+
+  Caller invokes by writing to the `request` field with an assoc array:
+    { text: "Front Door · motion", severity: "high"|"normal"|"low", durationMs: 3000 }
+  durationMs is optional (defaults to 3000; high severity bumps to 5000).
+-->
+<component name="Toast" extends="Group">
+    <interface>
+        <field id="request" type="assocarray" alwaysNotify="true" onChange="onRequest" />
+    </interface>
+    <script type="text/brightscript" uri="Toast.brs" />
+    <children>
+        <Rectangle id="toastBg"
+                   width="800" height="56"
+                   color="0x2B2A26CC"
+                   visible="false"
+                   translation="[560, -80]" />
+        <Rectangle id="toastBorder"
+                   width="4" height="56"
+                   color="0xD9A441FF"
+                   visible="false"
+                   translation="[560, -80]" />
+        <Label id="toastLabel"
+               width="780" height="56"
+               horizAlign="left" vertAlign="center"
+               color="0xFAF6EEFF"
+               font="font:MediumBoldSystemFont"
+               text=""
+               visible="false"
+               translation="[576, -80]" />
+        <Animation id="slideIn" duration="0.18" repeat="false" easeFunction="outQuad">
+            <Vector2DFieldInterpolator id="slideInBg"      key="[0.0, 1.0]" keyValue="[ [560.0, -80.0], [560.0, 80.0] ]" fieldToInterp="toastBg.translation" />
+            <Vector2DFieldInterpolator id="slideInBorder"  key="[0.0, 1.0]" keyValue="[ [560.0, -80.0], [560.0, 80.0] ]" fieldToInterp="toastBorder.translation" />
+            <Vector2DFieldInterpolator id="slideInLabel"   key="[0.0, 1.0]" keyValue="[ [576.0, -80.0], [576.0, 80.0] ]" fieldToInterp="toastLabel.translation" />
+        </Animation>
+        <Animation id="slideOut" duration="0.15" repeat="false" easeFunction="inQuad">
+            <Vector2DFieldInterpolator id="slideOutBg"     key="[0.0, 1.0]" keyValue="[ [560.0, 80.0], [560.0, -80.0] ]" fieldToInterp="toastBg.translation" />
+            <Vector2DFieldInterpolator id="slideOutBorder" key="[0.0, 1.0]" keyValue="[ [560.0, 80.0], [560.0, -80.0] ]" fieldToInterp="toastBorder.translation" />
+            <Vector2DFieldInterpolator id="slideOutLabel"  key="[0.0, 1.0]" keyValue="[ [576.0, 80.0], [576.0, -80.0] ]" fieldToInterp="toastLabel.translation" />
+        </Animation>
+        <Timer id="holdTimer" repeat="false" duration="3" />
+    </children>
+</component>

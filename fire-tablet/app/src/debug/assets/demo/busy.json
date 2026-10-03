@@ -1,0 +1,310 @@
+{
+  "v": 1,
+  "ts": 1790822530,
+  "doors": {
+    "doors": [
+      {
+        "id": "front",
+        "label": "Front",
+        "state": "closed",
+        "since": 1790821810,
+        "since_exact": true,
+        "age": "12m",
+        "severity": "normal",
+        "glyph": "door-closed"
+      },
+      {
+        "id": "back",
+        "label": "Back",
+        "state": "open",
+        "since": 1790822410,
+        "since_exact": true,
+        "age": "2m",
+        "severity": "normal",
+        "glyph": "door-open"
+      }
+    ],
+    "open_count": 1,
+    "stale": false,
+    "tile": {
+      "hero": "Back open",
+      "sub": "2m",
+      "detail": "Front closed · 12m",
+      "severity": "normal",
+      "glyph": "door-open",
+      "active": true
+    }
+  },
+  "laundry": {
+    "machines": [
+      {
+        "id": "washer",
+        "label": "Washer",
+        "color": "#00AAFF",
+        "mode": "running",
+        "leds": 3,
+        "started": 1790821270,
+        "elapsed_min": 21,
+        "expected_min": 55,
+        "remaining_min": 34,
+        "power_w": 186,
+        "status": "34m left",
+        "glyph": "washing-machine",
+        "stale": false
+      },
+      {
+        "id": "dryer",
+        "label": "Dryer",
+        "color": "#FF6900",
+        "mode": "done_calm",
+        "leds": 0,
+        "finished": 1790783520,
+        "finished_hm": "9:52 AM",
+        "status": "done 9:52 AM",
+        "glyph": "tumble-dryer",
+        "stale": false
+      }
+    ],
+    "stale": false,
+    "tile": {
+      "hero": "Washer 34m left",
+      "sub": "Dryer done 9:52 AM",
+      "detail": "",
+      "severity": "normal",
+      "icon": "running:3|done_calm:0",
+      "glyph": "washing-machine",
+      "active": true
+    }
+  },
+  "timeline": {
+    "count": 8,
+    "items": [
+      {
+        "kind": "header",
+        "title": "TODAY"
+      },
+      {
+        "kind": "event",
+        "title": "Back Door",
+        "sub": "open",
+        "time": "2m",
+        "severity": "normal",
+        "when": 1790822410,
+        "glyph": "door-open"
+      },
+      {
+        "kind": "event",
+        "title": "Kitchen",
+        "sub": "motion",
+        "time": "3m",
+        "severity": "normal",
+        "when": 1790822340,
+        "glyph": "motion-sensor"
+      },
+      {
+        "kind": "event",
+        "title": "Front Entrance",
+        "sub": "motion",
+        "time": "6m",
+        "severity": "normal",
+        "when": 1790822160,
+        "glyph": "motion-sensor"
+      },
+      {
+        "kind": "event",
+        "title": "Alex",
+        "sub": "home",
+        "time": "9m",
+        "severity": "normal",
+        "when": 1790821970,
+        "glyph": "home-account"
+      },
+      {
+        "kind": "event",
+        "title": "Front Door",
+        "sub": "closed",
+        "time": "12m",
+        "severity": "normal",
+        "when": 1790821810,
+        "glyph": "door-closed"
+      },
+      {
+        "kind": "event",
+        "title": "Front Door",
+        "sub": "open",
+        "time": "13m",
+        "severity": "normal",
+        "when": 1790821740,
+        "glyph": "door-open"
+      },
+      {
+        "kind": "event",
+        "title": "Garage Door",
+        "sub": "closed",
+        "time": "41m",
+        "severity": "normal",
+        "when": 1790820070,
+        "glyph": "door-closed"
+      },
+      {
+        "kind": "event",
+        "title": "Front Lock",
+        "sub": "locked",
+        "time": "1h",
+        "severity": "normal",
+        "when": 1790818830,
+        "glyph": "lock"
+      }
+    ],
+    "tile": {
+      "hero": "Back Door",
+      "sub": "open · 2m",
+      "detail": "Kitchen · 3m",
+      "severity": "normal",
+      "glyph": "history",
+      "active": false
+    }
+  },
+  "water": {
+    "daily": 424.9,
+    "flow": 5.7,
+    "hourly": 57.0,
+    "monthly": 19.1,
+    "running": true,
+    "stale": false,
+    "total": 91.6,
+    "tile": {
+      "hero": "57 L",
+      "sub": "flowing 5.7 L/min",
+      "detail": "24h 424.9 L   30d 19.1 m³",
+      "severity": "normal",
+      "icon": "55",
+      "glyph": "water",
+      "active": true,
+      "level": 55
+    }
+  },
+  "energy": {
+    "cost": 5.2,
+    "daily_kwh": 27,
+    "power_kw": 3.1,
+    "stale": false,
+    "tile": {
+      "hero": "3.1 kW",
+      "sub": "27 kWh today",
+      "detail": "$5.20 so far",
+      "severity": "normal",
+      "icon": "60",
+      "glyph": "flash",
+      "active": false,
+      "level": 60
+    }
+  },
+  "climate": {
+    "current_temp": 19.8,
+    "humidity": 44,
+    "hvac_action": "heating",
+    "hvac_mode": "heat",
+    "preset_mode": "home",
+    "stale": false,
+    "tile": {
+      "hero": "20°",
+      "sub": "Heating",
+      "detail": "44% RH   Home mode",
+      "severity": "normal",
+      "glyph": "fire",
+      "active": true
+    }
+  },
+  "weather": {
+    "cond_label": "Rainy",
+    "condition": "rainy",
+    "humidity": 81,
+    "low_c": 3.0,
+    "observed_hm": "20:35",
+    "stale": false,
+    "temp_c": 7.2,
+    "wind_kmh": 11,
+    "tile": {
+      "hero": "7°",
+      "sub": "Rainy",
+      "detail": "81% RH",
+      "severity": "normal",
+      "icon": "rainy",
+      "glyph": "weather-rainy",
+      "active": false
+    }
+  },
+  "gas": {
+    "flow": 1.2,
+    "stale": false,
+    "total": 17.9,
+    "tile": {
+      "hero": "1.2 m³/h",
+      "sub": "burning",
+      "detail": "18 m³ total",
+      "severity": "normal",
+      "icon": "40",
+      "glyph": "fire",
+      "active": true,
+      "level": 40
+    }
+  },
+  "calendar": {
+    "count": 4,
+    "items": [
+      {
+        "kind": "header",
+        "title": "TODAY"
+      },
+      {
+        "kind": "event",
+        "title": "Garbage pickup",
+        "time": "all day",
+        "severity": "normal",
+        "dot": "0x5B8C7FFF"
+      },
+      {
+        "kind": "header",
+        "title": "TOMORROW"
+      },
+      {
+        "kind": "event",
+        "title": "Dentist",
+        "time": "3:30 PM",
+        "severity": "normal",
+        "dot": "0xD9A441FF"
+      },
+      {
+        "kind": "header",
+        "title": "FRI · OCT 2"
+      },
+      {
+        "kind": "event",
+        "title": "Soccer practice",
+        "time": "5:00 PM",
+        "severity": "normal",
+        "dot": "0x4FB3E8FF"
+      },
+      {
+        "kind": "header",
+        "title": "MON · OCT 5"
+      },
+      {
+        "kind": "event",
+        "title": "Book club",
+        "time": "7:00 PM",
+        "severity": "normal",
+        "dot": "0x5B8C7FFF"
+      }
+    ],
+    "tile": {
+      "hero": "Garbage pickup",
+      "sub": "then 3:30 PM  Dentist",
+      "detail": "1 today",
+      "severity": "normal",
+      "glyph": "calendar",
+      "active": false
+    }
+  }
+}

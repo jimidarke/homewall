@@ -1,0 +1,100 @@
+{
+  "v": 1,
+  "id": "laundry",
+  "title": "Laundry",
+  "ts": 1790905930,
+  "blocks": [
+    {
+      "type": "rows",
+      "title": "Washer",
+      "items": [
+        {"glyph": "washing-machine", "tone": "washer", "label": "Status", "value": "Idle"},
+        {"label": "Last started", "value": "Thu Oct 1 · 6:05 PM"},
+        {"label": "Last finished", "value": "Thu Oct 1 · 7:03 PM"},
+        {"label": "Last run", "value": "58m"}
+      ]
+    },
+    {
+      "type": "rows",
+      "title": "Dryer",
+      "items": [
+        {"glyph": "tumble-dryer", "tone": "dryer", "label": "Status", "value": "Running · 22m left"},
+        {"label": "Last started", "value": "Thu Oct 1 · 7:08 PM"},
+        {"label": "Last finished", "value": "Wed Sep 30 · 9:42 PM"},
+        {"label": "Last run", "value": "1h 12m"}
+      ]
+    },
+    {
+      "type": "rows",
+      "title": "Last 7 days",
+      "items": [
+        {
+          "glyph": "washing-machine",
+          "tone": "washer",
+          "label": "Washer",
+          "value": "Thu Oct 1 · 6:05 PM",
+          "sub": "58m"
+        },
+        {
+          "glyph": "tumble-dryer",
+          "tone": "dryer",
+          "label": "Dryer",
+          "value": "Thu Oct 1 · 7:08 PM",
+          "sub": "34m so far"
+        },
+        {"glyph": "tumble-dryer", "tone": "dryer", "label": "Dryer", "value": "Wed Sep 30 · 8:30 PM", "sub": "1h 12m"},
+        {
+          "glyph": "washing-machine",
+          "tone": "washer",
+          "label": "Washer",
+          "value": "Wed Sep 30 · 7:15 PM",
+          "sub": "52m"
+        },
+        {
+          "glyph": "washing-machine",
+          "tone": "washer",
+          "label": "Washer",
+          "value": "Mon Sep 28 · 5:40 PM",
+          "sub": "1h 4m"
+        },
+        {"glyph": "tumble-dryer", "tone": "dryer", "label": "Dryer", "value": "Mon Sep 28 · 6:55 PM", "sub": "1h 8m"},
+        {
+          "glyph": "washing-machine",
+          "tone": "washer",
+          "label": "Washer",
+          "value": "Sun Sep 27 · 10:20 AM",
+          "sub": "49m"
+        },
+        {
+          "glyph": "tumble-dryer",
+          "tone": "dryer",
+          "label": "Dryer",
+          "value": "Sun Sep 27 · 11:15 AM",
+          "sub": "1h 15m"
+        },
+        {
+          "glyph": "washing-machine",
+          "tone": "washer",
+          "label": "Washer",
+          "value": "Sun Sep 27 · 8:02 AM",
+          "sub": "55m"
+        },
+        {
+          "glyph": "washing-machine",
+          "tone": "washer",
+          "label": "Washer",
+          "value": "Sat Sep 26 · 4:30 PM",
+          "sub": "57m"
+        },
+        {"glyph": "tumble-dryer", "tone": "dryer", "label": "Dryer", "value": "Sat Sep 26 · 5:35 PM", "sub": "1h 10m"},
+        {
+          "glyph": "washing-machine",
+          "tone": "washer",
+          "label": "Washer",
+          "value": "Fri Sep 25 · 6:45 PM",
+          "sub": "1h 2m"
+        }
+      ]
+    }
+  ]
+}

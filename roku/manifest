@@ -1,0 +1,23 @@
+title=HAku
+subtitle=Home Assistant on your TV
+major_version=0
+minor_version=10
+build_version=00001
+
+mm_icon_focus_fhd=pkg:/images/icon_focus_fhd.png
+mm_icon_focus_hd=pkg:/images/icon_focus_hd.png
+mm_icon_focus_sd=pkg:/images/icon_focus_sd.png
+
+splash_screen_fhd=pkg:/images/splash_fhd.jpg
+splash_screen_hd=pkg:/images/splash_hd.jpg
+splash_screen_sd=pkg:/images/splash_sd.jpg
+splash_color=#F7F1E3
+splash_min_time=1500
+
+ui_resolutions=fhd
+
+# Hot deep-link: relaunch via ECP /input keeps the running channel and
+# delivers args without restarting (Roku OS 9.4+).
+supports_input_launch=1
+
+bs_const=DEBUG=false

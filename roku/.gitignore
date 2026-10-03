@@ -1,0 +1,7 @@
+# bsc / roku-deploy output (npm run build|package|deploy)
+dist/
+out/
+*.pkg
+
+# npm ci
+node_modules/

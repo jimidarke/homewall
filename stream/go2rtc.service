@@ -1,0 +1,25 @@
+[Unit]
+Description=go2rtc — HAku capture pipeline (NVR HDMI → RTSP/HLS/MJPEG/WebRTC)
+Documentation=https://github.com/AlexxIT/go2rtc
+After=network-online.target
+Wants=network-online.target
+# Hard guarantee the legacy mjpg_streamer is not holding /dev/video2.
+Conflicts=sendHDMI.service
+
+[Service]
+Type=simple
+User=media
+Group=media
+SupplementaryGroups=video render
+# Camera RTSP creds — referenced as ${HAKU_CAM_USER}/${HAKU_CAM_PASSWORD}
+# in go2rtc.yaml. File is mode 0640, owned root:media. Not committed.
+EnvironmentFile=-/etc/haku/cam-creds.env
+# Refuse to start if the capture device isn't present (avoid systemd flapping).
+ExecStartPre=/bin/sh -c 'test -e /dev/v4l/by-id/usb-MACROSILICON_USB3.0_Video_67807015-video-index0'
+ExecStart=/usr/local/bin/go2rtc -config /etc/go2rtc/go2rtc.yaml
+Restart=always
+RestartSec=5
+LimitNOFILE=8192
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,10 @@
+# HAku sidecar runtime deps. Pinned major versions for reproducible kiosk builds.
+Flask>=3.0,<4
+waitress>=3.0,<4
+matplotlib>=3.8,<4
+Pillow>=10.0
+# HA long-term statistics over the websocket (detail panels); imported lazily by ha.py.
+websocket-client>=1.6,<2
+
+# dev/test only:
+#   pytest>=8.0

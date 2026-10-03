@@ -1,0 +1,77 @@
+{
+  "service": "haku",
+  "version": "1.0.0",
+  "schemaVersion": 2,
+  "host": "192.0.2.20",
+  "sidecar": {
+    "base": "http://192.0.2.20:1986",
+    "config": "/api/config",
+    "state": "/api/state"
+  },
+  "streams": {
+    "backyard": {
+      "displayName": "Backyard",
+      "vendor": "Reolink-family",
+      "ptz": false,
+      "codec": "h264",
+      "resolution": "2048x1536",
+      "framerate": 20,
+      "audio": false,
+      "rtsp": "rtsp://192.0.2.20:8554/backyard",
+      "hls": "http://192.0.2.20:1985/hls/backyard.m3u8",
+      "mjpeg": "http://192.0.2.20:1984/api/stream.mjpeg?src=backyard",
+      "snapshot": "http://192.0.2.20:1984/api/frame.jpeg?src=backyard"
+    },
+    "front": {
+      "displayName": "Front Door",
+      "vendor": "Amcrest",
+      "ptz": true,
+      "codec": "h264",
+      "resolution": "1920x1080",
+      "audio": true,
+      "rtsp": "rtsp://192.0.2.20:8554/front",
+      "hls": "http://192.0.2.20:1985/hls/front.m3u8",
+      "mjpeg": "http://192.0.2.20:1984/api/stream.mjpeg?src=front",
+      "snapshot": "http://192.0.2.20:1984/api/frame.jpeg?src=front"
+    },
+    "mosaic": {
+      "displayName": "NVR 4-up Mosaic",
+      "codec": "h264",
+      "profile": "main",
+      "level": "4.0",
+      "resolution": "1920x1080",
+      "framerate": 20,
+      "bitrate_kbps": 2500,
+      "audio": false,
+      "rtsp": "rtsp://192.0.2.20:8554/mosaic",
+      "hls": "http://192.0.2.20:1985/hls/mosaic.m3u8",
+      "mjpeg": "http://192.0.2.20:1984/api/stream.mjpeg?src=mosaic",
+      "snapshot": "http://192.0.2.20:1984/api/frame.jpeg?src=mosaic"
+    },
+    "side": {
+      "displayName": "Side Gate",
+      "vendor": "Amcrest",
+      "ptz": true,
+      "codec": "h264",
+      "resolution": "1920x1080",
+      "audio": true,
+      "rtsp": "rtsp://192.0.2.20:8554/side",
+      "hls": "http://192.0.2.20:1985/hls/side.m3u8",
+      "mjpeg": "http://192.0.2.20:1984/api/stream.mjpeg?src=side",
+      "snapshot": "http://192.0.2.20:1984/api/frame.jpeg?src=side"
+    },
+    "yard": {
+      "displayName": "Yard",
+      "vendor": "Reolink",
+      "ptz": true,
+      "codec": "h264",
+      "resolution": "640x480",
+      "audio": true,
+      "note": "Sub-stream used for Roku H.264 compat; main is HEVC 4K.",
+      "rtsp": "rtsp://192.0.2.20:8554/yard",
+      "hls": "http://192.0.2.20:1985/hls/yard.m3u8",
+      "mjpeg": "http://192.0.2.20:1984/api/stream.mjpeg?src=yard",
+      "snapshot": "http://192.0.2.20:1984/api/frame.jpeg?src=yard"
+    }
+  }
+}

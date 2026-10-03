@@ -1,0 +1,144 @@
+{
+  "version": 1,
+  "site": "home",
+  "timezone": "America/Edmonton",
+  "grid": {
+    "cols": 4,
+    "rows": 3
+  },
+  "nightDim": {
+    "start": "22:00",
+    "end": "06:30",
+    "brightness": 0.15
+  },
+  "background": {
+    "enabled": true,
+    "intervalMs": 180000
+  },
+  "modules": [
+    {
+      "id": "doors",
+      "kind": "doors",
+      "title": "Doors",
+      "feedKey": "doors",
+      "tile": {
+        "type": "value",
+        "col": 0,
+        "row": 0,
+        "w": 1,
+        "h": 1
+      }
+    },
+    {
+      "id": "laundry",
+      "kind": "laundry",
+      "title": "Laundry",
+      "feedKey": "laundry",
+      "tile": {
+        "type": "value",
+        "col": 1,
+        "row": 0,
+        "w": 1,
+        "h": 1
+      }
+    },
+    {
+      "id": "timeline",
+      "kind": "timeline",
+      "title": "Activity",
+      "feedKey": "timeline",
+      "tile": {
+        "type": "agenda",
+        "col": 3,
+        "row": 0,
+        "w": 1,
+        "h": 3,
+        "dropHeaders": true
+      }
+    },
+    {
+      "id": "water",
+      "kind": "water",
+      "title": "Water",
+      "feedKey": "water",
+      "tile": {
+        "type": "value",
+        "col": 0,
+        "row": 1,
+        "w": 1,
+        "h": 1
+      }
+    },
+    {
+      "id": "energy",
+      "kind": "energy",
+      "title": "Energy",
+      "feedKey": "energy",
+      "tile": {
+        "type": "value",
+        "col": 1,
+        "row": 1,
+        "w": 1,
+        "h": 1
+      }
+    },
+    {
+      "id": "climate",
+      "kind": "climate",
+      "title": "Thermostat",
+      "feedKey": "climate",
+      "tile": {
+        "type": "value",
+        "col": 2,
+        "row": 2,
+        "w": 1,
+        "h": 1
+      }
+    },
+    {
+      "id": "weather",
+      "kind": "weather",
+      "title": "Weather",
+      "feedKey": "weather",
+      "tile": {
+        "type": "value",
+        "col": 0,
+        "row": 2,
+        "w": 1,
+        "h": 1
+      }
+    },
+    {
+      "id": "gas",
+      "kind": "gas",
+      "title": "Gas",
+      "feedKey": "gas",
+      "tile": {
+        "type": "value",
+        "col": 1,
+        "row": 2,
+        "w": 1,
+        "h": 1
+      }
+    },
+    {
+      "id": "calendar",
+      "kind": "calendar",
+      "title": "Calendar",
+      "feedKey": "calendar",
+      "tile": {
+        "type": "agenda",
+        "col": 2,
+        "row": 0,
+        "w": 1,
+        "h": 2,
+        "dropHeaders": false
+      }
+    }
+  ],
+  "sidecar": {
+    "base": "http://192.0.2.20:1986",
+    "config": "/api/config",
+    "state": "/api/state"
+  }
+}

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  ModuleTile — one home-page card. Generic: renders by descriptor.tile.type
+  (value | agenda -> native Labels from values.tile; camera -> go2rtc JPEG thumb;
+  chart | image -> a Poster of a sidecar-rendered PNG). Sized to tileW x tileH by
+  code so a tile can span cells. The sidecar owns display formatting (values.tile),
+  so this component stays kind-agnostic. A "value" tile whose descriptor carries a
+  non-empty `icon` string also gets a sidecar-rendered accent icon (weather
+  condition glyph / energy battery gauge / water bucket gauge) fetched from
+  /api/icon/<id>.png; missing icon support or stale data both just leave it hidden.
+-->
+<component name="ModuleTile" extends="Group">
+    <interface>
+        <field id="descriptor" type="assocarray" onChange="onDescriptor" />
+        <field id="values" type="assocarray" onChange="onValues" />
+        <field id="focused" type="boolean" value="false" onChange="onFocus" />
+        <field id="tileW" type="integer" value="600" />
+        <field id="tileH" type="integer" value="440" />
+        <field id="cacheBust" type="string" value="0" />
+        <field id="hubBase" type="string" value="" />
+        <field id="snapBase" type="string" value="" />
+    </interface>
+    <script type="text/brightscript" uri="ModuleTile.brs" />
+    <script type="text/brightscript" uri="pkg:/source/Config.brs" />
+    <script type="text/brightscript" uri="pkg:/source/Api.brs" />
+    <children>
+        <!-- Smoked glass: dark translucent card over the rotating photo, a
+             slightly-darker chip behind the title, light text, brand ring on
+             focus, severity stripe. Roku has no live blur, so this is alpha
+             compositing (0xRRGGBBAA), not a real backdrop-blur. -->
+        <Rectangle id="ring"  color="0x5B8C7FFF" visible="false" />
+        <Rectangle id="card"  color="0x1A211FCC" />
+        <Rectangle id="titleChip" color="0x0C1211D9" />
+        <Rectangle id="stripe" color="0xD9A441FF" />
+        <Label id="title" color="0xF3EFE6B3" font="font:MediumBoldSystemFont" text="" />
+        <Poster id="icon" loadDisplayMode="scaleToFit" visible="false" />
+        <!-- value (also the agenda fallback when no items yet) -->
+        <Label id="hero"   color="0xFAF6EEFF" font="font:LargeBoldSystemFont" text="" />
+        <Label id="sub"    color="0xFAF6EEFF" font="font:MediumBoldSystemFont" text="" />
+        <Label id="detail" color="0xF3EFE6B3" font="font:MediumSystemFont" text="" wrap="true" maxLines="3" />
+        <!-- agenda (timeline / calendar): rows created in code, cycled by rollTimer -->
+        <Group id="agenda" visible="false" />
+        <Timer id="rollTimer" repeat="true" />
+        <!-- camera -->
+        <Poster id="thumb" loadDisplayMode="scaleToZoom" visible="false" />
+        <Rectangle id="camScrim" color="0x0C1211E6" visible="false" />
+        <Label id="camLabel" color="0xFAF6EEFF" font="font:MediumBoldSystemFont" text="" visible="false" />
+        <!-- chart / image -->
+        <Poster id="img" loadDisplayMode="scaleToFit" visible="false" />
+    </children>
+</component>

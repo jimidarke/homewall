@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  JpegPipTask — async snapshot puller for the PIP overlay.
+
+  Loops every `intervalMs` (default 500): GETs
+    <serverBase>/api/frame.jpeg?src=<cam>
+  and writes the bytes to a tmp:/ ping-pong slot. After each successful fetch
+  it publishes the path on `frameUri`, which the OverlayLayer's Poster
+  observes and rebinds. Two-slot ping-pong avoids the Poster reading a
+  half-written file mid-decode.
+
+  Lifecycle:
+    1. Caller writes cam/serverBase/intervalMs.
+    2. Caller sets control = "RUN".
+    3. Caller writes control = "stop" to halt — the task drops out of the
+       loop on its next iteration boundary (worst case: intervalMs latency).
+-->
+<component name="JpegPipTask" extends="Task">
+    <interface>
+        <field id="cam"         type="string"  value="" />
+        <field id="serverBase"  type="string"  value="" />
+        <field id="intervalMs"  type="integer" value="500" />
+        <field id="frameUri"    type="string"  value="" alwaysNotify="true" />
+    </interface>
+    <script type="text/brightscript" uri="JpegPipTask.brs" />
+    <script type="text/brightscript" uri="pkg:/source/Config.brs" />
+</component>

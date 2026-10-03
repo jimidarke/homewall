@@ -1,0 +1,22 @@
+{
+  "name": "haku-roku",
+  "version": "0.10.0",
+  "private": true,
+  "description": "HAku — sideloaded Roku channel for the homeController estate. LIVE + GRID modes over the nserver mosaic stream.",
+  "scripts": {
+    "build": "bsc",
+    "lint": "bsc --noEmit",
+    "package": "bsc --create-package --package-path dist/haku.zip",
+    "deploy": "node scripts/deploy.js",
+    "test:unit": "node tests/unit/run.js",
+    "test:contract": "python3 tests/contract/discovery_contract.py",
+    "test:smoke": "bash tests/smoke/smoke.sh",
+    "test": "npm run lint && npm run test:unit && npm run test:contract",
+    "clean": "rm -rf dist out"
+  },
+  "devDependencies": {
+    "@rokucommunity/brs": "^0.47.4",
+    "brighterscript": "^0.69.0",
+    "roku-deploy": "^3.12.0"
+  }
+}

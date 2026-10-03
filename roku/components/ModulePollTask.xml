@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  ModulePollTask — one-shot GET /api/config (when fetchConfig) + /api/state off the
+  render thread. MainScene sets hubBase from discovery, fires control="RUN" on a Timer,
+  observes `snapshot` and `config`. (Descends from sallynet StatePollTask.)
+-->
+<component name="ModulePollTask" extends="Task">
+    <interface>
+        <field id="hubBase" type="string" value="" />
+        <field id="fetchConfig" type="boolean" value="false" />
+        <field id="config" type="assocarray" alwaysNotify="true" />
+        <field id="snapshot" type="assocarray" alwaysNotify="true" />
+        <field id="ok" type="boolean" value="false" />
+    </interface>
+    <script type="text/brightscript" uri="ModulePollTask.brs" />
+    <script type="text/brightscript" uri="pkg:/source/Config.brs" />
+    <script type="text/brightscript" uri="pkg:/source/Http.brs" />
+    <script type="text/brightscript" uri="pkg:/source/Api.brs" />
+</component>

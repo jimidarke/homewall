@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  OverlayLayer — v0.5 info-overlay framework.
+
+  Five overlay kinds, four on-screen zones:
+    door / text   → topBanner zone (720×120 scrim card, top-centre below toast)
+    weather       → weatherChip zone (360×96 cream chip, top-right)
+    sensor        → sensorChip zone (360×96 cream chip, below weather)
+    pip           → pip zone (480×302 framed snapshot, bottom-right)
+
+  Each zone has its own slide-in / slide-out animation + dismiss timer. Zones
+  are independent — door + weather + sensor + pip can all be visible at once
+  without queueing.
+
+  Caller invokes via callFunc("show", params), where params is the parsed ECP
+  /input assoc array (e.g. { overlay: "door", label: "Front Door",
+  action: "opened", severity: "normal" }). Unknown overlay kinds are ignored
+  silently for forward-compat.
+
+  Layout coords on a 1920×1080 canvas (title-safe rect = 1534×866 at offset
+  192,106):
+    topBanner    (600, 160)   keeps 24-px gap below Toast at y=80+56
+    weatherChip  (1360, 110)
+    sensorChip   (1360, 216)  10-px gap below weather chip
+    pip          (1344, 672)  inside action-safe (96-px margins)
+-->
+<component name="OverlayLayer" extends="Group">
+    <interface>
+        <function name="show" />
+        <function name="hide" />
+    </interface>
+    <script type="text/brightscript" uri="OverlayLayer.brs" />
+    <script type="text/brightscript" uri="pkg:/source/Config.brs" />
+    <children>
+
+        <!-- Top-fade gradient (visible only when chip stack is non-empty) -->
+        <Poster id="topFade"
+                uri="pkg:/images/overlay_gradient_topfade.png"
+                width="1920" height="220"
+                translation="[0, 0]"
+                opacity="0.0" />
+
+        <!-- ============ Top banner zone (door / text) ============ -->
+        <Group id="topBanner" translation="[600, -120]" opacity="0.0">
+            <Poster id="topBannerBg"
+                    uri="pkg:/images/overlay_card_scrim.png"
+                    width="720" height="120" />
+            <Rectangle id="topBannerStripe"
+                       width="8" height="120"
+                       color="0xD9A441FF" />
+            <Label id="topBannerTitle"
+                   translation="[40, 10]"
+                   width="640" height="50"
+                   horizAlign="left" vertAlign="center"
+                   color="0xFAF6EEFF"
+                   font="font:LargeBoldSystemFont"
+                   text="" />
+            <Label id="topBannerSub"
+                   translation="[40, 62]"
+                   width="640" height="48"
+                   horizAlign="left" vertAlign="center"
+                   color="0xFAF6EE99"
+                   font="font:MediumSystemFont"
+                   text="" />
+        </Group>
+        <Animation id="topBannerSlideIn" duration="0.20" repeat="false" easeFunction="outQuad">
+            <FloatFieldInterpolator key="[0.0, 1.0]" keyValue="[0.0, 1.0]" fieldToInterp="topBanner.opacity" />
+            <Vector2DFieldInterpolator key="[0.0, 1.0]" keyValue="[ [600.0, -120.0], [600.0, 160.0] ]" fieldToInterp="topBanner.translation" />
+        </Animation>
+        <Animation id="topBannerSlideOut" duration="0.18" repeat="false" easeFunction="inQuad">
+            <FloatFieldInterpolator key="[0.0, 1.0]" keyValue="[1.0, 0.0]" fieldToInterp="topBanner.opacity" />
+            <Vector2DFieldInterpolator key="[0.0, 1.0]" keyValue="[ [600.0, 160.0], [600.0, -120.0] ]" fieldToInterp="topBanner.translation" />
+        </Animation>
+        <Timer id="topBannerTimer" repeat="false" duration="6" />
+
+        <!-- ============ Weather chip zone ============ -->
+        <Group id="weatherChip" translation="[1920, 110]" opacity="0.0">
+            <Poster id="weatherChipBg"
+                    uri="pkg:/images/overlay_card_cream.png"
+                    width="360" height="96" />
+            <Label id="weatherIcon"
+                   translation="[16, 0]"
+                   width="64" height="96"
+                   horizAlign="center" vertAlign="center"
+                   color="0x2B2A26FF"
+                   font="font:LargestSystemFont"
+                   text="" />
+            <Label id="weatherTemp"
+                   translation="[88, 4]"
+                   width="256" height="54"
+                   horizAlign="left" vertAlign="center"
+                   color="0x2B2A26FF"
+                   font="font:LargeBoldSystemFont"
+                   text="" />
+            <Label id="weatherSub"
+                   translation="[88, 54]"
+                   width="256" height="38"
+                   horizAlign="left" vertAlign="center"
+                   color="0x2B2A2699"
+                   font="font:MediumSystemFont"
+                   text="" />
+        </Group>
+        <Animation id="weatherSlideIn" duration="0.20" repeat="false" easeFunction="outQuad">
+            <FloatFieldInterpolator key="[0.0, 1.0]" keyValue="[0.0, 1.0]" fieldToInterp="weatherChip.opacity" />
+            <Vector2DFieldInterpolator key="[0.0, 1.0]" keyValue="[ [1920.0, 110.0], [1360.0, 110.0] ]" fieldToInterp="weatherChip.translation" />
+        </Animation>
+        <Animation id="weatherSlideOut" duration="0.18" repeat="false" easeFunction="inQuad">
+            <FloatFieldInterpolator key="[0.0, 1.0]" keyValue="[1.0, 0.0]" fieldToInterp="weatherChip.opacity" />
+            <Vector2DFieldInterpolator key="[0.0, 1.0]" keyValue="[ [1360.0, 110.0], [1920.0, 110.0] ]" fieldToInterp="weatherChip.translation" />
+        </Animation>
+        <Timer id="weatherTimer" repeat="false" duration="10" />
+
+        <!-- ============ Sensor chip zone ============ -->
+        <Group id="sensorChip" translation="[1920, 216]" opacity="0.0">
+            <Poster id="sensorChipBg"
+                    uri="pkg:/images/overlay_card_cream.png"
+                    width="360" height="96" />
+            <Label id="sensorIcon"
+                   translation="[16, 0]"
+                   width="64" height="96"
+                   horizAlign="center" vertAlign="center"
+                   color="0x2B2A26FF"
+                   font="font:LargestSystemFont"
+                   text="" />
+            <Label id="sensorValue"
+                   translation="[88, 4]"
+                   width="256" height="54"
+                   horizAlign="left" vertAlign="center"
+                   color="0x2B2A26FF"
+                   font="font:LargeBoldSystemFont"
+                   text="" />
+            <Label id="sensorSub"
+                   translation="[88, 54]"
+                   width="256" height="38"
+                   horizAlign="left" vertAlign="center"
+                   color="0x2B2A2699"
+                   font="font:MediumSystemFont"
+                   text="" />
+        </Group>
+        <Animation id="sensorSlideIn" duration="0.20" repeat="false" easeFunction="outQuad">
+            <FloatFieldInterpolator key="[0.0, 1.0]" keyValue="[0.0, 1.0]" fieldToInterp="sensorChip.opacity" />
+            <Vector2DFieldInterpolator key="[0.0, 1.0]" keyValue="[ [1920.0, 216.0], [1360.0, 216.0] ]" fieldToInterp="sensorChip.translation" />
+        </Animation>
+        <Animation id="sensorSlideOut" duration="0.18" repeat="false" easeFunction="inQuad">
+            <FloatFieldInterpolator key="[0.0, 1.0]" keyValue="[1.0, 0.0]" fieldToInterp="sensorChip.opacity" />
+            <Vector2DFieldInterpolator key="[0.0, 1.0]" keyValue="[ [1360.0, 216.0], [1920.0, 216.0] ]" fieldToInterp="sensorChip.translation" />
+        </Animation>
+        <Timer id="sensorTimer" repeat="false" duration="8" />
+
+        <!-- ============ PIP zone ============ -->
+        <Group id="pipBox" translation="[1920, 672]" opacity="0.0">
+            <Poster id="pipFrame"
+                    uri="pkg:/images/overlay_pip_frame.png"
+                    width="480" height="302" />
+            <!-- Snapshot well: x=4..476, y=32..298 (472x266 inside the frame) -->
+            <Poster id="pipImage"
+                    translation="[4, 32]"
+                    width="472" height="266"
+                    loadDisplayMode="scaleToFit"
+                    uri="" />
+            <Label id="pipLabel"
+                   translation="[16, 0]"
+                   width="300" height="32"
+                   horizAlign="left" vertAlign="center"
+                   color="0xFAF6EEFF"
+                   font="font:MediumBoldSystemFont"
+                   text="" />
+            <Label id="pipCountdown"
+                   translation="[320, 0]"
+                   width="148" height="32"
+                   horizAlign="right" vertAlign="center"
+                   color="0xFAF6EE99"
+                   font="font:MediumSystemFont"
+                   text="" />
+        </Group>
+        <Animation id="pipSlideIn" duration="0.20" repeat="false" easeFunction="outQuad">
+            <FloatFieldInterpolator key="[0.0, 1.0]" keyValue="[0.0, 1.0]" fieldToInterp="pipBox.opacity" />
+            <Vector2DFieldInterpolator key="[0.0, 1.0]" keyValue="[ [1920.0, 672.0], [1344.0, 672.0] ]" fieldToInterp="pipBox.translation" />
+        </Animation>
+        <Animation id="pipSlideOut" duration="0.18" repeat="false" easeFunction="inQuad">
+            <FloatFieldInterpolator key="[0.0, 1.0]" keyValue="[1.0, 0.0]" fieldToInterp="pipBox.opacity" />
+            <Vector2DFieldInterpolator key="[0.0, 1.0]" keyValue="[ [1344.0, 672.0], [1920.0, 672.0] ]" fieldToInterp="pipBox.translation" />
+        </Animation>
+        <Timer id="pipTimer" repeat="false" duration="30" />
+        <Timer id="pipCountdownTimer" repeat="true" duration="1" />
+
+        <!-- Top-fade fade-in animation, driven by chip-stack occupancy -->
+        <Animation id="topFadeIn" duration="0.20" repeat="false" easeFunction="outQuad">
+            <FloatFieldInterpolator key="[0.0, 1.0]" keyValue="[0.0, 1.0]" fieldToInterp="topFade.opacity" />
+        </Animation>
+        <Animation id="topFadeOut" duration="0.20" repeat="false" easeFunction="inQuad">
+            <FloatFieldInterpolator key="[0.0, 1.0]" keyValue="[1.0, 0.0]" fieldToInterp="topFade.opacity" />
+        </Animation>
+
+    </children>
+</component>

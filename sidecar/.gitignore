@@ -1,0 +1,12 @@
+# local venv (python3 -m venv .venv; see CLAUDE.md)
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# local runtime config (live copies: /etc/haku/dashboard.json, /etc/haku/haku.env)
+dashboard.json
+haku.env

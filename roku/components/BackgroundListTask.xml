@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  BackgroundListTask — fetch the sidecar's /api/backgrounds off the render thread
+  and publish the ordered list of absolute image URLs. MainScene sets `hubBase`
+  and fires control="RUN"; BackgroundGallery consumes `result`.
+-->
+<component name="BackgroundListTask" extends="Task">
+    <interface>
+        <field id="hubBase" type="string" value="" />
+        <field id="result" type="array" alwaysNotify="true" />
+    </interface>
+    <script type="text/brightscript" uri="BackgroundListTask.brs" />
+    <script type="text/brightscript" uri="pkg:/source/Config.brs" />
+    <script type="text/brightscript" uri="pkg:/source/Api.brs" />
+    <script type="text/brightscript" uri="pkg:/source/Http.brs" />
+</component>

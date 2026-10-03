@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  AgendaRow — MarkupList item component for the agenda drill. Renders one row from
+  its AgendaContent: a "header" divider (uppercase brand label + rule) or an
+  "event" row (severity/calendar dot + time column + title + muted sub). Smoked-
+  glass styling matches ModuleTile. MarkupList drives `itemContent`, `width`,
+  `height`, and `focusPercent` (we draw our own highlight from the last of these,
+  so the list's drawFocusFeedback stays off).
+-->
+<component name="AgendaRow" extends="Group">
+    <interface>
+        <field id="itemContent" type="node" onChange="onContent" />
+        <field id="width" type="float" onChange="onSize" />
+        <field id="height" type="float" onChange="onSize" />
+        <field id="focusPercent" type="float" onChange="onFocusPercent" />
+    </interface>
+    <script type="text/brightscript" uri="AgendaRow.brs" />
+    <script type="text/brightscript" uri="pkg:/source/Config.brs" />
+    <children>
+        <Rectangle id="rowbg" color="0x00000000" />
+        <Rectangle id="hdrline" color="0x5B8C7F66" visible="false" />
+        <Rectangle id="dot" color="0x5B8C7FFF" visible="false" />
+        <Label id="time"  color="0xF3EFE6B3" font="font:MediumSystemFont" text="" />
+        <Label id="title" color="0xFAF6EEFF" font="font:LargeBoldSystemFont" text="" />
+        <Label id="sub"   color="0xF3EFE6B3" font="font:MediumSystemFont" text="" horizAlign="right" />
+    </children>
+</component>

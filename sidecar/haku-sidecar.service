@@ -1,0 +1,25 @@
+[Unit]
+Description=HAku sidecar — HA aggregator + PNG card renderer for the Roku wall
+Documentation=https://github.com/jimidarke/homewall/blob/main/sidecar/README.md
+After=network-online.target haku-discovery.service
+Wants=network-online.target
+PartOf=haku-discovery.service
+
+[Service]
+Type=simple
+User=media
+Group=media
+# Token + HA URL + port live here (0640 root:media, NOT in the repo):
+#   HAKU_HA_URL=http://192.0.2.10:8123
+#   HAKU_HA_TOKEN=<rokuapp long-lived token>
+#   HAKU_SIDECAR_HTTP_PORT=1986
+#   HAKU_SIDECAR_BASE=http://192.0.2.20:1986
+#   HAKU_CONFIG=/etc/haku/dashboard.json
+EnvironmentFile=/etc/haku/haku.env
+WorkingDirectory=/opt/haku/sidecar
+ExecStart=/opt/haku/sidecar/venv/bin/python -m haku_sidecar.app
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,257 @@
+{
+  "v": 1,
+  "id": "weather",
+  "title": "Weather",
+  "ts": 1790905930,
+  "note": "Data provided by Environment Canada",
+  "blocks": [
+    {
+      "type": "now",
+      "glyph": "weather-night",
+      "temp": "-2°",
+      "cond": "Clear",
+      "hilo": "L -5°",
+      "sub": "Updated 9:06 PM",
+      "col": 0
+    },
+    {
+      "type": "rows",
+      "items": [
+        {
+          "label": "Feels like",
+          "value": "-6°"
+        },
+        {
+          "label": "Humidity",
+          "value": "71%"
+        },
+        {
+          "label": "Wind",
+          "value": "11 km/h W"
+        },
+        {
+          "label": "Pressure",
+          "value": "101.8 kPa"
+        },
+        {
+          "label": "Sunrise",
+          "value": "Sun 7:29 AM"
+        },
+        {
+          "label": "Sunset",
+          "value": "Sun 6:34 PM"
+        }
+      ],
+      "col": 0
+    },
+    {
+      "type": "forecast",
+      "style": "compact",
+      "days": [
+        {
+          "label": "Sun",
+          "glyph": "weather-rainy",
+          "cond": "Rainy",
+          "hi": "8°",
+          "lo": "1°",
+          "sub": "60%"
+        },
+        {
+          "label": "Mon",
+          "glyph": "weather-snowy",
+          "cond": "Snow",
+          "hi": "2°",
+          "lo": "-4°",
+          "sub": "40%"
+        },
+        {
+          "label": "Tue",
+          "glyph": "weather-sunny",
+          "cond": "Sunny",
+          "hi": "5°",
+          "lo": "-5°"
+        }
+      ],
+      "col": 0
+    },
+    {
+      "type": "hourly",
+      "items": [
+        {
+          "label": "10 PM",
+          "glyph": "weather-night",
+          "temp": "-2°"
+        },
+        {
+          "label": "11 PM",
+          "glyph": "weather-night",
+          "temp": "-3°"
+        },
+        {
+          "label": "12 AM",
+          "glyph": "weather-night",
+          "temp": "-3°"
+        },
+        {
+          "label": "1 AM",
+          "glyph": "weather-night",
+          "temp": "-4°"
+        },
+        {
+          "label": "2 AM",
+          "glyph": "weather-night",
+          "temp": "-4°"
+        },
+        {
+          "label": "3 AM",
+          "glyph": "weather-night",
+          "temp": "-4°"
+        },
+        {
+          "label": "4 AM",
+          "glyph": "weather-night",
+          "temp": "-5°"
+        },
+        {
+          "label": "5 AM",
+          "glyph": "weather-night",
+          "temp": "-5°"
+        }
+      ],
+      "col": 1
+    },
+    {
+      "type": "chart",
+      "title": "Outdoor · last 24 h and next 24 h",
+      "start": 1790996400,
+      "step": 3600,
+      "count": 49,
+      "x": {
+        "ticks": [
+          {
+            "i": 3,
+            "label": "Sat"
+          },
+          {
+            "i": 9,
+            "label": "6 AM"
+          },
+          {
+            "i": 15,
+            "label": "12 PM"
+          },
+          {
+            "i": 24,
+            "label": "Now",
+            "strong": true
+          },
+          {
+            "i": 33,
+            "label": "6 AM"
+          },
+          {
+            "i": 39,
+            "label": "12 PM"
+          },
+          {
+            "i": 45,
+            "label": "6 PM"
+          }
+        ]
+      },
+      "series": [
+        {
+          "label": "Observed",
+          "tone": "ink",
+          "runs": [
+            {
+              "i": 0,
+              "v": [
+                3.0,
+                3.6,
+                3.9,
+                3.8,
+                3.5,
+                3.4,
+                3.3,
+                3.2,
+                3.0,
+                2.6,
+                2.1,
+                1.5,
+                1.0,
+                0.5,
+                0.2,
+                -0.3,
+                -0.7,
+                -1.0,
+                -1.2,
+                -1.4,
+                -1.5,
+                -1.6,
+                -1.7,
+                -1.8,
+                -1.8
+              ]
+            }
+          ]
+        },
+        {
+          "label": "Forecast",
+          "tone": "cool",
+          "runs": [
+            {
+              "i": 24,
+              "v": [
+                -1.8,
+                -2.0,
+                -3.0,
+                -3.0,
+                -4.0,
+                -4.0,
+                -4.0,
+                -5.0,
+                -5.0,
+                -5.0,
+                -4.0,
+                -3.0,
+                -1.0,
+                0.0,
+                1.0,
+                2.0,
+                3.0,
+                3.0,
+                3.0,
+                2.0,
+                2.0,
+                1.0,
+                0.0,
+                -1.0,
+                -2.0
+              ]
+            }
+          ]
+        }
+      ],
+      "y": {
+        "min": -5,
+        "max": 5,
+        "ticks": [
+          {
+            "v": -5,
+            "label": "-5°"
+          },
+          {
+            "v": 0,
+            "label": "0°"
+          },
+          {
+            "v": 5,
+            "label": "5°"
+          }
+        ]
+      },
+      "col": 1
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+# HAku — water period helpers  (deploy to HA as packages/haku_water.yaml)
+#
+# The Water glance card's hero ("usage in the last hour") and "24h" line need
+# HOURLY and DAILY usage totals. Home Assistant already exposes monthly usage
+# (sensor.water_monthly_usage) and live flow (sensor.water_flow_lpm) from the
+# existing `water_cost` package; these helpers add the shorter windows.
+#
+# INSTALL (Home Assistant on mserver, Docker container `homeassistant`):
+#   1. Copy this file to <config>/packages/haku_water.yaml.
+#   2. Register it under homeassistant.packages in configuration.yaml:
+#        haku_water: !include packages/haku_water.yaml
+#   3. Validate:  docker exec homeassistant python -m homeassistant --script check_config -c /config
+#   4. Restart:   docker restart homeassistant
+#   The HAku sidecar hot-reloads dashboard.json, so no sidecar restart is needed;
+#   the new sensors flow into the Water tile on the sidecar's next poll.
+#
+# RESULTING ENTITIES (utility_meter entity_ids derive from the slugified `name:`,
+# matching the existing "Water Monthly Usage" -> sensor.water_monthly_usage rule):
+#   sensor.water_consumption_litres  m³ running total -> litres (utility_meter source)
+#   sensor.water_hourly_usage        usage so far this hour (L)  -> tile hero
+#   sensor.water_daily_usage         usage so far today  (L)     -> tile "24h" line
+#   sensor.water_cost_today          today's usage x the marginal $/m3 (CAD) -> tablet "today" cost
+#
+# Both utility meters are `always_available`: the ESP water meter drops off the
+# ESPHome API several times a day (handshake timeouts), and without it the meters
+# went unavailable with their source and the wall blanked. They now hold their
+# last value through an outage and count the missed litres when it comes back.
+
+template:
+  - sensor:
+      - name: Water Consumption Litres
+        unique_id: haku_water_consumption_litres
+        unit_of_measurement: "L"
+        device_class: water
+        state_class: total_increasing
+        icon: mdi:water
+        # ESP water meter totalises in m³; x1000 -> litres so the hourly/daily
+        # utility meters read as whole-ish litre values (a shower is ~50-100 L).
+        state: >
+          {{ (states('sensor.water_meter_total') | float(0) * 1000) | round(1) }}
+        availability: >
+          {{ states('sensor.water_meter_total') not in ['unknown','unavailable','none'] }}
+
+      - name: Water Cost Today
+        unique_id: haku_water_cost_today
+        unit_of_measurement: CAD
+        device_class: monetary
+        icon: mdi:cash
+        # Today's litres at the current marginal (tier-aware) price from the
+        # water_cost package. Approximate across the tier-2 crossover, like the
+        # electricity daily cost.
+        state: >
+          {{ (states('sensor.water_daily_usage') | float(0) / 1000
+              * states('sensor.water_marginal_cost_per_m3') | float(0)) | round(2) }}
+        availability: >
+          {{ has_value('sensor.water_daily_usage') and has_value('sensor.water_marginal_cost_per_m3') }}
+
+utility_meter:
+  haku_water_hourly:
+    source: sensor.water_consumption_litres
+    name: Water Hourly Usage
+    cycle: hourly
+    always_available: true
+  haku_water_daily:
+    source: sensor.water_consumption_litres
+    name: Water Daily Usage
+    cycle: daily
+    always_available: true

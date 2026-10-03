@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  DiagScreen — the `*` (options) diagnostic / status page (v0.7). Shown over the
+  rotating background from the home route; future home for settings / profiles.
+  Three sections: Device (roDeviceInfo), Discovery (MainScene state), Home
+  Assistant (sidecar /api/health). Back or `*` dismisses.
+
+  Inputs (MainScene writes):
+    device    : { friendly, model, os, ip, network, memory, uptime }  (strings)
+    discovery : { sidecar, host, schema, streams }                    (strings)
+    health    : raw /api/health payload (+ reachable/base)
+  Output:
+    dismiss   : true when the user presses `*` to close
+-->
+<component name="DiagScreen" extends="Group">
+    <interface>
+        <field id="device"    type="assocarray" onChange="onDevice" />
+        <field id="discovery" type="assocarray" onChange="onDiscovery" />
+        <field id="health"    type="assocarray" onChange="onHealth" />
+        <field id="dismiss"   type="boolean" value="false" alwaysNotify="true" />
+    </interface>
+
+    <script type="text/brightscript" uri="DiagScreen.brs" />
+    <script type="text/brightscript" uri="pkg:/source/Config.brs" />
+
+    <children>
+        <Rectangle id="dim" width="1920" height="1080" color="0x0A0E0D80" />
+        <Rectangle id="panel" translation="[360, 130]" width="1200" height="820" color="0x121816F2" />
+        <Rectangle translation="[360, 130]" width="1200" height="5" color="0x5B8C7FFF" />
+
+        <Label id="title" translation="[400, 160]" color="0xFAF6EEFF"
+               font="font:LargeBoldSystemFont" text="SYSTEM STATUS" />
+        <Label id="subtitle" translation="[402, 214]" color="0xF3EFE6B3"
+               font="font:SmallSystemFont" text="HAku diagnostics" />
+
+        <!-- Device (left column) -->
+        <Label id="devHdr" translation="[400, 276]" color="0x5B8C7FFF"
+               font="font:MediumBoldSystemFont" text="DEVICE" />
+        <Label id="devKeys" translation="[400, 326]" width="150" color="0xF3EFE6B3"
+               font="font:MediumSystemFont" wrap="true" maxLines="10" text="" />
+        <Label id="devVals" translation="[558, 326]" width="360" color="0xFAF6EEFF"
+               font="font:MediumSystemFont" wrap="true" maxLines="10" text="" />
+
+        <!-- Discovery (right column, top) -->
+        <Label id="discHdr" translation="[980, 276]" color="0x5B8C7FFF"
+               font="font:MediumBoldSystemFont" text="DISCOVERY" />
+        <Label id="discKeys" translation="[980, 326]" width="150" color="0xF3EFE6B3"
+               font="font:MediumSystemFont" wrap="true" maxLines="6" text="" />
+        <Label id="discVals" translation="[1138, 326]" width="382" color="0xFAF6EEFF"
+               font="font:MediumSystemFont" wrap="true" maxLines="6" text="" />
+
+        <!-- Home Assistant (right column, bottom) -->
+        <Label id="haHdr" translation="[980, 540]" color="0x5B8C7FFF"
+               font="font:MediumBoldSystemFont" text="HOME ASSISTANT" />
+        <Label id="haKeys" translation="[980, 590]" width="150" color="0xF3EFE6B3"
+               font="font:MediumSystemFont" wrap="true" maxLines="9" text="" />
+        <Label id="haVals" translation="[1138, 590]" width="382" color="0xFAF6EEFF"
+               font="font:MediumSystemFont" wrap="true" maxLines="9" text="" />
+
+        <Label id="hint" translation="[400, 900]" color="0xF3EFE6B3"
+               font="font:SmallSystemFont" text="Press Back or  *  to close" />
+    </children>
+</component>

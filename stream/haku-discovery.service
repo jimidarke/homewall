@@ -1,0 +1,29 @@
+[Unit]
+Description=HAku discovery (SSDP responder + capability JSON + HLS file server)
+Documentation=https://github.com/jimidarke/homewall/blob/main/stream/haku-discovery.py
+After=go2rtc.service haku-hls.service network-online.target
+Wants=network-online.target
+PartOf=go2rtc.service
+
+[Service]
+Type=simple
+User=media
+Group=media
+ExecStart=/usr/bin/python3 /opt/stream/haku-discovery.py
+Restart=always
+RestartSec=5
+
+# SSDP is on UDP 1900 (unprivileged), but keep CAP_NET_BIND_SERVICE in case
+# we ever need a low port.
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+
+# Override-able via /etc/systemd/system/haku-discovery.service.d/override.conf
+Environment="HAKU_DISCOVERY_HOST=192.0.2.20"
+Environment="HAKU_DISCOVERY_BIND_IP=192.0.2.20"
+Environment="HAKU_DISCOVERY_HTTP_PORT=1985"
+Environment="HAKU_GO2RTC_API=http://127.0.0.1:1984/api/streams"
+Environment="HAKU_HLS_DIR=/run/haku-hls"
+Environment="HAKU_DISCOVERY_REFRESH=60"
+
+[Install]
+WantedBy=multi-user.target

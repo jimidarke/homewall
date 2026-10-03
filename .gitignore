@@ -1,0 +1,18 @@
+# Cross-cutting ignores. Each part has its own .gitignore for its build output.
+
+# secrets: never commit (canonical copies live in /etc/haku/ on nserver)
+.env
+.env.*
+!.env.example
+*.env
+secrets.json
+
+# Claude Code local settings
+.claude/settings.local.json
+
+# editors / OS
+.idea/
+.vscode/launch.json
+*.swp
+.DS_Store
+Thumbs.db

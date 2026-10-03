@@ -1,0 +1,732 @@
+{
+    "calendar": {
+        "count": 10,
+        "items": [
+            {
+                "kind": "header",
+                "title": "WED \u00b7 OCT 7"
+            },
+            {
+                "dot": "0x5B8C7FFF",
+                "kind": "event",
+                "severity": "normal",
+                "time": "7:00 AM",
+                "title": "Sample event 1"
+            },
+            {
+                "dot": "0x5B8C7FFF",
+                "kind": "event",
+                "severity": "normal",
+                "time": "4:30 PM",
+                "title": "Sample event 2"
+            },
+            {
+                "kind": "header",
+                "title": "THU \u00b7 OCT 8"
+            },
+            {
+                "dot": "0x5B8C7FFF",
+                "kind": "event",
+                "severity": "normal",
+                "time": "3:30 PM",
+                "title": "Sample event 3"
+            },
+            {
+                "kind": "header",
+                "title": "SUN \u00b7 OCT 11"
+            },
+            {
+                "dot": "0x5B8C7FFF",
+                "kind": "event",
+                "severity": "normal",
+                "time": "5:00 PM",
+                "title": "Sample event 4"
+            },
+            {
+                "kind": "header",
+                "title": "MON \u00b7 OCT 12"
+            },
+            {
+                "dot": "0x5B8C7FFF",
+                "kind": "event",
+                "severity": "normal",
+                "time": "all day",
+                "title": "Sample event 5"
+            },
+            {
+                "kind": "header",
+                "title": "TUE \u00b7 OCT 13"
+            },
+            {
+                "dot": "0x5B8C7FFF",
+                "kind": "event",
+                "severity": "normal",
+                "time": "11:40 AM",
+                "title": "Sample event 6"
+            },
+            {
+                "kind": "header",
+                "title": "WED \u00b7 OCT 14"
+            },
+            {
+                "dot": "0x5B8C7FFF",
+                "kind": "event",
+                "severity": "normal",
+                "time": "7:00 AM",
+                "title": "Sample event 1"
+            },
+            {
+                "dot": "0x5B8C7FFF",
+                "kind": "event",
+                "severity": "normal",
+                "time": "12:00 PM",
+                "title": "Sample event 7"
+            },
+            {
+                "dot": "0x5B8C7FFF",
+                "kind": "event",
+                "severity": "normal",
+                "time": "4:30 PM",
+                "title": "Sample event 2"
+            },
+            {
+                "kind": "header",
+                "title": "THU \u00b7 OCT 15"
+            },
+            {
+                "dot": "0x5B8C7FFF",
+                "kind": "event",
+                "severity": "normal",
+                "time": "3:30 PM",
+                "title": "Sample event 3"
+            }
+        ],
+        "tile": {
+            "active": false,
+            "detail": "none left today",
+            "glyph": "calendar",
+            "hero": "7:00 AM  Sample event 1",
+            "severity": "normal",
+            "sub": "then 4:30 PM  Sample event 2"
+        }
+    },
+    "climate": {
+        "current_temp": 20.9,
+        "humidity": 43,
+        "hvac_action": "fan",
+        "hvac_mode": "heat",
+        "preset_mode": "home",
+        "stale": false,
+        "tile": {
+            "active": false,
+            "detail": "43% RH   Home mode",
+            "glyph": "fan",
+            "hero": "21\u00b0",
+            "severity": "normal",
+            "sub": "Fan"
+        }
+    },
+    "doors": {
+        "doors": [
+            {
+                "age": "1h",
+                "glyph": "door-closed",
+                "id": "front",
+                "label": "Front",
+                "severity": "normal",
+                "since": 1790907171,
+                "since_exact": true,
+                "state": "closed"
+            },
+            {
+                "age": "10h",
+                "glyph": "door-closed",
+                "id": "back",
+                "label": "Back",
+                "severity": "normal",
+                "since": 1790874623,
+                "since_exact": true,
+                "state": "closed"
+            }
+        ],
+        "open_count": 0,
+        "stale": false,
+        "tile": {
+            "active": false,
+            "detail": "Front 1h \u00b7 Back 10h",
+            "glyph": "door-closed",
+            "hero": "All closed",
+            "icon": "closed",
+            "severity": "normal",
+            "sub": ""
+        }
+    },
+    "energy": {
+        "cost": 0.18,
+        "daily_kwh": 1,
+        "power_kw": 1.3,
+        "stale": false,
+        "tile": {
+            "active": false,
+            "detail": "$0.18 today",
+            "glyph": "flash",
+            "hero": "1.3 kW",
+            "icon": "25",
+            "level": 25,
+            "severity": "normal",
+            "sub": "1 kWh today"
+        }
+    },
+    "gas": {
+        "daily": 0.0,
+        "flow": 1.1,
+        "stale": false,
+        "tile": {
+            "active": true,
+            "glyph": "fire",
+            "hero": "1.1 m\u00b3/h",
+            "icon": "55",
+            "level": 55,
+            "severity": "normal",
+            "sub": "0.0 m\u00b3 today"
+        },
+        "total": 17640.0
+    },
+    "laundry": {
+        "machines": [
+            {
+                "color": "#00AAFF",
+                "glyph": "washing-machine",
+                "id": "washer",
+                "label": "Washer",
+                "leds": 0,
+                "mode": "idle",
+                "power_w": 1,
+                "stale": false,
+                "status": "idle"
+            },
+            {
+                "color": "#FF6900",
+                "glyph": "tumble-dryer",
+                "id": "dryer",
+                "label": "Dryer",
+                "leds": 0,
+                "mode": "idle",
+                "power_w": 1,
+                "stale": false,
+                "status": "idle"
+            }
+        ],
+        "stale": false,
+        "tile": {
+            "active": false,
+            "detail": "",
+            "glyph": "washing-machine",
+            "hero": "Laundry idle",
+            "icon": "idle:0|idle:0",
+            "severity": "normal",
+            "sub": ""
+        }
+    },
+    "timeline": {
+        "count": 50,
+        "items": [
+            {
+                "kind": "header",
+                "title": "TODAY"
+            },
+            {
+                "kind": "event",
+                "severity": "normal",
+                "sub": "off",
+                "time": "44m",
+                "title": "Water In Tier 2",
+                "when": 1790908450
+            },
+            {
+                "glyph": "motion-sensor",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "motion",
+                "time": "44m",
+                "title": "Front Entrance",
+                "when": 1790908445
+            },
+            {
+                "glyph": "door-closed",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "closed",
+                "time": "44m",
+                "title": "Front Door",
+                "when": 1790908441
+            },
+            {
+                "glyph": "door-closed",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "closed",
+                "time": "44m",
+                "title": "Back Door",
+                "when": 1790908441
+            },
+            {
+                "glyph": "door-open",
+                "kind": "event",
+                "severity": "high",
+                "sub": "opened",
+                "time": "44m",
+                "title": "Bathroom door",
+                "when": 1790908441
+            },
+            {
+                "kind": "event",
+                "severity": "normal",
+                "sub": "off",
+                "time": "49m",
+                "title": "Water In Tier 2",
+                "when": 1790908141
+            },
+            {
+                "glyph": "door-closed",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "closed",
+                "time": "1h",
+                "title": "Front Door",
+                "when": 1790907171
+            },
+            {
+                "glyph": "motion-sensor",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "motion",
+                "time": "1h",
+                "title": "Front Entrance",
+                "when": 1790907166
+            },
+            {
+                "kind": "event",
+                "severity": "normal",
+                "sub": "off",
+                "time": "1h",
+                "title": "Water In Tier 2",
+                "when": 1790906960
+            },
+            {
+                "glyph": "door-open",
+                "kind": "event",
+                "severity": "high",
+                "sub": "opened",
+                "time": "1h",
+                "title": "Bathroom door",
+                "when": 1790906900
+            },
+            {
+                "glyph": "motion-sensor",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "motion",
+                "time": "1h",
+                "title": "Front Entrance",
+                "when": 1790906859
+            },
+            {
+                "glyph": "motion-sensor",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "motion",
+                "time": "1h",
+                "title": "Front Entrance",
+                "when": 1790906404
+            },
+            {
+                "glyph": "motion-sensor",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "motion",
+                "time": "1h",
+                "title": "Front Entrance",
+                "when": 1790905519
+            },
+            {
+                "kind": "event",
+                "severity": "normal",
+                "sub": "off",
+                "time": "1h",
+                "title": "Water In Tier 2",
+                "when": 1790905272
+            },
+            {
+                "kind": "event",
+                "severity": "normal",
+                "sub": "off",
+                "time": "1h",
+                "title": "Water In Tier 2",
+                "when": 1790904427
+            },
+            {
+                "glyph": "motion-sensor",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "motion",
+                "time": "1h",
+                "title": "Front Entrance",
+                "when": 1790904200
+            },
+            {
+                "glyph": "door-closed",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "closed",
+                "time": "2h",
+                "title": "Front Door",
+                "when": 1790903663
+            },
+            {
+                "glyph": "motion-sensor",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "motion",
+                "time": "2h",
+                "title": "Front Entrance",
+                "when": 1790903662
+            },
+            {
+                "kind": "event",
+                "severity": "normal",
+                "sub": "off",
+                "time": "2h",
+                "title": "Water In Tier 2",
+                "when": 1790903445
+            },
+            {
+                "glyph": "door-closed",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "closed",
+                "time": "2h",
+                "title": "Bathroom door",
+                "when": 1790903432
+            },
+            {
+                "glyph": "door-closed",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "closed",
+                "time": "2h",
+                "title": "Front Door",
+                "when": 1790902699
+            },
+            {
+                "glyph": "motion-sensor",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "motion",
+                "time": "2h",
+                "title": "Front Entrance",
+                "when": 1790902670
+            },
+            {
+                "glyph": "door-closed",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "closed",
+                "time": "2h",
+                "title": "Front Door",
+                "when": 1790901998
+            },
+            {
+                "glyph": "motion-sensor",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "motion",
+                "time": "2h",
+                "title": "Front Entrance",
+                "when": 1790901997
+            },
+            {
+                "glyph": "motion-sensor",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "motion",
+                "time": "2h",
+                "title": "Front Entrance",
+                "when": 1790901452
+            },
+            {
+                "glyph": "door-open",
+                "kind": "event",
+                "severity": "high",
+                "sub": "opened",
+                "time": "2h",
+                "title": "Bathroom door",
+                "when": 1790901341
+            },
+            {
+                "glyph": "door-open",
+                "kind": "event",
+                "severity": "high",
+                "sub": "opened",
+                "time": "2h",
+                "title": "Bathroom door",
+                "when": 1790900943
+            },
+            {
+                "glyph": "door-closed",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "closed",
+                "time": "2h",
+                "title": "Bathroom door",
+                "when": 1790900362
+            },
+            {
+                "kind": "event",
+                "severity": "normal",
+                "sub": "off",
+                "time": "3h",
+                "title": "Water In Tier 2",
+                "when": 1790899827
+            },
+            {
+                "glyph": "motion-sensor",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "motion",
+                "time": "3h",
+                "title": "Hallway Motion",
+                "when": 1790899655
+            },
+            {
+                "glyph": "motion-sensor",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "motion",
+                "time": "3h",
+                "title": "Hallway Motion",
+                "when": 1790896774
+            },
+            {
+                "glyph": "door-closed",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "closed",
+                "time": "4h",
+                "title": "Front Door",
+                "when": 1790896614
+            },
+            {
+                "glyph": "motion-sensor",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "motion",
+                "time": "4h",
+                "title": "Front Entrance",
+                "when": 1790896538
+            },
+            {
+                "glyph": "home-account",
+                "kind": "event",
+                "severity": "low",
+                "sub": "\u2192 home",
+                "time": "4h",
+                "title": "Alex",
+                "when": 1790896403
+            },
+            {
+                "glyph": "motion-sensor",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "motion",
+                "time": "4h",
+                "title": "Front Entrance",
+                "when": 1790895981
+            },
+            {
+                "glyph": "motion-sensor",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "motion",
+                "time": "4h",
+                "title": "Front Entrance",
+                "when": 1790894429
+            },
+            {
+                "glyph": "motion-sensor",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "motion",
+                "time": "4h",
+                "title": "Front Entrance",
+                "when": 1790894045
+            },
+            {
+                "glyph": "motion-sensor",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "motion",
+                "time": "4h",
+                "title": "Front Entrance",
+                "when": 1790893612
+            },
+            {
+                "glyph": "motion-sensor",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "motion",
+                "time": "5h",
+                "title": "Front Entrance",
+                "when": 1790891515
+            },
+            {
+                "glyph": "motion-sensor",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "motion",
+                "time": "5h",
+                "title": "Front Entrance",
+                "when": 1790890483
+            },
+            {
+                "glyph": "motion-sensor",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "motion",
+                "time": "5h",
+                "title": "Front Entrance",
+                "when": 1790889960
+            },
+            {
+                "glyph": "motion-sensor",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "motion",
+                "time": "5h",
+                "title": "Front Entrance",
+                "when": 1790889596
+            },
+            {
+                "glyph": "motion-sensor",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "motion",
+                "time": "6h",
+                "title": "Front Entrance",
+                "when": 1790889286
+            },
+            {
+                "glyph": "motion-sensor",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "motion",
+                "time": "6h",
+                "title": "Front Entrance",
+                "when": 1790888616
+            },
+            {
+                "glyph": "motion-sensor",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "motion",
+                "time": "6h",
+                "title": "Front Entrance",
+                "when": 1790888246
+            },
+            {
+                "glyph": "account-arrow-right",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "\u2192 away",
+                "time": "6h",
+                "title": "Alex",
+                "when": 1790887810
+            },
+            {
+                "glyph": "motion-sensor",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "motion",
+                "time": "6h",
+                "title": "Hallway Motion",
+                "when": 1790887774
+            },
+            {
+                "glyph": "door-closed",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "closed",
+                "time": "6h",
+                "title": "Front Door",
+                "when": 1790887762
+            },
+            {
+                "glyph": "motion-sensor",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "motion",
+                "time": "6h",
+                "title": "Front Entrance",
+                "when": 1790887761
+            },
+            {
+                "glyph": "motion-sensor",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "motion",
+                "time": "6h",
+                "title": "Front Entrance",
+                "when": 1790887233
+            }
+        ],
+        "tile": {
+            "active": false,
+            "detail": "Front Entrance \u00b7 44m",
+            "glyph": "history",
+            "hero": "Water In Tier 2",
+            "severity": "normal",
+            "sub": "off \u00b7 44m"
+        }
+    },
+    "ts": 1790911092,
+    "v": 1,
+    "water": {
+        "cost_today": 2.23,
+        "daily": 448.9,
+        "flow": 0.0,
+        "hourly": 0.0,
+        "monthly": 0.4,
+        "running": false,
+        "stale": false,
+        "tile": {
+            "active": false,
+            "detail": "$2.23 today",
+            "glyph": "water-outline",
+            "hero": "0 L/min",
+            "icon": "0",
+            "level": 0,
+            "severity": "normal",
+            "sub": "449 L today"
+        },
+        "total": 92.5
+    },
+    "weather": {
+        "cond_label": "Partly Cloudy",
+        "condition": "partlycloudy",
+        "humidity": 69,
+        "low_c": 3.0,
+        "observed_hm": "03:04",
+        "stale": false,
+        "temp_c": 4.1,
+        "tile": {
+            "active": false,
+            "detail": "69% RH",
+            "glyph": "weather-partly-cloudy",
+            "hero": "4\u00b0",
+            "icon": "partlycloudy",
+            "severity": "normal",
+            "sub": "Partly Cloudy"
+        },
+        "wind_kmh": 3
+    }
+}

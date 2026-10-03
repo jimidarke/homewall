@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  GridGroup — 2x2 mosaic with overlay focus ring + selectable quadrants.
+
+  Inputs:
+    streams       : assoc array (must contain `mosaic.hls`)
+    motion        : assoc array { camName: unixSeconds }   — drives quadrant dots
+    active        : boolean — caller flips true when entering, false when leaving
+                    (controls the Video node start/stop so decoder budget = 1)
+
+  Outputs:
+    selectedCam   : string set when user OKs a quadrant
+    cancel        : boolean true when user presses Back
+-->
+<component name="GridGroup" extends="Group" initialFocus="focusSink">
+    <interface>
+        <field id="streams" type="assocarray" onChange="onStreamsChanged" />
+        <field id="motion" type="assocarray" alwaysNotify="true" onChange="onMotionChanged" />
+        <field id="active" type="boolean" value="false" onChange="onActiveChanged" />
+        <field id="selectedCam" type="string" value="" alwaysNotify="true" />
+        <field id="cancel" type="boolean" value="false" alwaysNotify="true" />
+    </interface>
+
+    <script type="text/brightscript" uri="GridGroup.brs" />
+    <script type="text/brightscript" uri="pkg:/source/Config.brs" />
+
+    <children>
+        <Rectangle id="bg" width="1920" height="1080" color="0x2B2A26FF" />
+
+        <Video id="player"
+               width="1920" height="1080"
+               translation="[0, 0]" />
+
+        <!-- Quadrant label chips. Translucent cream chips so labels read on
+             any cam content without using the warm-dark scrim. -->
+        <Group id="labelTL" translation="[40, 40]">
+            <Rectangle width="200" height="44" color="0xF7F1E399" />
+            <Label translation="[16, 0]" width="184" height="44"
+                   horizAlign="left" vertAlign="center"
+                   color="0x2B2A26FF"
+                   font="font:MediumBoldSystemFont"
+                   text="FRONT" />
+        </Group>
+        <Group id="labelTR" translation="[1720, 40]">
+            <Rectangle width="160" height="44" color="0xF7F1E399" />
+            <Label translation="[16, 0]" width="144" height="44"
+                   horizAlign="left" vertAlign="center"
+                   color="0x2B2A26FF"
+                   font="font:MediumBoldSystemFont"
+                   text="YARD" />
+        </Group>
+        <Group id="labelBL" translation="[40, 1000]">
+            <Rectangle width="160" height="44" color="0xF7F1E399" />
+            <Label translation="[16, 0]" width="144" height="44"
+                   horizAlign="left" vertAlign="center"
+                   color="0x2B2A26FF"
+                   font="font:MediumBoldSystemFont"
+                   text="SIDE" />
+        </Group>
+        <Group id="labelBR" translation="[1700, 1000]">
+            <Rectangle width="200" height="44" color="0xF7F1E399" />
+            <Label translation="[16, 0]" width="184" height="44"
+                   horizAlign="left" vertAlign="center"
+                   color="0x2B2A26FF"
+                   font="font:MediumBoldSystemFont"
+                   text="BACKYARD" />
+        </Group>
+
+        <!-- Per-quadrant motion dots: filled when recent motion (<5 min). -->
+        <Rectangle id="dotTL" translation="[260, 56]" width="14" height="14" color="0x6B9080FF" />
+        <Rectangle id="dotTR" translation="[1700, 56]" width="14" height="14" color="0x6B9080FF" />
+        <Rectangle id="dotBL" translation="[220, 1016]" width="14" height="14" color="0x6B9080FF" />
+        <Rectangle id="dotBR" translation="[1680, 1016]" width="14" height="14" color="0x6B9080FF" />
+
+        <!-- Focus ring (4 thin rectangles outline a 960x540 quadrant). -->
+        <Group id="focusRing" translation="[0, 0]">
+            <Rectangle id="ringTop"    width="960" height="4"  color="0x5B8C7FFF" />
+            <Rectangle id="ringBot"    width="960" height="4"  color="0x5B8C7FFF" translation="[0, 536]" />
+            <Rectangle id="ringLeft"   width="4"   height="540" color="0x5B8C7FFF" />
+            <Rectangle id="ringRight"  width="4"   height="540" color="0x5B8C7FFF" translation="[956, 0]" />
+            <Animation id="ringAnim" duration="0.22" repeat="false" easeFunction="outQuad">
+                <Vector2DFieldInterpolator id="ringMover" key="[0.0, 1.0]" keyValue="[ [0.0,0.0], [0.0,0.0] ]" fieldToInterp="focusRing.translation" />
+            </Animation>
+        </Group>
+
+        <!-- Help bar bottom-centre -->
+        <Group id="helpBar" translation="[560, 940]">
+            <Rectangle width="800" height="48" color="0x2B2A26CC" />
+            <Label translation="[16, 0]" width="780" height="48"
+                   horizAlign="left" vertAlign="center"
+                   color="0xFAF6EEFF"
+                   font="font:SmallSystemFont"
+                   text="Arrows  pick cam        OK  select        Back  return" />
+        </Group>
+
+        <Rectangle id="focusSink" width="1" height="1" color="0x00000000" />
+    </children>
+</component>

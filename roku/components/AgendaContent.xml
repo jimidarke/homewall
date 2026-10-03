@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  AgendaContent — a ContentNode subclass carrying one agenda row's fields for the
+  MarkupList drill (ModuleScreen). The sidecar emits a normalized item
+  {kind,time,title,sub,severity,dot}; ModuleScreen maps each into these fields
+  (prefixed `row*` to avoid colliding with ContentNode's built-in `title`).
+-->
+<component name="AgendaContent" extends="ContentNode">
+    <interface>
+        <field id="rowKind" type="string" value="event" />
+        <field id="rowTime" type="string" value="" />
+        <field id="rowTitle" type="string" value="" />
+        <field id="rowSub" type="string" value="" />
+        <field id="rowSeverity" type="string" value="normal" />
+        <field id="rowDot" type="string" value="" />
+    </interface>
+</component>

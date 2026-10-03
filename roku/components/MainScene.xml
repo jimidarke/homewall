@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  MainScene — state router. Owns:
+    - DiscoveryTask (SSDP + JSON fetch)
+    - InputPumpTask (ECP /input fan-out)
+    - LiveGroup     (default visible)
+    - GridGroup     (toggled on long-press OK)
+    - OverlayLayer  (door / weather / sensor / pip / text — v0.5)
+    - Toast         (top-centre legacy notifier — kept above overlays)
+
+  Inputs:
+    args  : assoc array of deep-link params, set by main.brs
+-->
+<component name="MainScene" extends="Scene">
+    <interface>
+        <field id="args" type="assocarray" onChange="onArgs" />
+    </interface>
+
+    <script type="text/brightscript" uri="MainScene.brs" />
+    <script type="text/brightscript" uri="pkg:/source/Config.brs" />
+    <script type="text/brightscript" uri="pkg:/source/Api.brs" />
+
+    <children>
+        <!-- Black base behind the rotating photo (shows before the first image
+             loads and while it cross-fades). -->
+        <Rectangle id="bg" width="1920" height="1080" color="0x000000FF" />
+
+        <!-- Hidden keep-awake decoder: a tiny silent looping clip that keeps the
+             OS screensaver from taking over on home/module/diag (Roku has no API
+             to disable the screensaver). Stopped whenever the live/mosaic decoder
+             runs, honouring the single-H.264-decoder budget. -->
+        <Video id="keepAwake" width="16" height="16" translation="[0, 0]"
+               opacity="0.004" mute="true" />
+
+        <!-- Rotating photo backdrop + a light scrim so glass tiles / free-floating
+             labels stay legible over any image (kept subtle so the photo shows
+             through, per the glass brief). -->
+        <BackgroundGallery id="bgGallery" />
+        <Rectangle id="bgDim" width="1920" height="1080" color="0x0A0E0D33" />
+
+        <HomeGroup id="home" />
+        <LiveGroup id="live" visible="false" />
+        <GridGroup id="grid" visible="false" />
+        <ModuleScreen id="moduleScreen" visible="false" />
+        <DiagScreen id="diag" visible="false" />
+
+        <OverlayLayer id="overlays" />
+        <Toast id="toast" />
+
+        <DiscoveryTask id="discover" />
+        <InputPumpTask id="inputPump" />
+        <ModulePollTask id="modules" />
+        <BackgroundListTask id="bgList" />
+        <DiagHealthTask id="diagHealth" />
+
+        <Timer id="rediscoverTimer" repeat="false" duration="5" />
+        <Timer id="stateTimer" repeat="true" duration="10" />
+        <Timer id="idleTimer" repeat="false" duration="300" />
+        <Timer id="returnHomeTimer" repeat="false" duration="60" />
+        <!-- Re-asserts the keep-awake video if its manual loop ever drops it, so
+             the screensaver can't slip back in on home/module/diag. -->
+        <Timer id="keepAwakeWatchdog" repeat="true" duration="30" />
+
+        <Label id="debugLabel"
+               translation="[40, 1020]"
+               color="0xFAF6EEAA"
+               font="font:SmallestSystemFont"
+               visible="false"
+               text="" />
+    </children>
+</component>

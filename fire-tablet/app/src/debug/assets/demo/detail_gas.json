@@ -1,0 +1,65 @@
+{
+  "v": 1,
+  "id": "gas",
+  "title": "Gas",
+  "ts": 1790905930,
+  "note": "History fills in as the gas meter reports",
+  "blocks": [
+    {
+      "type": "stats",
+      "items": [
+        {"label": "Now", "value": "0.8 m³/h"},
+        {"label": "Today", "value": "7.3 m³"},
+        {"label": "This month", "value": "7.3 m³"}
+      ]
+    },
+    {
+      "type": "chart",
+      "title": "Per hour · last 7 days",
+      "start": 1790301600,
+      "step": 3600,
+      "count": 168,
+      "series": [
+        {
+          "label": "Gas",
+          "tone": "heat",
+          "fill": true,
+          "runs": [
+            {
+              "i": 148,
+              "v": [0.0, 0.0, 0.0, 0.0, 0.0, 0.22, 0.73, 1.13, 0.56, 0.18, 0.23, 0.24, 0.34, 0.19, 0.19, 0.24, 0.54, 0.85, 0.92, 0.75]
+            }
+          ]
+        }
+      ],
+      "x": {
+        "ticks": [
+          {"i": 4, "label": "Fri"},
+          {"i": 28, "label": "Sat"},
+          {"i": 52, "label": "Sun"},
+          {"i": 76, "label": "Mon"},
+          {"i": 100, "label": "Tue"},
+          {"i": 124, "label": "Wed"},
+          {"i": 148, "label": "Thu"}
+        ]
+      },
+      "y": {
+        "min": 0,
+        "max": 1.5,
+        "ticks": [
+          {"v": 0, "label": "0"},
+          {"v": 0.5, "label": "0.5 m³"},
+          {"v": 1, "label": "1 m³"},
+          {"v": 1.5, "label": "1.5 m³"}
+        ]
+      },
+      "empty": "No history yet"
+    },
+    {
+      "type": "days",
+      "items": [
+        {"label": "Today", "value": "7.3 m³"}
+      ]
+    }
+  ]
+}

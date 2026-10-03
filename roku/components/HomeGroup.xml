@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  HomeGroup — the HAku home page: a grid of ModuleTile cards built from
+  /api/config's module list (not a fixed array), fed values from /api/state.
+  D-pad focus is generalized over an arbitrary cols x rows grid (hkGridNeighbor),
+  OK emits selectedModule. Cameras/other modules drill from here. Cream "Daylight"
+  field + warm cards, matching the BRIEFING/GLANCE design language.
+-->
+<component name="HomeGroup" extends="Group">
+    <interface>
+        <field id="config" type="assocarray" onChange="onConfig" />
+        <field id="state" type="assocarray" onChange="onState" />
+        <field id="hubBase" type="string" value="" />
+        <field id="snapBase" type="string" value="" />
+        <field id="selectedModule" type="string" alwaysNotify="true" />
+    </interface>
+    <script type="text/brightscript" uri="HomeGroup.brs" />
+    <script type="text/brightscript" uri="pkg:/source/Config.brs" />
+    <children>
+        <!-- No opaque background: the MainScene rotating photo + light scrim show
+             through the glass grid. Brand + clock float over the photo, so each
+             gets a cream chip for legibility (soft cream for the logo, a darker
+             warm-cream for the clock so the two chips read as distinct). -->
+        <Rectangle id="brandChip" translation="[40, 44]" width="220" height="84" color="0xF7F1E3D9" />
+        <Poster id="brand" translation="[53, 60]" width="194" height="53"
+                loadDisplayMode="scaleToFit" uri="pkg:/images/haku_wordmark.png" />
+        <Rectangle id="clockChip" translation="[1596, 54]" width="264" height="70" color="0xECE3D0D9" />
+        <Label id="clock" translation="[1596, 54]" width="264" height="70"
+               horizAlign="center" vertAlign="center"
+               color="0x2B2A26FF" font="font:MediumBoldSystemFont" text="" />
+        <Group id="tiles" />
+        <Label id="empty" translation="[60, 520]" width="1800" horizAlign="center"
+               color="0xF3EFE6B3" font="font:MediumSystemFont" text="Waiting for HAku hub…" />
+    </children>
+</component>

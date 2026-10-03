@@ -1,0 +1,284 @@
+{
+  "calendar": {
+    "count": 4,
+    "items": [
+      {
+        "kind": "header",
+        "title": "TODAY"
+      },
+      {
+        "dot": "0x5B8C7FFF",
+        "kind": "event",
+        "severity": "normal",
+        "time": "all day",
+        "title": "Recycling day"
+      },
+      {
+        "dot": "0x5B8C7FFF",
+        "kind": "event",
+        "severity": "normal",
+        "time": "7:00 PM",
+        "title": "Practice"
+      },
+      {
+        "kind": "header",
+        "title": "TOMORROW"
+      },
+      {
+        "dot": "0x5B8C7FFF",
+        "kind": "event",
+        "severity": "normal",
+        "time": "8:15 AM",
+        "title": "Appointment"
+      },
+      {
+        "kind": "header",
+        "title": "SUN · OCT 4"
+      },
+      {
+        "dot": "0x5B8C7FFF",
+        "kind": "event",
+        "severity": "normal",
+        "time": "3:30 PM",
+        "title": "(busy)"
+      }
+    ],
+    "tile": {
+      "active": false,
+      "detail": "2 today",
+      "glyph": "calendar",
+      "hero": "Recycling day",
+      "severity": "normal",
+      "sub": "then 7:00 PM  Practice"
+    }
+  },
+  "cameras": {
+    "cams": {
+      "backyard": {
+        "motion": false,
+        "motion_age_s": 3600
+      },
+      "front": {
+        "motion": true,
+        "motion_age_s": 90
+      }
+    },
+    "count": 5,
+    "streams": [
+      "front",
+      "yard",
+      "side",
+      "backyard",
+      "mosaic"
+    ],
+    "thumbCam": "mosaic"
+  },
+  "climate": {
+    "current_temp": 21.3,
+    "humidity": 48,
+    "hvac_action": "heating",
+    "hvac_mode": "heat",
+    "preset_mode": "home",
+    "stale": false,
+    "tile": {
+      "active": true,
+      "detail": "48% RH   Home mode",
+      "glyph": "fire",
+      "hero": "21°",
+      "severity": "normal",
+      "sub": "Heating"
+    }
+  },
+  "energy": {
+    "cost": 4.12,
+    "daily_kwh": 18,
+    "power_kw": 2.4,
+    "stale": false,
+    "tile": {
+      "active": false,
+      "detail": "$4.12 so far",
+      "glyph": "flash",
+      "hero": "2.4 kW",
+      "icon": "50",
+      "level": 50,
+      "severity": "normal",
+      "sub": "18 kWh today"
+    }
+  },
+  "gas": {
+    "flow": 0.7,
+    "stale": false,
+    "tile": {
+      "active": true,
+      "detail": "17640 m³ total",
+      "glyph": "fire",
+      "hero": "0.7 m³/h",
+      "icon": "30",
+      "level": 30,
+      "severity": "normal",
+      "sub": "running"
+    },
+    "total": 17639.9
+  },
+  "timeline": {
+    "count": 11,
+    "items": [
+      {
+        "kind": "header",
+        "title": "TODAY"
+      },
+      {
+        "glyph": "motion-sensor",
+        "kind": "event",
+        "severity": "normal",
+        "sub": "motion",
+        "time": "1m",
+        "title": "Front Motion",
+        "when": 1790900910
+      },
+      {
+        "glyph": "door-open",
+        "kind": "event",
+        "severity": "high",
+        "sub": "open now",
+        "time": "2m",
+        "title": "Bathroom Door",
+        "when": 1790900880
+      },
+      {
+        "glyph": "motion-sensor",
+        "kind": "event",
+        "severity": "normal",
+        "sub": "motion",
+        "time": "8m",
+        "title": "Front Motion",
+        "when": 1790900500
+      },
+      {
+        "glyph": "door-closed",
+        "kind": "event",
+        "severity": "normal",
+        "sub": "opened · 1m",
+        "time": "11m",
+        "title": "Front Door",
+        "when": 1790900300
+      },
+      {
+        "glyph": "home-account",
+        "kind": "event",
+        "severity": "low",
+        "sub": "→ home",
+        "time": "30m",
+        "title": "Jimi",
+        "when": 1790899200
+      },
+      {
+        "glyph": "motion-sensor",
+        "kind": "event",
+        "severity": "normal",
+        "sub": "motion",
+        "time": "1h",
+        "title": "Backyard Motion",
+        "when": 1790897300
+      },
+      {
+        "glyph": "account-arrow-right",
+        "kind": "event",
+        "severity": "normal",
+        "sub": "→ away",
+        "time": "1h",
+        "title": "Alex",
+        "when": 1790895600
+      },
+      {
+        "glyph": "door-closed",
+        "kind": "event",
+        "severity": "normal",
+        "sub": "opened · 1m",
+        "time": "2h",
+        "title": "Back Door",
+        "when": 1790893700
+      },
+      {
+        "glyph": "motion-sensor",
+        "kind": "event",
+        "severity": "normal",
+        "sub": "motion",
+        "time": "2h",
+        "title": "Shed Motion",
+        "when": 1790891900
+      },
+      {
+        "glyph": "account-arrow-right",
+        "kind": "event",
+        "severity": "normal",
+        "sub": "→ School",
+        "time": "8h",
+        "title": "Robin",
+        "when": 1790871000
+      },
+      {
+        "kind": "header",
+        "title": "YESTERDAY"
+      },
+      {
+        "glyph": "home-account",
+        "kind": "event",
+        "severity": "low",
+        "sub": "→ home",
+        "time": "21h",
+        "title": "Robin",
+        "when": 1790825400
+      }
+    ],
+    "tile": {
+      "active": false,
+      "detail": "Bathroom Door · 2m",
+      "glyph": "history",
+      "hero": "Front Motion",
+      "severity": "normal",
+      "sub": "motion · 1m"
+    }
+  },
+  "ts": 1790901000,
+  "v": 1,
+  "water": {
+    "daily": 210.0,
+    "flow": 4.2,
+    "hourly": 12.0,
+    "monthly": 6100.0,
+    "running": true,
+    "stale": false,
+    "tile": {
+      "active": true,
+      "detail": "24h 210 L   30d 6100 L",
+      "glyph": "water",
+      "hero": "12 L",
+      "icon": "40",
+      "level": 40,
+      "severity": "high",
+      "sub": "flowing 4.2 L/min"
+    },
+    "total": 812345.0
+  },
+  "weather": {
+    "cond_label": "Rainy",
+    "condition": "rainy",
+    "high_c": 14.0,
+    "humidity": 86,
+    "indoor_c": 21.5,
+    "low_c": 3.0,
+    "stale": false,
+    "temp_c": 12.4,
+    "tile": {
+      "active": false,
+      "detail": "H 14°  L 3°   86% RH   in 22°",
+      "glyph": "weather-rainy",
+      "hero": "12°",
+      "icon": "rainy",
+      "severity": "normal",
+      "sub": "Rainy"
+    },
+    "wind_kmh": 15
+  }
+}

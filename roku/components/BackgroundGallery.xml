@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  BackgroundGallery — full-screen rotating photo backdrop (v0.7).
+
+  Two stacked Posters cross-faded on a Timer. bgA is the visible "base"; bgB is
+  the top overlay that preloads + fades the next image in, then the settled image
+  is copied down to bgA and bgB is hidden — so the fixed z-order (bgB over bgA)
+  always drives the fade in one direction. Every transition is gated on the
+  Poster's loadStatus=="ready" so we never fade to a half-decoded frame.
+
+  Inputs (caller writes):
+    images     : array of absolute image URL strings (from the sidecar list)
+    intervalMs : dwell per image (ms)
+    active     : true on home/module/diag; false on live/grid (frees textures)
+-->
+<component name="BackgroundGallery" extends="Group">
+    <interface>
+        <field id="images" type="array" onChange="onImages" />
+        <field id="intervalMs" type="integer" value="20000" onChange="onIntervalMs" />
+        <field id="active" type="boolean" value="true" onChange="onActive" />
+    </interface>
+
+    <script type="text/brightscript" uri="BackgroundGallery.brs" />
+    <script type="text/brightscript" uri="pkg:/source/Config.brs" />
+
+    <children>
+        <Poster id="bgA" width="1920" height="1080"
+                loadWidth="1920" loadHeight="1080"
+                loadDisplayMode="scaleToZoom"
+                uri="pkg:/images/bg_fallback.jpg" />
+        <Poster id="bgB" width="1920" height="1080"
+                loadWidth="1920" loadHeight="1080"
+                loadDisplayMode="scaleToZoom"
+                opacity="0.0" />
+
+        <Animation id="crossfade" duration="0.8" easeFunction="outQuad">
+            <FloatFieldInterpolator key="[0.0, 1.0]" keyValue="[0.0, 1.0]"
+                                    fieldToInterp="bgB.opacity" />
+        </Animation>
+
+        <Timer id="rotateTimer" repeat="true" duration="20" />
+        <!-- settleTimer: reveal-timeout so a stale/absent loadStatus event can't
+             stall the settle. loadTimer: abort a slow/failed next-image load so the
+             next tick retries instead of the machine wedging at "loadingOverlay". -->
+        <Timer id="settleTimer" repeat="false" duration="0.25" />
+        <Timer id="loadTimer" repeat="false" duration="3" />
+    </children>
+</component>

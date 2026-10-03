@@ -1,0 +1,12 @@
+# gradle / kotlin build output and caches
+build/
+.gradle/
+.kotlin/
+
+# machine-local SDK path (sdk.dir=~/Android/Sdk)
+local.properties
+
+# Android Studio
+.idea/
+*.iml
+captures/

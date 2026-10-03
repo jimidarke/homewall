@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  Hud — lower-third HUD over LIVE video.
+
+  Width 1920, height 96, anchored 106 px from canvas bottom (y = 1080-106-96 = 878).
+
+  Public fields (caller writes these; observers re-render):
+    cam            : current cam id  (string)
+    cams           : full cam roster (assoc array of count + items via Vector — kept as comma-string for simplicity here)
+    connected      : "ok" | "warn" | "live" — drives status dot colour
+    latencyText    : right-side latency label (caller formats)
+    motionLabel    : right-edge "motion 2 min ago" string
+-->
+<component name="Hud" extends="Group">
+    <interface>
+        <field id="cam" type="string" value="" onChange="onRender" />
+        <field id="cams" type="string" value="" onChange="onRender" />
+        <field id="connected" type="string" value="ok" onChange="onRender" />
+        <field id="latencyText" type="string" value="" onChange="onRender" />
+        <field id="motionLabel" type="string" value="" onChange="onRender" />
+        <field id="visibleHud" type="boolean" value="false" onChange="onVisibleChanged" />
+    </interface>
+    <script type="text/brightscript" uri="Hud.brs" />
+    <script type="text/brightscript" uri="pkg:/source/Config.brs" />
+    <children>
+        <Group id="hudRoot" translation="[0, 1080]" opacity="0.0">
+            <Rectangle id="hudBg" width="1920" height="96" color="0x2B2A26CC" />
+            <Label id="camName"
+                   translation="[64, 0]"
+                   width="600" height="96"
+                   horizAlign="left" vertAlign="center"
+                   color="0xFAF6EEFF"
+                   font="font:MediumBoldSystemFont"
+                   text="" />
+            <Group id="dotPager" translation="[700, 36]" />
+            <Label id="motionLabelNode"
+                   translation="[1100, 0]"
+                   width="500" height="96"
+                   horizAlign="right" vertAlign="center"
+                   color="0xFAF6EEAA"
+                   font="font:SmallSystemFont"
+                   text="" />
+            <Rectangle id="connDot"
+                       translation="[1640, 42]"
+                       width="12" height="12"
+                       color="0x6B9080FF" />
+            <Label id="latencyLabel"
+                   translation="[1660, 0]"
+                   width="180" height="96"
+                   horizAlign="left" vertAlign="center"
+                   color="0xFAF6EEAA"
+                   font="font:SmallSystemFont"
+                   text="" />
+        </Group>
+        <Animation id="slideIn" duration="0.18" repeat="false" easeFunction="outQuad">
+            <FloatFieldInterpolator key="[0.0, 1.0]" keyValue="[0.0, 1.0]" fieldToInterp="hudRoot.opacity" />
+            <Vector2DFieldInterpolator key="[0.0, 1.0]" keyValue="[ [0.0, 1080.0], [0.0, 878.0] ]" fieldToInterp="hudRoot.translation" />
+        </Animation>
+        <Animation id="slideOut" duration="0.18" repeat="false" easeFunction="inQuad">
+            <FloatFieldInterpolator key="[0.0, 1.0]" keyValue="[1.0, 0.0]" fieldToInterp="hudRoot.opacity" />
+            <Vector2DFieldInterpolator key="[0.0, 1.0]" keyValue="[ [0.0, 878.0], [0.0, 1080.0] ]" fieldToInterp="hudRoot.translation" />
+        </Animation>
+    </children>
+</component>

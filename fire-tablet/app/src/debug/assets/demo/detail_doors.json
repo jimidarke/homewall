@@ -1,0 +1,28 @@
+{
+  "v": 1,
+  "id": "doors",
+  "title": "Doors",
+  "ts": 1790905930,
+  "blocks": [
+    {
+      "type": "rows",
+      "title": "Now",
+      "items": [
+        {"glyph": "door-closed", "tone": "ink", "label": "Front", "value": "Closed", "sub": "since 5:13 PM"},
+        {"glyph": "door-open", "tone": "amber", "label": "Back", "value": "Open", "sub": "since 7:00 PM"}
+      ]
+    },
+    {
+      "type": "rows",
+      "title": "Today",
+      "items": [
+        {"glyph": "door-open", "tone": "amber", "label": "Back", "value": "Opened 7:42 AM", "sub": "12m"},
+        {"glyph": "door-open", "tone": "amber", "label": "Front", "value": "Opened 8:05 AM", "sub": "1m"},
+        {"glyph": "door-open", "tone": "amber", "label": "Front", "value": "Opened 12:31 PM", "sub": "2m"},
+        {"glyph": "door-open", "tone": "amber", "label": "Back", "value": "Opened 3:50 PM", "sub": "6m"},
+        {"glyph": "door-open", "tone": "amber", "label": "Front", "value": "Opened 5:12 PM", "sub": "1m"},
+        {"glyph": "door-open", "tone": "amber", "label": "Back", "value": "Opened 7:00 PM", "sub": "open"}
+      ]
+    }
+  ]
+}
