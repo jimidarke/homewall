@@ -10,7 +10,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class GlyphsTest {
-    /** Contract section 2.1, all 37. */
+    /** Contract section 2.1 (37), plus the photo peek's two chevrons (0.4.0, DESIGN §8.10). */
     private val contractGlyphs = listOf(
         "door-open", "door-closed", "door",
         "washing-machine", "tumble-dryer",
@@ -22,12 +22,13 @@ class GlyphsTest {
         "weather-night-partly-cloudy", "weather-cloudy", "weather-fog", "weather-hail", "weather-lightning",
         "weather-lightning-rainy", "weather-pouring", "weather-rainy", "weather-snowy", "weather-snowy-rainy",
         "weather-windy", "weather-windy-variant",
+        "chevron-left", "chevron-right",
     )
 
     @Test
     fun all_contract_glyphs_present() {
-        assertEquals(37, contractGlyphs.size)
-        assertEquals(37, contractGlyphs.toSet().size)
+        assertEquals(39, contractGlyphs.size)
+        assertEquals(39, contractGlyphs.toSet().size)
         for (name in contractGlyphs) {
             val d = GLYPH_PATHS[name]
             assertTrue("no path data for '$name'", !d.isNullOrBlank())

@@ -4,6 +4,7 @@
 > Status: **Approved and built.** The APK proof of concept was verified on the device on 2026-09-30 (now `~/code/homewall/fire-tablet`). The sidecar changes (§3, refined in §8.8) are deployed on nserver, and since 2026-10-01 the v2 UI (§8) runs on the wall as the R8 release build. The kiosk takeover in §4.5 is not built yet. Results: [KITCHEN-TABLET.md § Display App](../../../home-arr/docs/KITCHEN-TABLET.md#display-app-haku-tablet).
 > **v2 (the UI/UX build) was approved on 2026-09-30.** It is specified in [§8](#8-ui-v2-2026-09-30) and supersedes the lines marked "(superseded by §8)" below.
 > **v3 (touch) was built on 2026-10-01 (0.3.0).** Tap-to-expand detail panels and a photo peek are in [§8.10](#810-touch-detail-panels-and-photo-peek-v3-2026-10-01). v3 also lightens the glass (§8.3) and holds stale values (§8.5).
+> **0.4.0 (2026-10-05)** adds back and forward buttons to the photo peek, to browse the photos the wall has shown and deal new ones (§8.10, "Browsing the photos").
 > Device: Fire 7 `KFQUWI` at `192.0.2.60` (see [home-arr KITCHEN-TABLET.md](../../../home-arr/docs/KITCHEN-TABLET.md))
 > Data source: HAku sidecar on nserver, `http://192.0.2.20:1986` (`~/code/homewall/sidecar`)
 
@@ -11,7 +12,7 @@
 
 ## 1. Goal
 
-A wall-mounted kitchen display that shows the house's current activity at a glance. It has no controls that change house state; since v3 a tap opens a detail panel or peeks at the photo (§8.10). One screen shows:
+A wall-mounted kitchen display that shows the house's current activity at a glance. It has no controls that change house state; since v3 a tap opens a detail panel or peeks at the photo, and since 0.4.0 steps through the photos while peeking (§8.10). One screen shows:
 
 | Panel | Shows |
 |-------|-------|
@@ -421,7 +422,7 @@ The exact JSON shapes, glyph names, colours, sizes and timings are pinned in the
 | Photos | Full-bleed behind translucent smoked-glass cards. |
 | Photo source | A new curated NAS folder, `/mnt/media/haku/kitchen` (NAS `192.0.2.5:/volume2/media`, already NFS-mounted on nserver), seeded from `/mnt/media/Drone`. The sidecar proxies the images, because the tablet can only reach `.20`. |
 | Modules | Doors, laundry, water, energy, thermostat, weather, gas, calendar and activity. **No cameras.** |
-| Touch | v2 was glance-only, with no interaction. **Since v3 (2026-10-01):** tap a card for its detail panel, tap the header to peek at the photo. No controls that change house state (§8.10). |
+| Touch | v2 was glance-only, with no interaction. **Since v3 (2026-10-01):** tap a card for its detail panel, tap the header to peek at the photo, and (0.4.0) tap ‹ or › during the peek to step through the photos. No controls that change house state (§8.10). |
 | Identity | **HAku family, refined**: the Roku's smoked glass, sage, coral and warm ink. |
 | Typeface and icons | Barlow and a Material Design Icons subset, both bundled. Fire OS has no Play Services, so nothing is downloaded. |
 | Motion | Calm by default, one-shot on change (§8.6). |
@@ -564,11 +565,12 @@ Card content is drawn with `CompositingStrategy.ModulateAlpha`: the stale and of
 | Hero value changes | Only when the hero's shape changes: what is left once digits, `.` and `,` are removed ("Back open" → "All closed", "Washer 1m left" → "Washer done"). It then slides 12 dp and fades over 350 ms (`AnimatedContent`). A digit-only change ("1.1 kW" → "1.2 kW") swaps in place with no transition, so live readings that wobble between polls never move the wall |
 | New activity row | Enters at the top with an accent highlight (20%) that fades over 4 s |
 | Laundry LEDs | §4.4: breathing (stepped at 100 ms), bounce at 120 ms or 450 ms per step, violet sweep for a stale machine (150 ms per step). A pure `(mode, leds, t)` function. While the app is offline or the whole laundry card is stale, every bar holds its t = 0 frame (`ledAnimates`). A single machine with no data still sweeps on a live card, because there "no data" is news |
-| Photo rotation | The sharp and frosted layers cross-fade together over 1.6 s, every `background.intervalMs` (3 min live; never under 1 min). No Ken Burns and no zoom |
+| Photo rotation | The sharp and frosted layers cross-fade together over 1.6 s, every `background.intervalMs` (3 min live; never under 1 min). No Ken Burns and no zoom. Held while the peek shows (0.4.0) |
 | Night (`nightDim`) | Window brightness goes to the configured level, and the photos keep rotating (until v3 they faded out to plain `night` and rotation paused; v3 keeps them so the header peek works at any hour, 2026-10-01). Cards stay, so it is still glanceable. Schedule-based, because the tablet has no confirmed light sensor |
 | Image retention | The whole UI layer (header and cards, not the backdrop) steps around a ±2 dp ring of 8 positions every 10 min through `Modifier.offset {}` (so `onPlaced` and the frost follow), with no animation |
 | Detail panel (v3) | Opens with a 250 ms clip reveal from the tapped card and closes the same way. One-shot, started by a tap (§8.10) |
 | Photo peek (v3) | The UI layer and the scrim fade out over 400 ms, and back in over 400 ms. One-shot, started by a tap (§8.10) |
+| Peek step (0.4.0) | A photo stepped to with ‹ or › cross-fades in 300 ms, not 1.6 s. One-shot, started by a tap (§8.10) |
 
 **Pulse detection** is a pure function (`ui/model/Pulses.kt`), run by the ViewModel's poll loop through `PollTracker`.
 - `pulses(prev, next)` compares only **two consecutive successful polls**. `prev` is `null` after a failure or a cold start, which re-baselines.
@@ -651,10 +653,14 @@ The work is additive and ships in three small deploys, each followed by a Roku c
   - A panel left open while the house is quiet drew 3 frames in 30 s.
   - Open then close drew 33 frames: p50 12 ms, p90 21 ms, p99 32 ms.
   - Live `/api/detail/*` calls took under 90 ms cold and about 2 ms warm.
+- **Measured on 2026-10-05, 0.4.0** (release build on the wall, peek stepping):
+  - PSS is 57.1 MB at rest, 77.9 MB just after 30 steps (15 forward, 15 back), and 57.7 MB once the peek had ended and the app sat idle for 45 s. That is within the 95 MB budget and not climbing.
+  - A step's photo (both variants fetched and decoded) lands about 0.2 s after the tap. Three taps sent at once showed as `d=1` then a combined `d=2`, with one load for the pair.
+  - A rotation that fell due mid-peek was held and came one full interval later. A step 20 s into a peek kept it up at 40 s, and it ended by 53 s.
 
 ### 8.10 Touch: detail panels and photo peek (v3, 2026-10-01)
 
-v3 adds touch. It supersedes the glance-only lines in §1 and §8.1. The wall still has no controls that change house state: a tap opens a panel, closes it, or peeks at the photo. The JSON shapes (`/api/detail`, rate tiles), the tone keys and the timings are in the [v3 contract](../superpowers/specs/2026-10-01-tablet-v3-details-contract.md); if this section and the contract disagree on a value, the contract wins. The build steps are in the [v3 plan](../superpowers/plans/2026-10-01-tablet-v3-details.md).
+v3 adds touch. It supersedes the glance-only lines in §1 and §8.1. The wall still has no controls that change house state: a tap opens a panel, closes it, peeks at the photo, or (0.4.0) steps the peek's photo. The JSON shapes (`/api/detail`, rate tiles), the tone keys and the timings are in the [v3 contract](../superpowers/specs/2026-10-01-tablet-v3-details-contract.md); if this section and the contract disagree on a value, the contract wins. The build steps are in the [v3 plan](../superpowers/plans/2026-10-01-tablet-v3-details.md).
 
 **Rule: an overlay never hides an alert, and always closes by itself.** The panel closes after 90 s and the peek ends after 30 s, and any ALERT pulse closes both. The wall always goes back to the glance.
 
@@ -707,10 +713,21 @@ A tap on the header (the clock and date bar) fades the UI layer and the backdrop
 
 | Part | Behaviour |
 |------|-----------|
-| Ends on | Any tap, Back, 30 s, the photo going away, or any ALERT pulse. The UI and the scrim fade back over 400 ms |
+| Ends on | Any tap outside the ‹ › buttons, Back, 30 s after the peek started or was last stepped, the photo going away, or any ALERT pulse. The UI and the scrim fade back over 400 ms |
 | No photo | With backgrounds off or an empty NAS a header tap does nothing. Photos keep rotating through the night window, so the peek works at any hour |
 | Panel open | A header tap closes the panel instead of peeking. The rule is the pure `headerTapAction(detailOpen, peeking, hasPhoto)` |
 | Opening a panel | Ends any peek |
+
+**Browsing the photos (0.4.0, 2026-10-05).** While the peek shows, a ‹ button sits on the left edge and a › on the right, centred vertically. Each is a 56 dp smoked-glass disc (`night` at 45 %) with an `ink` MDI chevron, in a 72 dp touch target. They fade with the peek (`veil`, read in draw).
+
+| Part | Behaviour |
+|------|-----------|
+| The reel | `BackdropLoader` keeps the names of the last 20 photos shown, with a cursor on the current one. ‹ moves back along it, › moves forward and, past its end, deals new names from the shuffle bag, so the wall's random order stays as it is. Only names are kept: a step back fetches its photo again |
+| Oldest end | ‹ at the oldest photo kept does nothing |
+| Rapid taps | Taps that queue up while a photo loads are summed, and only the photo they land on is fetched. The photos skipped over stay on the reel |
+| A failed load | Keeps the current photo and drops the failed name from the reel |
+| Rotation | Held while the peek shows: the timer re-arms instead of advancing. A step restarts the full interval, so a chosen photo stays up for one interval after the peek. When rotation next advances it drops whatever is ahead of the cursor (browser-history semantics) |
+| Timeout | Each step restarts the peek's 30 s. An ALERT still ends the peek at once, buttons and all |
 
 #### Sidecar and Home Assistant side
 

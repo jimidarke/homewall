@@ -39,7 +39,7 @@ class MainActivity : ComponentActivity() {
             val ui by vm.ui.collectAsStateWithLifecycle()
             Dashboard(
                 ui, vm.freshness, vm.lastOkAt, vm.photo, vm.night,
-                vm.peek, vm::startPeek, vm::endPeek,
+                vm.peek, vm::startPeek, vm::endPeek, vm::stepPhoto,
                 vm.detail, vm::openDetail, vm::closeDetail,
             )
         }

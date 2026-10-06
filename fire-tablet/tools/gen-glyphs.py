@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Regenerate the tablet's MDI glyph subset.
 
-Fetches the 37 glyphs of Contract section 2.1 from the pinned @mdi/svg release, pulls the single path
+Fetches the 39 glyphs of Contract section 2.1 from the pinned @mdi/svg release, pulls the single path
 `d` out of each SVG, and writes:
 
   app/src/main/java/io/haku/tablet/ui/glyph/GlyphData.kt     internal val GLYPH_PATHS
@@ -19,7 +19,7 @@ from pathlib import Path
 MDI_VERSION = "7.4.47"
 CDN = f"https://cdn.jsdelivr.net/npm/@mdi/svg@{MDI_VERSION}"
 
-# Contract section 2.1, in table order.
+# Contract section 2.1, in table order, then the photo peek's chevrons (0.4.0, DESIGN section 8.10).
 GLYPHS = [
     # Doors
     "door-open", "door-closed", "door",
@@ -38,6 +38,8 @@ GLYPHS = [
     "weather-night-partly-cloudy", "weather-cloudy", "weather-fog", "weather-hail", "weather-lightning",
     "weather-lightning-rainy", "weather-pouring", "weather-rainy", "weather-snowy", "weather-snowy-rainy",
     "weather-windy", "weather-windy-variant",
+    # Photo peek
+    "chevron-left", "chevron-right",
 ]
 
 ROOT = Path(__file__).resolve().parent.parent

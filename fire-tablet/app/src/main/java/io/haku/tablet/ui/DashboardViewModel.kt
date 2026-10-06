@@ -114,8 +114,9 @@ class DashboardViewModel(
     private val _peek = MutableStateFlow(false)
 
     /**
-     * Whether the photo peek is on: the UI and the scrim fade out so the photo shows bare. It ends on
-     * [endPeek], after [PEEK_RETURN_MS], when the photo goes away, and on an alert.
+     * Whether the photo peek is on: the UI and the scrim fade out so the photo shows bare, the photo holds
+     * still unless stepped ([stepPhoto]). It ends on [endPeek], [PEEK_RETURN_MS] after the last start or step,
+     * when the photo goes away, and on an alert.
      */
     val peek: StateFlow<Boolean> = _peek.asStateFlow()
 
@@ -145,6 +146,7 @@ class DashboardViewModel(
         viewModelScope.launch {
             backdrop.run(
                 settings = _ui.map { it.config?.background?.let { b -> BgSettings(b.enabled, b.intervalMs) } },
+                hold = peek,
             )
         }
         viewModelScope.launch {
@@ -156,8 +158,23 @@ class DashboardViewModel(
     /** Starts a photo peek, which returns by itself after [PEEK_RETURN_MS]. Does nothing without a photo. */
     fun startPeek() {
         if (photo.value == null) return
-        peekReturn?.cancel()
         _peek.value = true
+        armPeekReturn()
+    }
+
+    /**
+     * Steps the peek's photo [delta] along the backdrop's reel (the peek's back and forward buttons), and
+     * gives the peek a fresh [PEEK_RETURN_MS]. Does nothing outside a peek, including during its fade back.
+     */
+    fun stepPhoto(delta: Int) {
+        if (!_peek.value) return
+        backdrop.step(delta)
+        armPeekReturn()
+    }
+
+    /** (Re)starts the current peek's auto-return. */
+    private fun armPeekReturn() {
+        peekReturn?.cancel()
         peekReturn = viewModelScope.launch {
             delay(PEEK_RETURN_MS)
             _peek.value = false

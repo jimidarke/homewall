@@ -15,6 +15,9 @@ import androidx.compose.ui.unit.IntSize
 /** Background cross-fade (Contract 3.4): 1.6 s, no zoom. */
 private const val CROSS_FADE_MS = 1600
 
+/** A photo stepped to during the peek fades in this fast, so the buttons feel direct. */
+private const val STEP_FADE_MS = 300
+
 /**
  * The backdrop's two photo slots and the cross-fade between them, shared by the full-screen [Backdrop] and
  * every card's frost. Everything here is read in draw lambdas only, so a cross-fade redraws without
@@ -43,7 +46,8 @@ class BackdropState {
     var rootSize: IntSize by mutableStateOf(IntSize.Zero)
 
     /**
-     * Cross-fades to [next]. Run from one `LaunchedEffect(photo)`; a newer photo cancels it cleanly. The newer
+     * Cross-fades to [next], quickly while the peek has the scrim lifted ([veil]): rotation is held then, so
+     * any new photo is one the viewer stepped to. Run from one `LaunchedEffect(photo)`; a newer photo cancels it cleanly. The newer
      * show can take [back] over before this one has unwound, so this one drops only the photo it set there.
      */
     suspend fun show(next: Photo?) {
@@ -53,7 +57,8 @@ class BackdropState {
         front = next
         try {
             fade.snapTo(0f)
-            fade.animateTo(1f, tween(CROSS_FADE_MS, easing = LinearOutSlowInEasing))
+            val ms = if (veil.value > 0f) STEP_FADE_MS else CROSS_FADE_MS
+            fade.animateTo(1f, tween(ms, easing = LinearOutSlowInEasing))
         } finally {
             if (back === prev) back = null   // drop the old pair; the GC frees it (no recycle())
         }

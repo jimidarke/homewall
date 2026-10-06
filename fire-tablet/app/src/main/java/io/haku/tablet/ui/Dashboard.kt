@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -50,6 +51,7 @@ import io.haku.tablet.ui.cards.LocalOffline
 import io.haku.tablet.ui.cards.placeholderCard
 import io.haku.tablet.ui.detail.DetailLayer
 import io.haku.tablet.ui.detail.DetailUi
+import io.haku.tablet.ui.glyph.Glyph
 import io.haku.tablet.ui.model.CardModel
 import io.haku.tablet.ui.theme.Haku
 import io.haku.tablet.ui.theme.HakuType
@@ -65,6 +67,12 @@ private const val DIM_MS = 600
 /** The photo peek's fade: the UI and the scrim out, or back in (v3 contract §3). */
 private const val PEEK_FADE_MS = 400
 
+/** The peek's back and forward buttons: a smoked-glass disc with a chevron, in a larger touch target. */
+private val PeekTarget = 72.dp
+private val PeekDisc = 56.dp
+private val PeekChevron = 36.dp
+private val PeekFill = Haku.night.copy(alpha = 0.45f)
+
 /**
  * The whole screen, in layers: the photo backdrop, then the UI layer: the card grid (or a status screen
  * until the config arrives), the offline banner, and the header over the grid's top inset. The UI layer
@@ -74,7 +82,8 @@ private const val PEEK_FADE_MS = 400
  *
  * A header tap ([headerTapAction]) starts the photo peek ([peek], [onStartPeek]): the UI layer and the scrim
  * fade out over 400 ms through [BackdropState.veil], read only in draw, so the photo shows bare. While it
- * shows or fades, a full-screen catcher on top takes every tap and ends it ([onEndPeek]), and so does Back.
+ * shows or fades, a full-screen catcher on top takes every tap and ends it ([onEndPeek]), and so does Back,
+ * except the back and forward buttons over it ([PeekControls]), which step the photo ([onStepPhoto]).
  *
  * A card tap opens its detail panel ([onOpenDetail]), drawn over the grid by [DetailLayer], which alone reads
  * [detail]. A tap on the panel, a header tap or Back closes it ([onCloseDetail]).
@@ -89,6 +98,7 @@ fun Dashboard(
     peek: StateFlow<Boolean>,
     onStartPeek: () -> Unit,
     onEndPeek: () -> Unit,
+    onStepPhoto: (Int) -> Unit,
     detail: StateFlow<DetailUi?>,
     onOpenDetail: (String) -> Unit,
     onCloseDetail: () -> Unit,
@@ -154,7 +164,10 @@ fun Dashboard(
                         act(headerTapAction(detail.value != null, peek.value, hasPhoto = photo.value != null))
                     })
                 }
-                if (peeking || veiled) TapCatcher(onEndPeek)
+                if (peeking || veiled) {
+                    TapCatcher(onEndPeek)
+                    PeekControls(backdrop, onStepPhoto)
+                }
             }
         }
         BackHandler(enabled = peeking || detailOpen) {
@@ -167,6 +180,41 @@ fun Dashboard(
 @Composable
 private fun TapCatcher(onTap: () -> Unit) {
     Spacer(Modifier.fillMaxSize().clickable(interactionSource = null, indication = null, onClick = onTap))
+}
+
+/**
+ * The peek's back (‹, -1) and forward (›, +1) buttons, centred on the left and right edges over the
+ * [TapCatcher]. They fade in and out with the peek ([BackdropState.veil], read in draw); a tap elsewhere
+ * falls through to the catcher. A tap during the fade back is ignored by the view model.
+ */
+@Composable
+private fun PeekControls(backdrop: BackdropState, onStep: (Int) -> Unit) {
+    Box(
+        Modifier
+            .fillMaxSize()
+            .padding(horizontal = MARGIN_DP.dp)
+            .graphicsLayer {
+                alpha = backdrop.veil.value
+                compositingStrategy = CompositingStrategy.ModulateAlpha
+            },
+    ) {
+        PeekButton("chevron-left", Modifier.align(Alignment.CenterStart)) { onStep(-1) }
+        PeekButton("chevron-right", Modifier.align(Alignment.CenterEnd)) { onStep(+1) }
+    }
+}
+
+@Composable
+private fun PeekButton(glyph: String, modifier: Modifier, onTap: () -> Unit) {
+    Box(
+        modifier
+            .size(PeekTarget)
+            .clickable(interactionSource = null, indication = null, onClick = onTap),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(Modifier.size(PeekDisc).background(PeekFill, CircleShape), contentAlignment = Alignment.Center) {
+            Glyph(glyph, kind = "", tint = Haku.ink, size = PeekChevron)
+        }
+    }
 }
 
 /** Read here, not in [Dashboard], so a new photo only restarts the backdrop's cross-fade. */

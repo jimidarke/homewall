@@ -24,8 +24,10 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -190,5 +192,50 @@ class PeekTest {
         src.state = Fetch.Ok(demo("alert"))
         advance(5_000)
         assertFalse("an alert must never hide behind a peek", vm.peek.value)
+    }
+
+    @Test
+    fun step_outside_a_peek_does_nothing() {
+        val vm = withPhoto(FakeSource(listOf("a.jpg", "b.jpg")))
+        val p = vm.photo.value
+        vm.stepPhoto(+1)
+        scheduler.runCurrent()
+        assertSame(p, vm.photo.value)
+    }
+
+    @Test
+    fun step_changes_the_photo_and_keeps_the_peek() {
+        val vm = withPhoto(FakeSource(listOf("a.jpg", "b.jpg")))
+        val p = vm.photo.value
+        vm.startPeek()
+        vm.stepPhoto(+1)
+        scheduler.runCurrent()
+        assertNotSame(p, vm.photo.value)
+        assertTrue(vm.peek.value)
+    }
+
+    @Test
+    fun a_step_restarts_the_return() {
+        val vm = withPhoto(FakeSource(listOf("a.jpg", "b.jpg")))
+        vm.startPeek()
+        advance(20_000)
+        vm.stepPhoto(+1)
+        advance(PEEK_RETURN_MS - 1)          // 49.999 s
+        assertTrue(vm.peek.value)
+        advance(1)                           // 50 s: 30 s after the step
+        assertFalse(vm.peek.value)
+    }
+
+    @Test
+    fun an_alert_ends_the_peek_after_steps() {
+        val src = FakeSource(listOf("a.jpg", "b.jpg"))
+        val vm = withPhoto(src)
+        vm.startPeek()
+        vm.stepPhoto(+1)
+        vm.stepPhoto(-1)
+        scheduler.runCurrent()
+        src.state = Fetch.Ok(demo("alert"))
+        advance(5_000)
+        assertFalse(vm.peek.value)
     }
 }
