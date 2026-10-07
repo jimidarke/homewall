@@ -344,14 +344,31 @@ admin rights (the `recorder.get_statistics` service does).
 
 ## Backgrounds
 
-The sidecar serves the full-screen photo background the Roku's glass cards composite
-over. Images are read at request time from **`HAKU_BG_DIR`** (default
-`/etc/haku/backgrounds/`); the sorted basenames are the rotation order and the interval
-is config-driven (`background.intervalMs` in `dashboard.json`, default 20 s). Each image
-is served letterboxed to the exact size the Roku asks for.
+The sidecar serves the full-screen photo background that the tablet's and the Rokus'
+glass cards composite over. Images are read at request time from **`HAKU_BG_DIR`**
+(default `/etc/haku/backgrounds/`); the sorted basenames are the listing order and the
+interval is config-driven (`background.intervalMs` in `dashboard.json`, default 20 s).
+Each image is served at the exact size the client asks for.
 
-**Per-layout directories.** A layout can read its photos from its own directory with
-`layouts.<name>.background.dir`, for example the kitchen tablet's drone photos on an NFS
+**One shared folder, mirrored from the NAS.** Every display reads `HAKU_BG_DIR`. Its
+photos are curated on the NAS in `/mnt/media/haku/kitchen` (an NFS `hard` mount on
+nserver) and mirrored in by **`haku-bg-sync.timer`** every 15 minutes
+(`haku-bg-sync.sh`: `rsync -rt --delete`, top-level images only). Displays never read
+the NAS, so a stalled mount can't freeze one, and new photos appear within about 15
+minutes plus the clients' list refresh (10 minutes on both the tablet and the Roku). The
+script skips a run, keeping the last good copy, when `/mnt/media` isn't mounted or the
+source has no images: mirroring an empty source would wipe every display. It logs one
+line per run (`journalctl -u haku-bg-sync`).
+
+```bash
+sudo install -m755 haku-bg-sync.sh /opt/haku/haku-bg-sync.sh
+sudo install -m644 haku-bg-sync.service haku-bg-sync.timer /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl start haku-bg-sync.service   # first copy now
+sudo systemctl enable --now haku-bg-sync.timer
+```
+
+**Per-layout directories** (supported, unused since the mirror). A layout can read its
+photos from its own directory with `layouts.<name>.background.dir`, for example an NFS
 mount. `/api/backgrounds?layout=tablet` then lists that directory, and each listed `url`
 carries `?layout=tablet` so it is served from there too. Without `?layout=`, or when the
 layout has no `dir`, `HAKU_BG_DIR` applies as before. An unknown layout is a 404. The
@@ -370,11 +387,12 @@ for the Rokus. Requests on `HAKU_BG_DIR` are never limited.
 
 | Param | Values |
 |---|---|
-| `fit` | `contain` (default): scale to fit inside `w`×`h`, letterbox onto black. This is what the Roku gets. `cover`: scale by `max(w/src_w, h/src_h)` and centre-crop to exactly `w`×`h`. Anything else is a `400`. |
+| `fit` | `contain` (default): scale to fit inside `w`×`h`, letterbox onto black. Roku channels before 0.13 get this. `cover`: scale by `max(w/src_w, h/src_h)` and centre-crop to exactly `w`×`h`. Anything else is a `400`. |
 | `blur` | Gaussian radius 0–40 (clamped), applied to the photo after resizing. Default 0; a value that isn't a finite number counts as 0. |
 
 The tablet asks for `w=1024&h=600&fit=cover` (sharp) and `w=256&h=150&fit=cover&blur=8`
-(soft).
+(soft); the Roku (0.13+) for `w=1920&h=1080&fit=cover`, since most of the drone photos
+are 4:3.
 
 **Errors.** An unlisted name is `404 {"error": "unknown background", "name": …}` and a
 bad `fit` is `400 {"error": "unknown fit", "fit": …}`, checked before any file is read. A
@@ -386,12 +404,13 @@ Sources are decoded with Pillow's JPEG draft mode (a 12 MP photo is decoded at a
 scale) and an EXIF orientation is applied before resizing, so a sideways
 photo comes out upright. JPEGs in MPO form (some drone cameras write them) are read as
 their main frame. Rendered images are cached in memory, keyed by directory, file, mtime,
-size, fit and blur; the cache holds up to 33 renders, then empties completely and starts
-again. A directory's listing is cached against the directory's mtime, so a call costs one
+size, fit and blur. It is least-recently-used with room for 160 renders, enough for the
+whole photo set at every client size (42 photos × 3 sizes, about 25 MB), so past the cap
+only the oldest render goes. A directory's listing is cached against the directory's mtime, so a call costs one
 `stat` until a photo is added or removed.
 
-`sidecar/backgrounds/*` in the repo is the **seed set** — deploy should copy it
-into `HAKU_BG_DIR`:
+`sidecar/backgrounds/*` in the repo is the **seed set** for a fresh install without the
+NAS mirror (the live wall no longer uses it) — copy it into `HAKU_BG_DIR`:
 
 ```bash
 sudo install -d -o media -g media /etc/haku/backgrounds
@@ -441,7 +460,7 @@ docker run -d --restart=always --network host --env-file /etc/haku/haku.env \
 | `HAKU_SIDECAR_HTTP_PORT` | `1986` | HTTP listen port |
 | `HAKU_SIDECAR_BASE` | derived LAN IP | base URL advertised to the Roku in `/api/config` |
 | `HAKU_CONFIG` | `/etc/haku/dashboard.json` | dashboard config path |
-| `HAKU_BG_DIR` | `/etc/haku/backgrounds` | directory of rotating background images (a layout's `background.dir` overrides it for `?layout=`) |
+| `HAKU_BG_DIR` | `/etc/haku/backgrounds` | directory of rotating background images, mirrored from the NAS by `haku-bg-sync` (a layout's `background.dir` overrides it for `?layout=`) |
 
 ## Dependencies
 

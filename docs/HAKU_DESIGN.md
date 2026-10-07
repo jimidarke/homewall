@@ -759,7 +759,7 @@ HAku now has a second kind of display client: a native Android app (`io.haku.tab
 - **`doors` and `laundry` modules.** Only the tablet layout uses them, and neither has an icon PNG or a card.
   - `doors` fills the kind already reserved in `HK_MODULE_KINDS()`: open or closed per contact, with "since" taken from the logbook, because HA re-stamps `last_changed` on restart.
   - `laundry` mirrors the sensors from HA's `packages/laundry.yaml` (`sensor.laundry_<m>_mode`, `_leds` and the cycle times) and never re-derives them. The tablet draws the LED bar natively.
-- **Per-layout backgrounds.** `layouts.tablet.background.dir` points `/api/backgrounds?layout=tablet` and `/api/background/<name>?layout=tablet` at the NAS folder `/mnt/media/haku/kitchen` instead of `HAKU_BG_DIR`. The `dir` is never serialized. `/api/background` also gained two params:
+- **Per-layout backgrounds.** `layouts.tablet.background.dir` points `/api/backgrounds?layout=tablet` and `/api/background/<name>?layout=tablet` at the NAS folder `/mnt/media/haku/kitchen` instead of `HAKU_BG_DIR`. The `dir` is never serialized. *Since 2026-10-07 the tablet and the Rokus share one folder instead: `haku-bg-sync.timer` mirrors the NAS folder into `HAKU_BG_DIR` every 15 min, the tablet's `dir` is gone, and the Roku (0.13) asks for `fit=cover` (spec `superpowers/specs/2026-10-07-shared-backgrounds-design.md`).* `/api/background` also gained two params:
   - `fit=cover` centre-crops to exactly w×h (the Roku keeps the default `contain`);
   - `blur` is a Gaussian radius from 0 to 40.
 

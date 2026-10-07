@@ -19,6 +19,8 @@ Pillow can't decode raises Undecodable, which the route turns into a 422.
 """
 import io
 import os
+import threading
+from collections import OrderedDict
 
 from PIL import Image, ImageFilter, ImageOps
 
@@ -29,8 +31,13 @@ BLUR_MAX = 40
 _EXIF_ORIENTATION = 0x0112
 _SIDEWAYS = (5, 6, 7, 8)  # orientations that swap width and height when upright
 
-_cache = {}  # (d, name, mtime, w, h, fit, blur) -> jpeg bytes
-_CACHE_MAX = 32
+# Rendered JPEGs, least recently used first: (d, name, mtime, w, h, fit, blur) -> bytes.
+# Sized for the shared photo set at every client size (42 photos x the Roku's 1920x1080
+# and the tablet's 1024x600 and 256x150 blur is 126 renders, about 25 MB), so a full
+# rotation stays cached; past the cap only the oldest render goes.
+_cache = OrderedDict()
+_CACHE_MAX = 160
+_cache_lock = threading.Lock()  # waitress serves on several threads
 _listings = {}  # d -> (dir mtime, tuple of names); the dir mtime changes when files come or go
 
 
@@ -118,9 +125,11 @@ def serve(name, w=1920, h=1080, fit="contain", blur=0, d=None):
         raise FileNotFoundError(name) from e
 
     ck = (d, name, mtime, w, h, fit, blur)
-    hit = _cache.get(ck)
-    if hit is not None:
-        return hit
+    with _cache_lock:
+        hit = _cache.get(ck)
+        if hit is not None:
+            _cache.move_to_end(ck)
+            return hit
 
     try:
         with Image.open(path) as im:
@@ -148,7 +157,9 @@ def serve(name, w=1920, h=1080, fit="contain", blur=0, d=None):
     canvas.save(buf, format="JPEG", quality=85, progressive=True)
     body = buf.getvalue()
 
-    if len(_cache) > _CACHE_MAX:
-        _cache.clear()
-    _cache[ck] = body
+    with _cache_lock:
+        _cache[ck] = body
+        _cache.move_to_end(ck)
+        while len(_cache) > _CACHE_MAX:
+            _cache.popitem(last=False)
     return body

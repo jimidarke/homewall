@@ -420,7 +420,7 @@ The exact JSON shapes, glyph names, colours, sizes and timings are pinned in the
 | Priority | **House activity first.** Doors, laundry, water and power lead. |
 | Layout | **Even 4×3 grid.** Calendar spans 2 rows and Activity takes the full right column; every other card is one cell. Positions are fixed; cards **light up** when active instead of moving. |
 | Photos | Full-bleed behind translucent smoked-glass cards. |
-| Photo source | A new curated NAS folder, `/mnt/media/haku/kitchen` (NAS `192.0.2.5:/volume2/media`, already NFS-mounted on nserver), seeded from `/mnt/media/Drone`. The sidecar proxies the images, because the tablet can only reach `.20`. |
+| Photo source | A new curated NAS folder, `/mnt/media/haku/kitchen` (NAS `192.0.2.5:/volume2/media`, already NFS-mounted on nserver), seeded from `/mnt/media/Drone`. The sidecar proxies the images, because the tablet can only reach `.20`. *Since 2026-10-07 nserver mirrors this folder into `HAKU_BG_DIR` every 15 min (`haku-bg-sync`), and the tablet and the wall Rokus both read the mirror; the folder is still where photos are curated.* |
 | Modules | Doors, laundry, water, energy, thermostat, weather, gas, calendar and activity. **No cameras.** |
 | Touch | v2 was glance-only, with no interaction. **Since v3 (2026-10-01):** tap a card for its detail panel, tap the header to peek at the photo, and (0.4.0) tap ‹ or › during the peek to step through the photos. No controls that change house state (§8.10). |
 | Identity | **HAku family, refined**: the Roku's smoked glass, sage, coral and warm ink. |

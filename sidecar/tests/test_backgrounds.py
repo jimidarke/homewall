@@ -285,6 +285,43 @@ def test_serve_cache_is_per_directory(tmp_path):
     assert _near(b.getpixel((32, 32)), BLUE)
 
 
+
+def _fresh_cache(monkeypatch, cap):
+    """An empty render cache of `cap` entries for this test."""
+    monkeypatch.setattr(backgrounds, "_cache", backgrounds.OrderedDict())
+    monkeypatch.setattr(backgrounds, "_CACHE_MAX", cap)
+
+
+def _renders(tmp_path, names):
+    for n in names:
+        _write_png(tmp_path / n, size=(16, 16))
+
+
+def test_render_cache_evicts_only_the_oldest(tmp_path, monkeypatch):
+    _fresh_cache(monkeypatch, 3)
+    _renders(tmp_path, ["a.png", "b.png", "c.png", "d.png"])
+    for n in ["a.png", "b.png", "c.png", "d.png"]:
+        backgrounds.serve(n, 32, 32, d=str(tmp_path))
+    cached = [k[1] for k in backgrounds._cache]
+    assert cached == ["b.png", "c.png", "d.png"]      # a went; the rest stayed
+
+
+def test_render_cache_hit_refreshes_recency(tmp_path, monkeypatch):
+    _fresh_cache(monkeypatch, 3)
+    _renders(tmp_path, ["a.png", "b.png", "c.png", "d.png"])
+    for n in ["a.png", "b.png", "c.png"]:
+        backgrounds.serve(n, 32, 32, d=str(tmp_path))
+    first = backgrounds.serve("a.png", 32, 32, d=str(tmp_path))     # a is now the newest
+    backgrounds.serve("d.png", 32, 32, d=str(tmp_path))
+    assert [k[1] for k in backgrounds._cache] == ["c.png", "a.png", "d.png"]
+    assert backgrounds.serve("a.png", 32, 32, d=str(tmp_path)) is first   # still a hit
+
+
+def test_render_cache_holds_every_size_of_the_photo_set():
+    # 42 photos x the Roku's and the tablet's two sizes must all fit at once.
+    assert backgrounds._CACHE_MAX >= 42 * 3
+
+
 # --- routes: ?layout=, traversal, Roku default --------------------------------
 def test_layout_dir_used(client, tmp_path, monkeypatch):
     default_dir, tablet_dir = tmp_path / "default", tmp_path / "tablet"

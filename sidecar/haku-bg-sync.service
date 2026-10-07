@@ -1,0 +1,13 @@
+[Unit]
+Description=HAku background sync — mirror the NAS photo folder into HAKU_BG_DIR
+Documentation=https://github.com/jimidarke/homewall/blob/main/sidecar/README.md
+After=network-online.target remote-fs.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=media
+Group=media
+Nice=10
+IOSchedulingClass=idle
+ExecStart=/opt/haku/haku-bg-sync.sh
