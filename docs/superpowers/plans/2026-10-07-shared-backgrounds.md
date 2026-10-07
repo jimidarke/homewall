@@ -1,6 +1,6 @@
 # Shared drone-photo backgrounds for the tablet and the Rokus
 
-> **Status: approved 2026-10-07, in progress.** Design: `../specs/2026-10-07-shared-backgrounds-design.md`.
+> **Status: deployed 2026-10-07.** `haku-bg-sync.timer` live on nserver (42 photos mirrored; the old six backed up in `/root/haku-bg-backup-20261007/`), sidecar LRU cache deployed, tablet `dir` removed from the live config, channel 0.13 on the office Roku and `.53` (`.52`/`.51`/`.54` were off). Design: `../specs/2026-10-07-shared-backgrounds-design.md`.
 
 ## Context
 
