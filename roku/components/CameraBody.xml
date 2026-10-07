@@ -9,7 +9,7 @@
 
   Errors back off on the live view's schedule (hkNextBackoffSeconds). After REST_AFTER
   errors in a row the card says "Camera offline" and rests for REST_S, playing the
-  keep-awake clip invisibly on this same Video node (still one decoder, still no
+  keep-awake clip on this same Video node, shrunk to a 2 px speck (still one decoder, still no
   screensaver), then tries the stream again. A stall watchdog restarts a feed that
   hasn't played for STALL_S.
   A ModuleTile body: drawn in the card under its header row, bodyW x bodyH px.
@@ -35,7 +35,7 @@
     <script type="text/brightscript" uri="pkg:/source/Glyphs.brs" />
     <script type="text/brightscript" uri="pkg:/source/Ui.brs" />
     <children>
-        <Video id="video" mute="true" enableUI="false" />
+        <Video id="video" mute="true" enableUI="false" visible="false" />
         <Group id="offline" visible="false">
             <Poster id="offlineGlyph" width="56" height="56" />
             <Label id="offlineText" text="Camera offline" horizAlign="center" />

@@ -33,10 +33,6 @@ end sub
 
 ' Every input lands here: start, keep or stop the feed for (active, url).
 sub sync()
-    fit = hkVideoFit(m.top.bodyW, m.top.bodyH)
-    m.video.translation = [fit.x, fit.y]
-    m.video.width = fit.w
-    m.video.height = fit.h
     paintOffline()
 
     tile = invalid
@@ -59,7 +55,7 @@ sub startCam()
     m.rest.control = "stop"
     m.backoff.control = "stop"
     showOffline(false)
-    m.video.opacity = 1.0
+    placeVideo("feed")
     content = createObject("roSGNode", "ContentNode")
     content.url = m.url
     content.streamFormat = "hls"
@@ -79,6 +75,7 @@ sub stopAll()
     m.rest.control = "stop"
     m.watchdog.control = "stop"
     m.video.control = "stop"
+    placeVideo("hidden")
     m.url = ""
 end sub
 
@@ -92,8 +89,9 @@ sub onVideoState()
         else if st = "error" or st = "finished" then
             retry()
         end if
-    else if m.mode = "rest" and st = "finished" then
-        restartClip()
+    else if m.mode = "rest" then
+        if st = "playing" then report("rest_clip")    ' the screensaver guard is running
+        if st = "finished" then restartClip()
     end if
 end sub
 
@@ -120,7 +118,7 @@ sub startRest()
     m.mode = "rest"
     report("rest")
     showOffline(true)
-    m.video.opacity = 0.004
+    placeVideo("clip")
     m.video.content = m.keepAwake
     m.video.control = "play"
     m.rest.duration = REST_S()
@@ -152,6 +150,24 @@ sub onWatchdog()
         end if
     else if m.mode = "rest" and not moving then
         restartClip()
+    end if
+end sub
+
+' The Video node punches a black hole in the glass wherever it sits, playing or not, at
+' any opacity: "feed" fits it 16:9 in the body, "clip" shrinks it to a 2 px speck in the
+' corner (the keep-awake clip only has to play), "hidden" takes it off the card.
+sub placeVideo(how as string)
+    m.video.visible = (how <> "hidden")
+    if how = "feed" then
+        fit = hkVideoFit(m.top.bodyW, m.top.bodyH)
+        m.video.translation = [fit.x, fit.y]
+        m.video.width = fit.w
+        m.video.height = fit.h
+        m.video.opacity = 1.0
+    else
+        m.video.translation = [0, 0]
+        m.video.width = 2
+        m.video.height = 2
     end if
 end sub
 
