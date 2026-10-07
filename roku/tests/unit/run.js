@@ -11,6 +11,7 @@ const brsCli = path.join(channelRoot, "node_modules", "@rokucommunity", "brs", "
 const args = [
   brsCli,
   path.join(channelRoot, "source", "Config.brs"),
+  path.join(channelRoot, "source", "Glyphs.brs"),
   path.join(channelRoot, "tests", "unit", "test_pure.brs"),
 ];
 

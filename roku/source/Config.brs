@@ -15,17 +15,46 @@ function HK_LIVE()        as string : return "0xD4673EFF" : end function
 function HK_WARN()        as string : return "0xD9A441FF" : end function
 function HK_OK()          as string : return "0x6B9080FF" : end function
 
-' --- Smoked-glass palette (v0.7, 0xRRGGBBAA) ----------------------------
-' Dark translucent surfaces that sit over the rotating photo background.
-' Alpha (low byte) is deliberate: cards ~80%, focused ~90%, text chips ~85%,
-' the full-screen dim scrim ~50%. Light text on top; brand/severity accents
-' (HK_BRAND/hkSeverityColor) stay for the ring + stripe.
-function HK_GLASS_CARD()       as string : return "0x1A211FCC" : end function  ' card at rest
-function HK_GLASS_CARD_FOCUS() as string : return "0x2A3532E6" : end function  ' focused card (brighter)
-function HK_GLASS_CHIP()       as string : return "0x0C1211D9" : end function  ' chip behind label text
-function HK_GLASS_DIM()        as string : return "0x0A0E0D80" : end function  ' scrim over the photo
+' --- Glass palette (v0.11, the tablet's v3 tokens; 0xRRGGBBAA) ------------
+' The home screen is the tablet's smoked glass without the frost: rounded 9-patch
+' cards (images/glass/, scripts/gen_glass_assets.py) tinted night over the photo.
+' HK_GLASS_PANEL / HK_TEXT_LIGHT_MUTED stay for the diag and drill screens.
+function HK_GLASS_CARD_FOCUS() as string : return "0x2A3532E6" : end function  ' drill/diag focus fill
 function HK_GLASS_PANEL()      as string : return "0x121816F2" : end function  ' diag panel body (~95%)
 function HK_TEXT_LIGHT_MUTED() as string : return "0xF3EFE6B3" : end function  ' secondary light text
+
+function HK_INK()        as string : return "0xFAF6EEFF" : end function
+function HK_INK_MUTED()  as string : return "0xFAF6EEC7" : end function  ' ink at 78%
+function HK_INK_FAINT()  as string : return "0xFAF6EE7A" : end function  ' ink at 48%
+function HK_NIGHT()      as string : return "0x0C1211FF" : end function
+function HK_SAGE()       as string : return "0x5B8C7FFF" : end function
+function HK_CORAL()      as string : return "0xD4673EFF" : end function
+function HK_AMBER()      as string : return "0xD9A441FF" : end function
+function HK_OFFLINE()    as string : return "0x6E7471FF" : end function
+function HK_WATER()      as string : return "0x4FB3E8FF" : end function
+function HK_HEAT()       as string : return "0xF2994AFF" : end function
+function HK_COOL()       as string : return "0x7CCBF2FF" : end function
+function HK_WASHER()     as string : return "0x00AAFFFF" : end function
+function HK_DRYER()      as string : return "0xFF6900FF" : end function
+function HK_LED_IDLE()   as string : return "0xE5484DFF" : end function
+function HK_LED_STALE()  as string : return "0x9B7BEAFF" : end function
+
+' Card tint strength over a sharp photo (the tablet's frosted glass gets by with
+' 0.32-0.48; with no blur behind it, 0.55 still let busy photos crowd small muted text).
+function HK_GLASS_FILL_OPACITY() as float : return 0.62 : end function
+function HK_LIT_RIM_OPACITY()    as float : return 0.85 : end function
+function HK_GLOW_OPACITY()       as float : return 0.18 : end function
+function HK_CHIP_LIT_OPACITY()   as float : return 0.28 : end function
+function HK_STALE_OPACITY()      as float : return 0.5  : end function
+function HK_OFFLINE_OPACITY()    as float : return 0.45 : end function
+
+' The display layout this channel asks the sidecar for (`?layout=`).
+function HK_LAYOUT() as string : return "roku" : end function
+
+' Agenda row heights (px): the tablet's 48 / 22 / 26 dp at the Roku's type scale.
+function HK_ROW_ACTIVITY() as integer : return 66 : end function
+function HK_ROW_DAY()      as integer : return 32 : end function
+function HK_ROW_EVENT()    as integer : return 38 : end function
 
 ' Animation durations (ms)
 function HK_FADE_MS()         as integer : return 200 : end function
@@ -39,16 +68,6 @@ function HK_OVERLAY_SLIDE_MS() as integer : return 200 : end function
 function HK_STATE_POLL_MS()   as integer : return 10000  : end function  ' sidecar /api/state poll
 function HK_IDLE_TO_HOME_MS() as integer : return 300000 : end function  ' user idle -> glance home
 function HK_RETURN_HOME_MS()  as integer : return 60000  : end function  ' after an auto-takeover
-
-' Rolling agenda tile (timeline): per-window dwell before advancing. Descriptor
-' may override via tile.rotateMs; floored so a tiny value can't thrash.
-function HK_TILE_ROTATE_MS()     as integer : return 4000 : end function
-function HK_TILE_ROTATE_MIN_MS() as integer : return 1500 : end function
-
-' Home-tile accent icon (weather/energy/water): fetched supersampled, shown
-' large in the card body beside the hero value — see ModuleTile.brs::layout/paintIcon.
-function HK_TILE_ICON_PX()         as integer : return 168 : end function
-function HK_TILE_ICON_DISPLAY_PX() as integer : return 140 : end function
 
 ' Rotating background gallery (v0.7). Interval is overridable per-install via
 ' /api/config's `background.intervalMs`; hkBgRotateMs() resolves it with a floor.
@@ -127,6 +146,7 @@ function HK_MODULE_KINDS() as object
         gas:      { tileType: "value",  drill: "value"  }
         climate:  { tileType: "value",  drill: "value"  }
         doors:    { tileType: "value",  drill: "agenda" }
+        laundry:  { tileType: "value",  drill: "value"  }
         motion:   { tileType: "value",  drill: "camera" }
         calendar: { tileType: "agenda", drill: "agenda" }
         timeline: { tileType: "agenda", drill: "agenda" }
@@ -153,7 +173,10 @@ function HK_REG_KEY_DISCOVERY()     as string : return "discoveryCacheV2"    : e
 function HK_REG_KEY_HA_URL()        as string : return "haUrl"               : end function
 function HK_REG_KEY_HA_TOKEN()      as string : return "haToken"             : end function
 function HK_REG_KEY_AUDIO_PREFIX()  as string : return "audioMuted_"         : end function
-function HK_REG_KEY_CONFIG()        as string : return "hubConfigV2"         : end function
+function HK_REG_KEY_CONFIG()        as string : return "hubConfigRokuV1"     : end function
+' The pre-0.11 default-view config cache; deleted once on boot (a 4x2 grid
+' drawn with the 6x3 geometry would be wrong, and the slot is better freed).
+function HK_REG_KEY_CONFIG_OLD()    as string : return "hubConfigV2"         : end function
 function HK_REG_KEY_HUB_BASE()      as string : return "hubBaseV2"           : end function
 
 function regRead(key as string) as string
@@ -214,7 +237,7 @@ function hkGridQuadrantPos(idx as integer) as object
     return [0, 0]
 end function
 
-' --- Generic card-grid geometry + navigation (HomeGroup, generalized GRID) ---
+' --- Card-grid geometry (HomeGroup) -------------------------------------
 ' Pixel rect for a tile spanning (wspan x hspan) cells at (col,row) in a grid
 ' described by { cellW, cellH, originX, originY, gap }. Pure + unit-tested.
 function hkTileRect(col as integer, row as integer, wspan as integer, hspan as integer, grid as object) as object
@@ -231,78 +254,6 @@ function hkTileRect(col as integer, row as integer, wspan as integer, hspan as i
         w: wspan * cellW + (wspan - 1) * gap
         h: hspan * cellH + (hspan - 1) * gap
     }
-end function
-
-' D-pad move over a row-major cols x rows grid: returns the new flat index,
-' clamped at the edges (no wrap). Generalizes GridGroup's hardcoded 2x2 ladder.
-function hkGridNeighbor(idx as integer, key as string, cols as integer, rows as integer) as integer
-    if cols < 1 then cols = 1
-    if rows < 1 then rows = 1
-    col = idx mod cols
-    row = idx \ cols
-    if key = "left"  and col > 0        then col = col - 1
-    if key = "right" and col < cols - 1 then col = col + 1
-    if key = "up"    and row > 0        then row = row - 1
-    if key = "down"  and row < rows - 1 then row = row + 1
-    return row * cols + col
-end function
-
-' --- Agenda helpers (timeline / calendar tiles + drill) ------------------
-' Items arrive from the sidecar as an array of assocarrays, each carrying a
-' `kind` ("event" | "header"). Pure + unit-tested so the rolling/window logic
-' stays off the SceneGraph thread and testable via the brs CLI.
-
-' Keep only the event rows (drop "header" dividers) — the rolling tile shows a
-' window of these; the drill renders headers + events verbatim.
-function hkAgendaEventRows(items as object) as object
-    out = []
-    if items = invalid then return out
-    for each it in items
-        if it <> invalid then
-            k = it.kind
-            if k <> invalid and k = "event" then out.push(it)
-        end if
-    end for
-    return out
-end function
-
-' A wrapping window of `size` items starting at `offset` (rolling tile). Returns
-' items in order, wrapping past the end. Empty/size<=0 -> []; size>=count returns
-' each item once starting at offset (no duplicates).
-function hkAgendaWindow(items as object, offset as integer, size as integer) as object
-    out = []
-    if items = invalid then return out
-    n = items.count()
-    if n = 0 or size <= 0 then return out
-    take = size
-    if take > n then take = n
-    if offset < 0 then offset = 0
-    for i = 0 to take - 1
-        out.push(items[(offset + i) mod n])
-    end for
-    return out
-end function
-
-' Source array for a STATIC (non-rotating) agenda tile: the full items list
-' (headers + events) by default, matching the calendar tile's TODAY/TOMORROW
-' context — or just the event rows when dropHeaders is set, for a card like
-' Recent Activity where a header would just eat one of the few visible slots
-' without telling you anything the per-row relative time doesn't already.
-function hkAgendaStaticSource(items as object, ev as object, dropHeaders as boolean) as object
-    if dropHeaders then return ev
-    return items
-end function
-
-' Resolve a rolling tile's per-window dwell (ms) from the descriptor's
-' tile.rotateMs, floored. Missing/invalid -> default. Pure/testable.
-function hkTileRotateMs(tdef as object) as integer
-    ms = HK_TILE_ROTATE_MS()
-    if tdef <> invalid and tdef.rotateMs <> invalid then
-        v = hkParseInt(tdef.rotateMs)
-        if v > 0 then ms = v
-    end if
-    if ms < HK_TILE_ROTATE_MIN_MS() then ms = HK_TILE_ROTATE_MIN_MS()
-    return ms
 end function
 
 ' Small assoc-array numeric accessor with a default (grids arrive from JSON).
@@ -365,6 +316,311 @@ function hkUptimeLabel(ms as longinteger) as string
     if days > 0 then return days.toStr() + "d " + hrs.toStr() + "h"
     if hrs  > 0 then return hrs.toStr() + "h " + mins.toStr() + "m"
     return mins.toStr() + "m"
+end function
+
+' --- Glass home helpers (v0.11; ports of the tablet's pure functions) --------
+
+' How fresh the last good /api/state is: "live" (<= 30 s), "lagging" (<= 2 min) or
+' "offline". Never fetched (lastOkSec 0) is offline. Tablet: ui/Layout.kt freshness.
+function hkFreshness(lastOkSec as integer, nowSec as integer) as string
+    if lastOkSec <= 0 then return "offline"
+    age = nowSec - lastOkSec
+    if age <= 30 then return "live"
+    if age <= 120 then return "lagging"
+    return "offline"
+end function
+
+' Whether the wall shows itself offline: only once a state fetch has finished, so a
+' cold start never flashes offline before it has tried.
+function hkOfflineShown(fresh as string, fetched as boolean) as boolean
+    return fetched and fresh = "offline"
+end function
+
+' The header's status word and dot colour (tablet Header.kt headerStatus). `degraded`
+' is the titles of stale cards in config order; past two it counts them.
+function hkHeaderStatus(fresh as string, fetched as boolean, degraded as object) as object
+    if not fetched then return { label: "connecting", dot: HK_OFFLINE() }
+    if fresh = "offline" then return { label: "offline", dot: HK_OFFLINE() }
+    if fresh = "lagging" then return { label: "lagging", dot: HK_AMBER() }
+    if degraded <> invalid and degraded.count() > 0 then
+        names = degraded.count().toStr()
+        if degraded.count() <= 2 then names = degraded.join(", ")
+        return { label: "degraded · " + names, dot: HK_AMBER() }
+    end if
+    return { label: "live", dot: HK_SAGE() }
+end function
+
+' "9:17 PM" from a 24 h hour and minute.
+function hkClockLabel(h as integer, mm as integer) as string
+    ampm = "AM"
+    if h >= 12 then ampm = "PM"
+    h12 = h mod 12
+    if h12 = 0 then h12 = 12
+    mmStr = mm.toStr()
+    if mm < 10 then mmStr = "0" + mmStr
+    return h12.toStr() + ":" + mmStr + " " + ampm
+end function
+
+' "Wednesday, October 7" (roDateTime's GetWeekday() gives the day name).
+function hkDateLabel(weekday as string, month as integer, day as integer) as string
+    months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+    if month < 1 or month > 12 then return weekday
+    return weekday + ", " + months[month - 1] + " " + day.toStr()
+end function
+
+' Burn-in shift [dx, dy] in px: each 10-minute slot of the wall clock takes the next of
+' 8 positions on a +-2 px square ring, so each step moves 2 px on one axis (BurnIn.kt).
+function hkBurnIn(epochSec as integer) as object
+    ring = [[-2, -2], [0, -2], [2, -2], [2, 0], [2, 2], [0, 2], [-2, 2], [-2, 0]]
+    slot = epochSec \ 600
+    return ring[slot mod 8]
+end function
+
+' The glyph a card draws: `glyph` if this build ships it, else the kind's default, else
+' "" (Glyphs.kt nameFor). Needs Glyphs.brs (HK_GLYPHS) loaded beside this file.
+function hkGlyphFor(glyph as dynamic, kind as dynamic) as string
+    shipped = HK_GLYPHS()
+    if glyph <> invalid and shipped.doesExist(glyph.toStr()) then return glyph.toStr()
+    defaults = {
+        doors: "door", laundry: "washing-machine", water: "water-outline", energy: "flash",
+        gas: "meter-gas", climate: "thermostat", weather: "weather-partly-cloudy",
+        calendar: "calendar", timeline: "history", cameras: "cctv"
+    }
+    if kind <> invalid and defaults.doesExist(kind.toStr()) then return defaults[kind.toStr()]
+    return ""
+end function
+
+' A card's accent from its glyph (Tokens.kt accentFor).
+function hkAccentFor(glyph as string) as string
+    if glyph = "door-open" then return HK_AMBER()
+    if glyph = "water" then return HK_WATER()
+    if glyph = "fire" then return HK_HEAT()
+    if glyph = "snowflake" then return HK_COOL()
+    if glyph = "washing-machine" then return HK_WASHER()
+    if glyph = "tumble-dryer" then return HK_DRYER()
+    return HK_SAGE()
+end function
+
+' An Activity row's accent from its glyph (Tokens.kt itemAccent).
+function hkItemAccent(glyph as string) as string
+    if glyph = "door-open" or glyph = "lock-open-variant" then return HK_AMBER()
+    if glyph = "home-account" then return HK_SAGE()
+    return HK_INK_MUTED()
+end function
+
+' "#RRGGBB" / "#AARRGGBB" / "0xRRGGBBAA" -> "0xRRGGBBAA"; anything else -> fallback.
+function hkHexToRoku(s as dynamic, fallback as string) as string
+    if s = invalid then return fallback
+    v = UCase(s.toStr())
+    if Left(v, 1) = "#" then
+        digits = Mid(v, 2)
+        if not hkIsHex(digits) then return fallback
+        if Len(digits) = 6 then return "0x" + digits + "FF"
+        if Len(digits) = 8 then return "0x" + Mid(digits, 3) + Left(digits, 2)
+        return fallback
+    end if
+    if Left(v, 2) = "0X" and Len(v) = 10 and hkIsHex(Mid(v, 3)) then return "0x" + Mid(v, 3)
+    return fallback
+end function
+
+function hkIsHex(s as string) as boolean
+    if Len(s) = 0 then return false
+    for i = 1 to Len(s)
+        if Instr(1, "0123456789ABCDEF", Mid(s, i, 1)) = 0 then return false
+    end for
+    return true
+end function
+
+' Which card a module draws (tablet Project.kt card() + DoorsCard/LaundryCard): doors
+' and laundry need a non-empty array, else they are value cards; agenda, camera and
+' forecast by tile.type; anything else (an unknown or retired type, like chart) is a
+' value card.
+function hkCardKind(d as object, values as dynamic) as string
+    kind = ""
+    if d.kind <> invalid then kind = d.kind.toStr()
+    ttype = ""
+    if d.tile <> invalid and d.tile.type <> invalid then ttype = d.tile.type.toStr()
+    hasVals = (values <> invalid and type(values) = "roAssociativeArray")
+    if kind = "doors" and hasVals then
+        if type(values.doors) = "roArray" then
+            if values.doors.count() > 0 then return "doors"
+        end if
+    end if
+    if kind = "laundry" and hasVals then
+        if type(values.machines) = "roArray" then
+            if values.machines.count() > 0 then return "laundry"
+        end if
+    end if
+    if ttype = "agenda" or ttype = "camera" or ttype = "forecast" then return ttype
+    return "value"
+end function
+
+' A value card is stale when the sidecar says so, and also with no tile, a blank hero or
+' an `error`: none of those is a reading (tablet Project.kt value()).
+function hkTileStale(values as dynamic) as boolean
+    if values = invalid or type(values) <> "roAssociativeArray" then return true
+    if values.stale = true then return true
+    if values.error <> invalid then return true
+    t = values.tile
+    if t = invalid or type(t) <> "roAssociativeArray" then return true
+    if t.hero = invalid then return true
+    return (t.hero.toStr().trim() = "")
+end function
+
+' An agenda card is stale only when the sidecar says so.
+function hkAgendaStale(values as dynamic) as boolean
+    if values = invalid or type(values) <> "roAssociativeArray" then return false
+    return (values.stale = true)
+end function
+
+' The doors a card with room for `fit` rows shows: open and unknown before closed (stable,
+' so each group keeps the sidecar's order), at most 3 (DoorsCard.kt doorsShown).
+function hkDoorsShown(doors as object, fit as integer) as object
+    first = []
+    rest = []
+    for each d in doors
+        if d.state = "closed" then
+            rest.push(d)
+        else
+            first.push(d)
+        end if
+    end for
+    first.append(rest)
+    n = fit
+    if n > 3 then n = 3
+    out = []
+    for i = 0 to n - 1
+        if i >= first.count() then exit for
+        out.push(first[i])
+    end for
+    return out
+end function
+
+' --- The laundry LED bar (LaundryFrames.kt): four segment brightnesses 0..1 ---
+
+' How often an animated bar steps (ms), or 0 when it is static. "stale" is the
+' pseudo-mode of a machine HA has no data for.
+function hkLedStepMs(mode as string) as integer
+    if mode = "overtime" then return 100
+    if mode = "done" then return 120
+    if mode = "done_calm" then return 450
+    if mode = "stale" then return 150
+    return 0
+end function
+
+' Only an animated mode (or a stale machine's comet) steps, and only while the card
+' isn't quiet (the wall offline, or the whole card stale).
+function hkLedAnimates(mode as string, machineStale as boolean, quiet as boolean) as boolean
+    if quiet then return false
+    m_ = mode
+    if machineStale then m_ = "stale"
+    return hkLedStepMs(m_) > 0
+end function
+
+function hkLedFrame(mode as string, leds as integer, tMs as integer, stale as boolean) as object
+    f = [0.0, 0.0, 0.0, 0.0]
+    pingPong = [0, 1, 2, 3, 2, 1]
+    if stale then
+        head = (tMs \ 150) mod 4
+        f[head] = 1.0
+        f[(head + 3) mod 4] = 0.35
+        f[(head + 2) mod 4] = 0.1
+        return f
+    end if
+    if mode = "idle" then
+        f[0] = 0.25
+    else if mode = "running" then
+        n = leds
+        if n > 4 then n = 4
+        for i = 0 to n - 1
+            f[i] = 1.0
+        end for
+    else if mode = "overtime" then
+        f[0] = 0.15 + 0.85 * (0.5 + 0.5 * Sin(2 * 3.14159265 * tMs / 2500))
+    else if mode = "done" then
+        f[pingPong[(tMs \ 120) mod 6]] = 1.0
+    else if mode = "done_calm" then
+        st = tMs \ 450
+        if st > 0 then f[pingPong[(st - 1) mod 6]] = 0.2
+        f[pingPong[st mod 6]] = 0.6
+    end if
+    return f
+end function
+
+' The bar's colour: violet while stale, the firmware's dim red while idle, else the
+' machine's own colour.
+function hkLedColor(mode as string, stale as boolean, machineColor as string) as string
+    if stale then return HK_LED_STALE()
+    if mode = "idle" then return HK_LED_IDLE()
+    return machineColor
+end function
+
+' --- Agenda cards (AgendaCard.kt): whole rows only ---------------------------
+
+' How many of `items` fit, in order, in `availPx`; never ends on a day header.
+function hkVisibleRowCount(items as object, activity as boolean, availPx as integer) as integer
+    used = 0
+    n = 0
+    for each it in items
+        h = HK_ROW_EVENT()
+        if activity then
+            h = HK_ROW_ACTIVITY()
+        else if it.kind = "header" then
+            h = HK_ROW_DAY()
+        end if
+        if used + h > availPx then exit for
+        used = used + h
+        n = n + 1
+    end for
+    while n > 0 and items[n - 1].kind = "header"
+        n = n - 1
+    end while
+    return n
+end function
+
+' The sidecar's upper-case day header ("WED · OCT 7") as "Wed · Oct 7".
+function hkDayLabel(header as string) as string
+    words = header.split(" ")
+    out = []
+    for each w in words
+        if Len(w) > 0 then
+            out.push(UCase(Left(w, 1)) + LCase(Mid(w, 2)))
+        else
+            out.push(w)
+        end if
+    end for
+    return out.join(" ")
+end function
+
+' --- Sidecar plumbing ----------------------------------------------------------
+
+' `url` with `?layout=<layout>` (or `&layout=`) added; unchanged for "".
+function hkWithLayout(url as string, layoutName as string) as string
+    if layoutName = invalid or layoutName = "" then return url
+    sep = "?"
+    if Instr(1, url, "?") > 0 then sep = "&"
+    return url + sep + "layout=" + layoutName
+end function
+
+' The config as cached in the registry: modules without the keys the channel never reads
+' (entities, drill, refreshMs and friends), so it stays well inside the registry slot.
+function hkSlimConfig(cfg as object) as object
+    out = {}
+    for each k in cfg
+        if k <> "modules" then out[k] = cfg[k]
+    end for
+    mods = []
+    if cfg.modules <> invalid then
+        for each md in cfg.modules
+            slim = {}
+            for each k in ["id", "kind", "title", "feedKey", "tile", "outlook"]
+                if md.doesExist(k) then slim[k] = md[k]
+            end for
+            mods.push(slim)
+        end for
+    end if
+    out.modules = mods
+    return out
 end function
 
 ' --- Logging -------------------------------------------------------------

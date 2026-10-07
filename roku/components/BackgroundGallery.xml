@@ -22,6 +22,7 @@
 
     <script type="text/brightscript" uri="BackgroundGallery.brs" />
     <script type="text/brightscript" uri="pkg:/source/Config.brs" />
+    <script type="text/brightscript" uri="pkg:/source/Glyphs.brs" />
 
     <children>
         <Poster id="bgA" width="1920" height="1080"

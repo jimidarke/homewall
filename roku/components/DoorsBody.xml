@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  DoorsBody — one row per door (tablet DoorsCard): glyph and label, and on the right the state word over its age. Open and unknown doors sort first; as many whole rows as fit, at most 3. Closed is ink, open amber (coral once the sidecar says it is open too long), unknown grey.
+  A ModuleTile body: drawn in the card under its header row, bodyW x bodyH px.
+-->
+<component name="DoorsBody" extends="Group">
+    <interface>
+        <field id="descriptor" type="assocarray" />
+        <field id="values" type="assocarray" onChange="paint" />
+        <field id="fonts" type="assocarray" />
+        <field id="bodyW" type="integer" value="246" />
+        <field id="bodyH" type="integer" value="188" />
+        <field id="quiet" type="boolean" value="false" onChange="paint" />
+        <field id="lit" type="boolean" value="false" onChange="paint" />
+        <field id="alert" type="boolean" value="false" onChange="paint" />
+        <field id="tone" type="string" value="0x5B8C7FFF" onChange="paint" />
+    </interface>
+    <script type="text/brightscript" uri="DoorsBody.brs" />
+    <script type="text/brightscript" uri="pkg:/source/Config.brs" />
+    <script type="text/brightscript" uri="pkg:/source/Glyphs.brs" />
+    <script type="text/brightscript" uri="pkg:/source/Ui.brs" />
+</component>

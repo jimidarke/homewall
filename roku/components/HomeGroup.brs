@@ -1,20 +1,42 @@
-' HomeGroup — the HAku card-grid home page. See HomeGroup.xml.
+' HomeGroup — the HAku home wall. See HomeGroup.xml.
+
+function HEADER_RIGHT() as integer : return 1848 : end function   ' grid right edge less card padding
+function HEADER_MID() as integer : return 70 : end function       ' vertical centre of the header band
 
 sub init()
+    m.shift = m.top.findNode("shift")
+    m.clock = m.top.findNode("clock")
+    m.date = m.top.findNode("date")
+    m.statusDot = m.top.findNode("statusDot")
+    m.status = m.top.findNode("status")
     m.tilesGroup = m.top.findNode("tiles")
-    m.clock      = m.top.findNode("clock")
-    m.empty      = m.top.findNode("empty")
-    m.tiles      = []
-    m.tileMeta   = []
-    m.cellMap    = {}
-    m.cols       = 3
-    m.rows       = 2
-    m.focusIdx   = 0
-    updateClock()
+    m.banner = m.top.findNode("banner")
+    m.bannerFill = m.top.findNode("bannerFill")
+    m.bannerText = m.top.findNode("bannerText")
+    m.empty = m.top.findNode("empty")
+    m.clockTimer = m.top.findNode("clockTimer")
+    m.statusTimer = m.top.findNode("statusTimer")
+
+    m.fonts = hkFontSet()
+    m.clock.font = m.fonts.clock
+    m.date.font = m.fonts.date
+    m.status.font = m.fonts.title
+    m.bannerText.font = m.fonts.sub
+    m.empty.font = m.fonts.sub
+    m.bannerFill.blendColor = HK_OFFLINE()
+
+    m.tiles = []
+    m.offline = false
+
+    m.clockTimer.observeField("fire", "onClockTick")
+    m.statusTimer.observeField("fire", "updateStatus")
+    m.statusTimer.control = "start"
+    onClockTick()
+    updateStatus()
 end sub
 
 ' ---------------------------------------------------------------------------
-' Build the grid from /api/config
+' Build the cards from /api/config
 ' ---------------------------------------------------------------------------
 sub onConfig()
     cfg = m.top.config
@@ -24,46 +46,33 @@ sub onConfig()
         m.tilesGroup.removeChild(t)
     end for
     m.tiles = []
-    m.tileMeta = []
-    m.cellMap = {}
 
     grid = cfg.grid
     if grid = invalid then grid = {}
-    m.cols = hkNumOr(grid, "cols", 3)
-    m.rows = hkNumOr(grid, "rows", 2)
+    cols = hkNumOr(grid, "cols", 3)
 
     i = 0
     for each md in cfg.modules
         tdef = md.tile
         if tdef = invalid then tdef = {}
-        col = hkNumOr(tdef, "col", i mod m.cols)
-        row = hkNumOr(tdef, "row", i \ m.cols)
-        wsp = hkNumOr(tdef, "w", 1)
-        hsp = hkNumOr(tdef, "h", 1)
-        rect = hkTileRect(col, row, wsp, hsp, grid)
+        col = hkNumOr(tdef, "col", i mod cols)
+        row = hkNumOr(tdef, "row", i \ cols)
+        rect = hkTileRect(col, row, hkNumOr(tdef, "w", 1), hkNumOr(tdef, "h", 1), grid)
 
-        tile = createObject("roSGNode", "ModuleTile")
+        tile = CreateObject("roSGNode", "ModuleTile")
+        tile.fonts = m.fonts
         tile.tileW = rect.w
         tile.tileH = rect.h
-        tile.hubBase = m.top.hubBase
-        tile.snapBase = m.top.snapBase
         tile.translation = [rect.x, rect.y]
+        tile.offline = m.offline
         tile.descriptor = md
+        tile.addFields({ moduleId: hkStrOr(md.id, ""), feedKey: feedKeyOf(md) })
         m.tilesGroup.appendChild(tile)
         m.tiles.push(tile)
-        m.tileMeta.push({ col: col, row: row, id: strOrEmpty(md.id), feedKey: feedKeyOf(md) })
-
-        for cc = col to col + wsp - 1
-            for rr = row to row + hsp - 1
-                m.cellMap[(rr * m.cols + cc).toStr()] = i
-            end for
-        end for
         i = i + 1
     end for
 
     m.empty.visible = (m.tiles.count() = 0)
-    if m.focusIdx >= m.tiles.count() then m.focusIdx = 0
-    applyFocus()
     onState()  ' paint any state we already have
 end sub
 
@@ -74,97 +83,92 @@ function feedKeyOf(md as object) as string
 end function
 
 ' ---------------------------------------------------------------------------
-' Push /api/state values into each tile
+' Push /api/state values into each card
 ' ---------------------------------------------------------------------------
 sub onState()
     s = m.top.state
     if s = invalid then return
-    ts = "0"
-    if s.ts <> invalid then ts = s.ts.toStr()
-
-    for i = 0 to m.tiles.count() - 1
-        fk = m.tileMeta[i].feedKey
-        m.tiles[i].cacheBust = ts
-        if fk <> "" and s.doesExist(fk) then
-            m.tiles[i].values = s[fk]
-        end if
+    for each t in m.tiles
+        fk = t.feedKey
+        if fk <> "" and s.doesExist(fk) then t.values = s[fk]
     end for
-    updateClock()
+    updateStatus()
 end sub
 
 ' ---------------------------------------------------------------------------
-' Focus / navigation
+' Header status, offline dimming and banner (every poll, and every 5 s, since a
+' hung poll never reports back)
 ' ---------------------------------------------------------------------------
-function onKeyEvent(key as string, press as boolean) as boolean
-    if not press then return false
-    if m.tiles.count() = 0 then return false
-
-    if key = "OK" then
-        meta = m.tileMeta[m.focusIdx]
-        if meta.id <> "" then
-            m.top.selectedModule = meta.id
-            hkEvent("module_open", { id: meta.id })
-        end if
-        return true
-    else if key = "left" or key = "right" or key = "up" or key = "down" then
-        moveFocus(key)
-        return true
+sub updateStatus()
+    fresh = hkFreshness(m.top.lastOk, hkNowSeconds())
+    offline = hkOfflineShown(fresh, m.top.fetched)
+    if offline <> m.offline then
+        m.offline = offline
+        for each t in m.tiles
+            t.offline = offline
+        end for
     end if
-    return false
-end function
 
-sub moveFocus(key as string)
-    meta = m.tileMeta[m.focusIdx]
-    idx = meta.row * m.cols + meta.col
-    guard = 0
-    while guard < (m.cols + m.rows + 2)
-        guard = guard + 1
-        n = hkGridNeighbor(idx, key, m.cols, m.rows)
-        if n = idx then return  ' at the grid edge — no move
-        idx = n
-        k = idx.toStr()
-        if m.cellMap.doesExist(k) then
-            tIdx = m.cellMap[k]
-            if tIdx <> m.focusIdx then
-                m.focusIdx = tIdx
-                applyFocus()
-                hkEvent("tile_focus", { idx: tIdx, id: m.tileMeta[tIdx].id })
-                return
-            end if
-        end if
-    end while
+    degraded = []
+    for each t in m.tiles
+        if t.stale and t.descriptor <> invalid then degraded.push(hkStrOr(t.descriptor.title, t.moduleId))
+    end for
+    st = hkHeaderStatus(fresh, m.top.fetched, degraded)
+    m.status.text = st.label
+    w = hkTextWidth(m.status)
+    m.status.translation = [HEADER_RIGHT() - w, HEADER_MID() - 36]
+    m.statusDot.translation = [HEADER_RIGHT() - w - 12 - 14, HEADER_MID() - 7]
+    hkTint(m.statusDot, st.dot)
+
+    m.banner.visible = offline
+    if offline then paintBanner()
 end sub
 
-sub applyFocus()
-    for i = 0 to m.tiles.count() - 1
-        m.tiles[i].focused = (i = m.focusIdx)
+' "No data since 9:41 PM", or "No data yet": a grey pill centred low over the cards.
+sub paintBanner()
+    text = "No data yet"
+    if m.top.lastOk > 0 then
+        dt = CreateObject("roDateTime")
+        dt.FromSeconds(m.top.lastOk)
+        dt.ToLocalTime()
+        text = "No data since " + hkClockLabel(dt.GetHours(), dt.GetMinutes())
+    end if
+    m.bannerText.text = text
+    w = hkTextWidth(m.bannerText) + 2 * 26
+    h = 56
+    m.bannerFill.width = w
+    m.bannerFill.height = h
+    m.bannerText.translation = [26, 0]
+    m.bannerText.height = h
+    m.banner.translation = [(1920 - w) \ 2, 1080 - 22 - h]
+end sub
+
+' ---------------------------------------------------------------------------
+' HA focusModule= takeover: light the card for a moment (no route change)
+' ---------------------------------------------------------------------------
+sub onAttention()
+    id = m.top.attention
+    for each t in m.tiles
+        if t.moduleId = id then t.attention = true
     end for
 end sub
 
-' Called by MainScene when HomeGroup (re)gains focus, to re-assert the ring.
-sub onShow()
-    applyFocus()
-    updateClock()
-end sub
-
 ' ---------------------------------------------------------------------------
-' Clock
+' Clock, date and the burn-in shift; re-armed at each minute boundary
 ' ---------------------------------------------------------------------------
-sub updateClock()
-    dt = createObject("roDateTime")
-    dt.toLocalTime()
-    h = dt.getHours()
-    mm = dt.getMinutes()
-    ampm = "AM"
-    if h >= 12 then ampm = "PM"
-    h12 = h mod 12
-    if h12 = 0 then h12 = 12
-    mmStr = mm.toStr()
-    if mm < 10 then mmStr = "0" + mmStr
-    m.clock.text = h12.toStr() + ":" + mmStr + " " + ampm
-end sub
+sub onClockTick()
+    dt = CreateObject("roDateTime")
+    now_ = dt.AsSeconds()
+    dt.ToLocalTime()
+    m.clock.text = hkClockLabel(dt.GetHours(), dt.GetMinutes())
+    cw = hkTextWidth(m.clock)
+    m.date.text = hkDateLabel(dt.GetWeekday(), dt.GetMonth(), dt.GetDayOfMonth())
+    ' Bottom-aligned boxes; nudge the smaller face up so the baselines meet.
+    m.date.translation = [72 + cw + 20, 34 - 6]
 
-function strOrEmpty(v as dynamic) as string
-    if v = invalid then return ""
-    return v.toStr()
-end function
+    off = hkBurnIn(now_)
+    m.shift.translation = [off[0], off[1]]
+
+    m.clockTimer.duration = 60 - dt.GetSeconds() + 0.2
+    m.clockTimer.control = "start"
+end sub

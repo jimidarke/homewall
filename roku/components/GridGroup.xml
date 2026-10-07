@@ -23,6 +23,7 @@
 
     <script type="text/brightscript" uri="GridGroup.brs" />
     <script type="text/brightscript" uri="pkg:/source/Config.brs" />
+    <script type="text/brightscript" uri="pkg:/source/Glyphs.brs" />
 
     <children>
         <Rectangle id="bg" width="1920" height="1080" color="0x2B2A26FF" />

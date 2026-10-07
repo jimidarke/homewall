@@ -1,6 +1,6 @@
 ' MainScene — route router for HAku.
-'   Routes: home (card grid, default) · live (fullscreen camera) · grid (2x2)
-'           · module (drill-down) · diag (status/settings). Owns discovery, the
+'   Routes: home (read-only glass wall, default) · live (fullscreen camera) · grid
+'           (2x2) · module (drill-down, no longer reached from home) · diag (status). Owns discovery, the
 '           sidecar poll, ECP fan-out, overlays, toasts, and idle/auto-takeover.
 ' Live video is gated by LiveGroup.cam: home/module/diag leave it "" so the single
 ' H.264 decoder is free — and a hidden keep-awake Video plays there instead to stop
@@ -39,7 +39,6 @@ sub init()
     m.grid.observeField("cancel", "onGridCancel")
     m.modules.observeField("config", "onModuleConfig")
     m.modules.observeField("snapshot", "onModuleSnapshot")
-    m.home.observeField("selectedModule", "onModuleSelected")
     m.bgList.observeField("result", "onBgList")
     m.diagHealth.observeField("result", "onDiagHealth")
     m.diag.observeField("dismiss", "onDiagDismiss")
@@ -67,6 +66,9 @@ sub init()
     m.keepAwake.content = kc
     m.keepAwake.mute = true
 
+    m.modules.layout = HK_LAYOUT()
+    regDelete(HK_REG_KEY_CONFIG_OLD())   ' pre-0.11 default-view cache: never read again
+
     m.stateTimer.duration = HK_STATE_POLL_MS() / 1000
     m.idleTimer.duration = HK_IDLE_TO_HOME_MS() / 1000
     m.returnHomeTimer.duration = HK_RETURN_HOME_MS() / 1000
@@ -89,7 +91,6 @@ sub init()
     cachedBase = hkHubBase()
     if cachedBase <> "" then
         m.hubBase = cachedBase
-        m.home.hubBase = cachedBase
         m.modules.hubBase = cachedBase
         startHubPoll(true)
         runBgList()
@@ -125,7 +126,6 @@ sub onArgs()
     if args.hubBase <> invalid and args.hubBase <> "" then
         hkSetHubBase(args.hubBase)
         m.hubBase = args.hubBase
-        m.home.hubBase = args.hubBase
         m.modules.hubBase = args.hubBase
         startHubPoll(true)
     end if
@@ -158,15 +158,11 @@ sub onDiscoveryResult()
         ' Telemetry surfaced by the diagnostic screen.
         m.streamCount = streamCountOf(r.streams)
         if r.schemaVersion <> invalid then m.schemaVersion = r.schemaVersion.toStr()
-        if r.host <> invalid and r.host <> "" then
-            m.host = r.host.toStr()
-            m.home.snapBase = "http://" + r.host + ":1984"
-        end if
+        if r.host <> invalid and r.host <> "" then m.host = r.host.toStr()
 
         if r.sidecar <> invalid and r.sidecar.base <> invalid and r.sidecar.base <> "" then
             m.hubBase = r.sidecar.base
             hkSetHubBase(r.sidecar.base)
-            m.home.hubBase = r.sidecar.base
             m.modules.hubBase = r.sidecar.base
             startHubPoll(true)
             runBgList()
@@ -259,9 +255,15 @@ end sub
 sub onModuleSnapshot()
     snap = m.modules.snapshot
     if snap = invalid then return
-    if snap.ts = invalid then return   ' error payloads carry no ts
+    m.home.fetched = true                ' a fetch finished: the header stops "connecting"
+    if snap.err = "unknown_layout" then
+        startHubPoll(true)               ' the sidecar lost the layout: re-fetch config
+        return
+    end if
+    if snap.ts = invalid then return     ' error payloads carry no ts
     m.lastSnapshot = snap
     m.home.state = snap
+    m.home.lastOk = hkNowSeconds()
     if m.route = "module" then refreshModuleScreen()
     hkEvent("poll_ok", { ts: snap.ts })
 end sub
@@ -275,20 +277,8 @@ function moduleIds(cfg as object) as string
 end function
 
 ' ---------------------------------------------------------------------------
-' Module selection / routing
+' Module lookup (HA takeovers)
 ' ---------------------------------------------------------------------------
-sub onModuleSelected()
-    id = m.home.selectedModule
-    if id = "" then return
-    md = moduleById(id)
-    if md = invalid then return
-    if isCameraModule(md) then
-        goLive(m.lastLiveCam, 0)
-    else
-        goModule(md)
-    end if
-end sub
-
 function moduleById(id as string) as object
     if m.config = invalid or m.config.modules = invalid then return invalid
     for each md in m.config.modules
@@ -652,8 +642,9 @@ sub dispatchEcp(e as object)
     end if
 end sub
 
-' Auto-takeover: bring the relevant module/camera to the foreground, then return
-' home after a TTL (unless the user is already on a self-chosen route).
+' Auto-takeover: a camera module (or cam=) takes the screen live, then returns home
+' after a TTL (unless the user is already on a self-chosen route). Any other module
+' only lights its card on the read-only home wall (v0.11): no drill-down.
 sub takeoverModule(id as string, e as object)
     md = moduleById(id)
     cam = e.cam
@@ -662,8 +653,8 @@ sub takeoverModule(id as string, e as object)
         beginTakeover()
         goLive(cam, hkParseInt(e.replay))
     else if md <> invalid then
-        beginTakeover()
-        goModule(md)
+        m.home.attention = id
+        hkEvent("module_attention", { id: id })
     else if cam <> invalid and cam <> "" then
         beginTakeover()
         goLive(cam, hkParseInt(e.replay))
@@ -705,7 +696,8 @@ sub onReturnHomeTimer()
 end sub
 
 ' MainScene catches keys the focused group didn't consume — Back climbs the route
-' tree to home; any bubbled key cancels an in-progress auto-takeover.
+' tree to home; any bubbled key cancels an in-progress auto-takeover. Home itself is
+' read-only (HomeGroup takes no keys): only * / options (diag) and Back do anything.
 function onKeyEvent(key as string, press as boolean) as boolean
     if not press then return false
     ' A user keypress that reaches here means they're interacting — drop takeover.
@@ -749,7 +741,7 @@ function readCachedConfig() as object
 end function
 
 sub writeCachedConfig(cfg as object)
-    regWrite(HK_REG_KEY_CONFIG(), formatJson(cfg))
+    regWrite(HK_REG_KEY_CONFIG(), formatJson(hkSlimConfig(cfg)))
 end sub
 
 ' ---------------------------------------------------------------------------

@@ -6,6 +6,7 @@
     "source/**/*",
     "components/**/*",
     "images/**/*",
+    "fonts/**/*",
     {
       "src": "!**/*.spec.brs",
       "dest": ""

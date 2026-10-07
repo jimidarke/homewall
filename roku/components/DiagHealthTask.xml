@@ -11,6 +11,7 @@
     </interface>
     <script type="text/brightscript" uri="DiagHealthTask.brs" />
     <script type="text/brightscript" uri="pkg:/source/Config.brs" />
+    <script type="text/brightscript" uri="pkg:/source/Glyphs.brs" />
     <script type="text/brightscript" uri="pkg:/source/Api.brs" />
     <script type="text/brightscript" uri="pkg:/source/Http.brs" />
 </component>

@@ -22,6 +22,7 @@
     </interface>
     <script type="text/brightscript" uri="Hud.brs" />
     <script type="text/brightscript" uri="pkg:/source/Config.brs" />
+    <script type="text/brightscript" uri="pkg:/source/Glyphs.brs" />
     <children>
         <Group id="hudRoot" translation="[0, 1080]" opacity="0.0">
             <Rectangle id="hudBg" width="1920" height="96" color="0x2B2A26CC" />

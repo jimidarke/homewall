@@ -238,6 +238,26 @@
         },
         { "ref": "calendar", "tile": { "type": "agenda", "col": 2, "row": 0, "w": 1, "h": 2, "dropHeaders": false } }
       ]
+    },
+    "roku": {
+      "grid": { "cols": 6, "rows": 3, "cellW": 286, "cellH": 292, "originX": 52, "originY": 124, "gap": 20 },
+      "background": { "enabled": true, "intervalMs": 60000 },
+      "modules": [
+        { "ref": "tablet:doors" },
+        { "ref": "tablet:laundry" },
+        { "ref": "tablet:calendar" },
+        { "ref": "tablet:timeline" },
+        { "ref": "tablet:water" },
+        { "ref": "tablet:energy" },
+        { "ref": "tablet:weather" },
+        { "ref": "tablet:gas" },
+        { "ref": "tablet:climate" },
+        { "ref": "cameras", "tile": { "type": "camera", "col": 4, "row": 0, "w": 2, "h": 2 } },
+        {
+          "ref": "tablet:weather", "id": "forecast", "feedKey": "forecast", "title": "Forecast", "outlook": true,
+          "tile": { "type": "forecast", "col": 4, "row": 2, "w": 2, "h": 1 }
+        }
+      ]
     }
   }
 }

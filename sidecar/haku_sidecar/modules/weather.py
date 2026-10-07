@@ -22,7 +22,7 @@ from concurrent.futures import ThreadPoolExecutor
 from .. import blocks, charts, glyphs, icons
 from .. import config as cfg
 from .. import history as hist
-from ..store import iso_epoch
+from ..store import iso_epoch, now_s, prune
 
 log = logging.getLogger(__name__)
 
@@ -103,6 +103,12 @@ def values(ha, descriptor):
         "glyph": glyphs.weather_glyph(condition),    # tablet-only; the Roku ignores it
         "active": False,
     }
+    # The Roku's 3-day forecast strip (opt-in per layout entry): the detail panel's
+    # compact outlook, off the daily forecast this call already fetched.
+    if descriptor.get("outlook"):
+        block = _isolated(_outlook_block, forecast, now_s(), cfg.resolve_zone(descriptor.get("timezone")))
+        if block:
+            out["outlook"] = prune(block["days"])
     return out
 
 

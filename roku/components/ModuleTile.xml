@@ -1,51 +1,49 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <!--
-  ModuleTile — one home-page card. Generic: renders by descriptor.tile.type
-  (value | agenda -> native Labels from values.tile; camera -> go2rtc JPEG thumb;
-  chart | image -> a Poster of a sidecar-rendered PNG). Sized to tileW x tileH by
-  code so a tile can span cells. The sidecar owns display formatting (values.tile),
-  so this component stays kind-agnostic. A "value" tile whose descriptor carries a
-  non-empty `icon` string also gets a sidecar-rendered accent icon (weather
-  condition glyph / energy battery gauge / water bucket gauge) fetched from
-  /api/icon/<id>.png; missing icon support or stale data both just leave it hidden.
+  ModuleTile — one glass card on the home wall (v0.11, the tablet's v3 GlassCard
+  without the frost). Read-only: no focus, no drill.
+
+  Layers, back to front: the night-tinted rounded fill (9-patch), the lit glow, the
+  content (title, glyph chip, and a body component picked by hkCardKind: ValueBody,
+  DoorsBody, LaundryBody, AgendaBody or ForecastBody; a camera card is the shell
+  alone, a placeholder for the video feed), the lit rim, and the resting edge with
+  its top highlight. Lit (active or alert) colours the chip, glyph, rim and glow in
+  the glyph's accent, or coral on alert; stale or offline cards stay quiet.
 -->
 <component name="ModuleTile" extends="Group">
     <interface>
         <field id="descriptor" type="assocarray" onChange="onDescriptor" />
         <field id="values" type="assocarray" onChange="onValues" />
-        <field id="focused" type="boolean" value="false" onChange="onFocus" />
-        <field id="tileW" type="integer" value="600" />
-        <field id="tileH" type="integer" value="440" />
-        <field id="cacheBust" type="string" value="0" />
-        <field id="hubBase" type="string" value="" />
-        <field id="snapBase" type="string" value="" />
+        <field id="fonts" type="assocarray" />
+        <field id="tileW" type="integer" value="286" />
+        <field id="tileH" type="integer" value="292" />
+        <!-- in: the whole wall is offline (dims content, quiets every card) -->
+        <field id="offline" type="boolean" value="false" onChange="applyState" />
+        <!-- in: an HA focusModule= takeover asked to point at this card -->
+        <field id="attention" type="boolean" value="false" alwaysNotify="true" onChange="onAttention" />
+        <!-- out: this card shows no current reading (the header's "degraded") -->
+        <field id="stale" type="boolean" value="true" />
     </interface>
     <script type="text/brightscript" uri="ModuleTile.brs" />
     <script type="text/brightscript" uri="pkg:/source/Config.brs" />
-    <script type="text/brightscript" uri="pkg:/source/Api.brs" />
+    <script type="text/brightscript" uri="pkg:/source/Glyphs.brs" />
+    <script type="text/brightscript" uri="pkg:/source/Ui.brs" />
     <children>
-        <!-- Smoked glass: dark translucent card over the rotating photo, a
-             slightly-darker chip behind the title, light text, brand ring on
-             focus, severity stripe. Roku has no live blur, so this is alpha
-             compositing (0xRRGGBBAA), not a real backdrop-blur. -->
-        <Rectangle id="ring"  color="0x5B8C7FFF" visible="false" />
-        <Rectangle id="card"  color="0x1A211FCC" />
-        <Rectangle id="titleChip" color="0x0C1211D9" />
-        <Rectangle id="stripe" color="0xD9A441FF" />
-        <Label id="title" color="0xF3EFE6B3" font="font:MediumBoldSystemFont" text="" />
-        <Poster id="icon" loadDisplayMode="scaleToFit" visible="false" />
-        <!-- value (also the agenda fallback when no items yet) -->
-        <Label id="hero"   color="0xFAF6EEFF" font="font:LargeBoldSystemFont" text="" />
-        <Label id="sub"    color="0xFAF6EEFF" font="font:MediumBoldSystemFont" text="" />
-        <Label id="detail" color="0xF3EFE6B3" font="font:MediumSystemFont" text="" wrap="true" maxLines="3" />
-        <!-- agenda (timeline / calendar): rows created in code, cycled by rollTimer -->
-        <Group id="agenda" visible="false" />
-        <Timer id="rollTimer" repeat="true" />
-        <!-- camera -->
-        <Poster id="thumb" loadDisplayMode="scaleToZoom" visible="false" />
-        <Rectangle id="camScrim" color="0x0C1211E6" visible="false" />
-        <Label id="camLabel" color="0xFAF6EEFF" font="font:MediumBoldSystemFont" text="" visible="false" />
-        <!-- chart / image -->
-        <Poster id="img" loadDisplayMode="scaleToFit" visible="false" />
+        <Poster id="fill" uri="pkg:/images/glass/fill.9.png" />
+        <Poster id="glow" uri="pkg:/images/glass/glow.png" opacity="0" />
+        <Group id="content">
+            <Label id="title" />
+            <Poster id="chip" uri="pkg:/images/glass/chip.png" width="60" height="60" opacity="0" />
+            <Poster id="glyph" width="40" height="40" />
+            <Group id="body" />
+        </Group>
+        <Poster id="rim" uri="pkg:/images/glass/rim.9.png" opacity="0" />
+        <Poster id="edge" uri="pkg:/images/glass/edge.9.png" />
+        <Animation id="fade" duration="0.6" easeFunction="linear">
+            <FloatFieldInterpolator id="rimFade" key="[0.0, 1.0]" fieldToInterp="rim.opacity" />
+            <FloatFieldInterpolator id="glowFade" key="[0.0, 1.0]" fieldToInterp="glow.opacity" />
+            <FloatFieldInterpolator id="chipFade" key="[0.0, 1.0]" fieldToInterp="chip.opacity" />
+        </Animation>
+        <Timer id="attentionTimer" repeat="false" duration="8" />
     </children>
 </component>

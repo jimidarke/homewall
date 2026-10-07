@@ -1,35 +1,44 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <!--
-  HomeGroup — the HAku home page: a grid of ModuleTile cards built from
-  /api/config's module list (not a fixed array), fed values from /api/state.
-  D-pad focus is generalized over an arbitrary cols x rows grid (hkGridNeighbor),
-  OK emits selectedModule. Cameras/other modules drill from here. Cream "Daylight"
-  field + warm cards, matching the BRIEFING/GLANCE design language.
+  HomeGroup — the HAku home wall (v0.11): a read-only pane of glass ModuleTile cards
+  built from /api/config?layout=roku, fed values from /api/state. No focus and no
+  key handling: keys bubble to MainScene (options opens diag, Back exits).
+
+  The header is the tablet's: clock and date on the left, the data-freshness dot and
+  word on the right (hkHeaderStatus). While the data is offline the cards dim and a
+  banner says since when. Everything shifts +-2 px every 10 minutes (hkBurnIn).
 -->
 <component name="HomeGroup" extends="Group">
     <interface>
         <field id="config" type="assocarray" onChange="onConfig" />
         <field id="state" type="assocarray" onChange="onState" />
-        <field id="hubBase" type="string" value="" />
-        <field id="snapBase" type="string" value="" />
-        <field id="selectedModule" type="string" alwaysNotify="true" />
+        <!-- epoch seconds of the last good /api/state (0 = never) -->
+        <field id="lastOk" type="integer" value="0" onChange="updateStatus" />
+        <!-- a state fetch has finished, good or not (until then: "connecting") -->
+        <field id="fetched" type="boolean" value="false" onChange="updateStatus" />
+        <!-- module id an HA focusModule= takeover points at -->
+        <field id="attention" type="string" alwaysNotify="true" onChange="onAttention" />
     </interface>
     <script type="text/brightscript" uri="HomeGroup.brs" />
     <script type="text/brightscript" uri="pkg:/source/Config.brs" />
+    <script type="text/brightscript" uri="pkg:/source/Glyphs.brs" />
+    <script type="text/brightscript" uri="pkg:/source/Fonts.brs" />
+    <script type="text/brightscript" uri="pkg:/source/Ui.brs" />
     <children>
-        <!-- No opaque background: the MainScene rotating photo + light scrim show
-             through the glass grid. Brand + clock float over the photo, so each
-             gets a cream chip for legibility (soft cream for the logo, a darker
-             warm-cream for the clock so the two chips read as distinct). -->
-        <Rectangle id="brandChip" translation="[40, 44]" width="220" height="84" color="0xF7F1E3D9" />
-        <Poster id="brand" translation="[53, 60]" width="194" height="53"
-                loadDisplayMode="scaleToFit" uri="pkg:/images/haku_wordmark.png" />
-        <Rectangle id="clockChip" translation="[1596, 54]" width="264" height="70" color="0xECE3D0D9" />
-        <Label id="clock" translation="[1596, 54]" width="264" height="70"
-               horizAlign="center" vertAlign="center"
-               color="0x2B2A26FF" font="font:MediumBoldSystemFont" text="" />
-        <Group id="tiles" />
-        <Label id="empty" translation="[60, 520]" width="1800" horizAlign="center"
-               color="0xF3EFE6B3" font="font:MediumSystemFont" text="Waiting for HAku hub…" />
+        <Group id="shift">
+            <Label id="clock" translation="[72, 34]" height="72" vertAlign="bottom" color="0xFAF6EEFF" />
+            <Label id="date" height="72" vertAlign="bottom" color="0xFAF6EEC7" />
+            <Poster id="statusDot" uri="pkg:/images/glass/dot.png" width="14" height="14" />
+            <Label id="status" height="72" vertAlign="center" color="0xFAF6EEC7" />
+            <Group id="tiles" />
+            <Group id="banner" visible="false">
+                <Poster id="bannerFill" uri="pkg:/images/glass/fill.9.png" />
+                <Label id="bannerText" vertAlign="center" color="0xFAF6EEFF" />
+            </Group>
+            <Label id="empty" translation="[60, 520]" width="1800" horizAlign="center"
+                   color="0xFAF6EEC7" text="Waiting for HAku hub…" />
+        </Group>
+        <Timer id="clockTimer" repeat="false" />
+        <Timer id="statusTimer" repeat="true" duration="5" />
     </children>
 </component>

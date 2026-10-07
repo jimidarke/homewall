@@ -1,5 +1,5 @@
 ' tests/unit/test_pure.brs — pure-logic test suite for HAku.
-' Run via: npx brs source/Config.brs tests/unit/test_pure.brs
+' Run via: npx brs source/Config.brs source/Glyphs.brs tests/unit/test_pure.brs
 ' (or: npm run test:unit). Exits with the marker line:
 '   RESULT pass=<N> fail=<M>
 ' which the wrapping npm script greps to set the exit code.
@@ -20,10 +20,24 @@ sub Main()
     test_hwOverlayDurationMs()
     test_hwSeverityColor()
     test_hkTileRect()
-    test_hkGridNeighbor()
+    test_hkTileRect_roku()
     test_hkModuleKind()
-    test_hkAgendaHelpers()
-    test_hkTileRotateMs()
+    test_hkFreshness()
+    test_hkHeaderStatus()
+    test_hkClockAndDateLabels()
+    test_hkBurnIn()
+    test_hkGlyphFor()
+    test_hkAccents()
+    test_hkHexToRoku()
+    test_hkCardKind()
+    test_hkTileStale()
+    test_hkDoorsShown()
+    test_hkLedFrame()
+    test_hkLedStepAndColor()
+    test_hkVisibleRowCount()
+    test_hkDayLabel()
+    test_hkWithLayout()
+    test_hkSlimConfig()
     test_hkBgNextIndex()
     test_hkBgRotateMs()
     test_hkAgeLabel()
@@ -185,17 +199,6 @@ sub test_hkTileRect()
     assertEq("default w", rd.w, 600)
 end sub
 
-sub test_hkGridNeighbor()
-    print "== hkGridNeighbor =="
-    ' 3 cols x 2 rows, row-major:  0 1 2 / 3 4 5
-    assertEq("0 right -> 1",  hkGridNeighbor(0, "right", 3, 2), 1)
-    assertEq("2 right clamp", hkGridNeighbor(2, "right", 3, 2), 2)
-    assertEq("0 left clamp",  hkGridNeighbor(0, "left",  3, 2), 0)
-    assertEq("1 down -> 4",   hkGridNeighbor(1, "down",  3, 2), 4)
-    assertEq("4 up -> 1",     hkGridNeighbor(4, "up",    3, 2), 1)
-    assertEq("3 up -> 0",     hkGridNeighbor(3, "up",    3, 2), 0)
-    assertEq("5 down clamp",  hkGridNeighbor(5, "down",  3, 2), 5)
-end sub
 
 sub test_hkModuleKind()
     print "== hkModuleKind =="
@@ -205,44 +208,10 @@ sub test_hkModuleKind()
     assertEq("timeline tile", hkModuleKind("timeline").tileType, "agenda")
     assertEq("timeline drill", hkModuleKind("timeline").drill, "agenda")
     assertEq("unknown -> value tile", hkModuleKind("ghost").tileType, "value")
+    assertEq("laundry tile", hkModuleKind("laundry").tileType, "value")
 end sub
 
-sub test_hkAgendaHelpers()
-    print "== hkAgenda helpers =="
-    items = [
-        { kind: "header", title: "TODAY" },
-        { kind: "event",  title: "A" },
-        { kind: "event",  title: "B" },
-        { kind: "event",  title: "C" }
-    ]
-    ev = hkAgendaEventRows(items)
-    assertEq("event rows count", ev.count(), 3)
-    assertEq("first event",      ev[0].title, "A")
-    assertEq("invalid -> empty", hkAgendaEventRows(invalid).count(), 0)
 
-    w = hkAgendaWindow(ev, 0, 2)
-    assertEq("win size",  w.count(), 2)
-    assertEq("win[0]",    w[0].title, "A")
-    assertEq("win[1]",    w[1].title, "B")
-    w2 = hkAgendaWindow(ev, 2, 2)          ' wraps past end: C, A
-    assertEq("wrap[0]",   w2[0].title, "C")
-    assertEq("wrap[1]",   w2[1].title, "A")
-    assertEq("size>=count -> all", hkAgendaWindow(ev, 0, 9).count(), 3)
-    assertEq("empty items -> 0",   hkAgendaWindow([], 0, 3).count(), 0)
-    assertEq("size 0 -> empty",    hkAgendaWindow(ev, 0, 0).count(), 0)
-
-    assertEq("static source: headers by default", hkAgendaStaticSource(items, ev, false)[0].title, "TODAY")
-    assertEq("static source: dropHeaders -> events only", hkAgendaStaticSource(items, ev, true)[0].title, "A")
-end sub
-
-sub test_hkTileRotateMs()
-    print "== hkTileRotateMs =="
-    assertEq("default",      hkTileRotateMs({}), 4000)
-    assertEq("invalid",      hkTileRotateMs(invalid), 4000)
-    assertEq("explicit",     hkTileRotateMs({ rotateMs: 6000 }), 6000)
-    assertEq("floored",      hkTileRotateMs({ rotateMs: 100 }), 1500)
-    assertEq("zero -> deflt", hkTileRotateMs({ rotateMs: 0 }), 4000)
-end sub
 
 sub test_hkBgNextIndex()
     print "== hkBgNextIndex =="
@@ -279,4 +248,268 @@ sub test_hkUptimeLabel()
     assertEq("minutes",      hkUptimeLabel(720000), "12m")           ' 12 min
     assertEq("hours+min",    hkUptimeLabel(11520000), "3h 12m")      ' 3h12m
     assertEq("days+hours",   hkUptimeLabel(90061000), "1d 1h")       ' 1d 1h 1m -> 1d 1h
+end sub
+
+' --- v0.11 glass home --------------------------------------------------------
+
+sub assertFrame(label as string, got as object, want as object)
+    ' Brightnesses compared at 2 dp (BrightScript floats print with noise).
+    g = []
+    w = []
+    for each v in got
+        g.push(Int(v * 100 + 0.5).toStr())
+    end for
+    for each v in want
+        w.push(Int(v * 100 + 0.5).toStr())
+    end for
+    assertEq(label, g.join(","), w.join(","))
+end sub
+
+sub test_hkTileRect_roku()
+    print "== hkTileRect (layouts.roku) =="
+    grid = { cols: 6, rows: 3, cellW: 286, cellH: 292, originX: 52, originY: 124, gap: 20 }
+    assertEq("col5 x", hkTileRect(5, 0, 1, 1, grid).x, 1582)
+    assertEq("row2 y", hkTileRect(0, 2, 1, 1, grid).y, 748)
+    cam = hkTileRect(4, 0, 2, 2, grid)
+    assertEq("2x2 w", cam.w, 592)
+    assertEq("2x2 h", cam.h, 604)
+    assertEq("1x3 h", hkTileRect(3, 0, 1, 3, grid).h, 916)
+    last = hkTileRect(4, 2, 2, 1, grid)
+    assertEq("right edge", last.x + last.w, 1868)
+    assertEq("bottom edge", last.y + last.h, 1040)
+end sub
+
+sub test_hkFreshness()
+    print "== hkFreshness =="
+    now_ = 1000000
+    assertEq("never fetched", hkFreshness(0, now_), "offline")
+    assertEq("fresh",         hkFreshness(now_ - 5, now_), "live")
+    assertEq("30s is live",   hkFreshness(now_ - 30, now_), "live")
+    assertEq("31s lagging",   hkFreshness(now_ - 31, now_), "lagging")
+    assertEq("120s lagging",  hkFreshness(now_ - 120, now_), "lagging")
+    assertEq("121s offline",  hkFreshness(now_ - 121, now_), "offline")
+    assertEq("offline shown needs a fetch", hkOfflineShown("offline", false), false)
+    assertEq("offline shown",  hkOfflineShown("offline", true), true)
+    assertEq("lagging not offline", hkOfflineShown("lagging", true), false)
+end sub
+
+sub test_hkHeaderStatus()
+    print "== hkHeaderStatus =="
+    s = hkHeaderStatus("offline", false, [])
+    assertEq("connecting", s.label, "connecting")
+    assertEq("connecting dot", s.dot, HK_OFFLINE())
+    assertEq("connecting beats live", hkHeaderStatus("live", false, ["Water"]).label, "connecting")
+    assertEq("offline", hkHeaderStatus("offline", true, ["Water"]).label, "offline")
+    s = hkHeaderStatus("lagging", true, ["Water"])
+    assertEq("lagging", s.label, "lagging")
+    assertEq("lagging dot", s.dot, HK_AMBER())
+    s = hkHeaderStatus("live", true, ["Water"])
+    assertEq("degraded one", s.label, "degraded · Water")
+    assertEq("degraded dot", s.dot, HK_AMBER())
+    assertEq("degraded two", hkHeaderStatus("live", true, ["Water", "Gas"]).label, "degraded · Water, Gas")
+    assertEq("degraded counts", hkHeaderStatus("live", true, ["a", "b", "c"]).label, "degraded · 3")
+    s = hkHeaderStatus("live", true, [])
+    assertEq("live", s.label, "live")
+    assertEq("live dot", s.dot, HK_SAGE())
+end sub
+
+sub test_hkClockAndDateLabels()
+    print "== hkClockLabel / hkDateLabel =="
+    assertEq("evening", hkClockLabel(21, 17), "9:17 PM")
+    assertEq("midnight", hkClockLabel(0, 5), "12:05 AM")
+    assertEq("noon", hkClockLabel(12, 0), "12:00 PM")
+    assertEq("morning", hkClockLabel(9, 59), "9:59 AM")
+    assertEq("date", hkDateLabel("Wednesday", 10, 7), "Wednesday, October 7")
+    assertEq("bad month", hkDateLabel("Monday", 13, 1), "Monday")
+end sub
+
+sub test_hkBurnIn()
+    print "== hkBurnIn =="
+    slot = 600
+    base = 1791400200   ' a slot boundary (divisible by 600)
+    seen = {}
+    prev = invalid
+    for i = 0 to 7
+        o = hkBurnIn(base + i * slot)
+        assertEq("within 2px " + i.toStr(), (Abs(o[0]) <= 2 and Abs(o[1]) <= 2), true)
+        seen[o[0].toStr() + "," + o[1].toStr()] = true
+        if prev <> invalid then assertEq("one 2px step " + i.toStr(), Abs(o[0] - prev[0]) + Abs(o[1] - prev[1]), 2)
+        prev = o
+    end for
+    assertEq("8 distinct", seen.count(), 8)
+    assertEq("same slot", hkBurnIn(base).join(","), hkBurnIn(base + slot - 1).join(","))
+    assertEq("repeats", hkBurnIn(base).join(","), hkBurnIn(base + 8 * slot).join(","))
+end sub
+
+sub test_hkGlyphFor()
+    print "== hkGlyphFor =="
+    assertEq("shipped", hkGlyphFor("fire", "gas"), "fire")
+    assertEq("unknown -> kind default", hkGlyphFor("rocket", "water"), "water-outline")
+    assertEq("blank -> kind default", hkGlyphFor("", "timeline"), "history")
+    assertEq("cameras", hkGlyphFor("", "cameras"), "cctv")
+    assertEq("no default", hkGlyphFor("", "ghost"), "")
+    assertEq("invalid glyph", hkGlyphFor(invalid, "doors"), "door")
+end sub
+
+sub test_hkAccents()
+    print "== hkAccentFor / hkItemAccent =="
+    assertEq("door open amber", hkAccentFor("door-open"), HK_AMBER())
+    assertEq("water", hkAccentFor("water"), HK_WATER())
+    assertEq("fire heat", hkAccentFor("fire"), HK_HEAT())
+    assertEq("snowflake cool", hkAccentFor("snowflake"), HK_COOL())
+    assertEq("washer", hkAccentFor("washing-machine"), HK_WASHER())
+    assertEq("dryer", hkAccentFor("tumble-dryer"), HK_DRYER())
+    assertEq("else sage", hkAccentFor("flash"), HK_SAGE())
+    assertEq("item unlocked", hkItemAccent("lock-open-variant"), HK_AMBER())
+    assertEq("item home", hkItemAccent("home-account"), HK_SAGE())
+    assertEq("item else muted", hkItemAccent("motion-sensor"), HK_INK_MUTED())
+end sub
+
+sub test_hkHexToRoku()
+    print "== hkHexToRoku =="
+    assertEq("#rrggbb", hkHexToRoku("#00AAFF", "x"), "0x00AAFFFF")
+    assertEq("lower", hkHexToRoku("#ff6900", "x"), "0xFF6900FF")
+    assertEq("#aarrggbb", hkHexToRoku("#80112233", "x"), "0x11223380")
+    assertEq("roku passthrough", hkHexToRoku("0x5B8C7FFF", "x"), "0x5B8C7FFF")
+    assertEq("garbage", hkHexToRoku("#GGHHII", "fb"), "fb")
+    assertEq("blank", hkHexToRoku("", "fb"), "fb")
+    assertEq("invalid", hkHexToRoku(invalid, "fb"), "fb")
+end sub
+
+sub test_hkCardKind()
+    print "== hkCardKind =="
+    assertEq("doors", hkCardKind({ kind: "doors", tile: { type: "value" } }, { doors: [{ id: "front" }] }), "doors")
+    assertEq("no doors -> value", hkCardKind({ kind: "doors", tile: { type: "value" } }, { doors: [] }), "value")
+    assertEq("doors without array", hkCardKind({ kind: "doors", tile: { type: "value" } }, { tile: {} }), "value")
+    assertEq("laundry", hkCardKind({ kind: "laundry", tile: { type: "value" } }, { machines: [{ id: "washer" }] }), "laundry")
+    assertEq("laundry no values", hkCardKind({ kind: "laundry", tile: { type: "value" } }, invalid), "value")
+    assertEq("agenda", hkCardKind({ kind: "timeline", tile: { type: "agenda" } }, invalid), "agenda")
+    assertEq("camera", hkCardKind({ kind: "cameras", tile: { type: "camera" } }, invalid), "camera")
+    assertEq("forecast", hkCardKind({ kind: "weather", tile: { type: "forecast" } }, invalid), "forecast")
+    assertEq("chart -> value", hkCardKind({ kind: "weather", tile: { type: "chart" } }, invalid), "value")
+    assertEq("no tile", hkCardKind({ kind: "gas" }, invalid), "value")
+end sub
+
+sub test_hkTileStale()
+    print "== hkTileStale =="
+    assertEq("no values", hkTileStale(invalid), true)
+    assertEq("no tile", hkTileStale({}), true)
+    assertEq("blank hero", hkTileStale({ tile: { hero: " " } }), true)
+    assertEq("error", hkTileStale({ error: "boom", tile: { hero: "1" } }), true)
+    assertEq("flagged", hkTileStale({ stale: true, tile: { hero: "1" } }), true)
+    assertEq("string true is not stale", hkTileStale({ stale: "true", tile: { hero: "1" } }), false)
+    assertEq("fine", hkTileStale({ stale: false, tile: { hero: "21°" } }), false)
+    assertEq("agenda stale", hkAgendaStale({ stale: true }), true)
+    assertEq("agenda fine", hkAgendaStale({ items: [] }), false)
+end sub
+
+sub test_hkDoorsShown()
+    print "== hkDoorsShown =="
+    doors = [{ id: "front", state: "closed" }, { id: "garage", state: "open" }, { id: "back", state: "unknown" }]
+    assertEq("open/unknown first", idsOf(hkDoorsShown(doors, 2)), "garage,back")
+    assertEq("max three", idsOf(hkDoorsShown(doors, 5)), "garage,back,front")
+    closed = [{ id: "front", state: "closed" }, { id: "back", state: "closed" }, { id: "side", state: "closed" }, { id: "x", state: "closed" }]
+    assertEq("stable order", idsOf(hkDoorsShown(closed, 2)), "front,back")
+    assertEq("caps at 3", idsOf(hkDoorsShown(closed, 9)), "front,back,side")
+    assertEq("no room", hkDoorsShown(doors, 0).count(), 0)
+end sub
+
+function idsOf(list as object) as string
+    ids = []
+    for each d in list
+        ids.push(d.id)
+    end for
+    return ids.join(",")
+end function
+
+sub test_hkLedFrame()
+    print "== hkLedFrame =="
+    assertFrame("idle", hkLedFrame("idle", 0, 0, false), [0.25, 0, 0, 0])
+    assertFrame("idle later", hkLedFrame("idle", 0, 12345, false), [0.25, 0, 0, 0])
+    assertFrame("running 3", hkLedFrame("running", 3, 0, false), [1, 1, 1, 0])
+    assertFrame("running clamps", hkLedFrame("running", 9, 0, false), [1, 1, 1, 1])
+    assertFrame("running negative", hkLedFrame("running", -1, 0, false), [0, 0, 0, 0])
+    assertFrame("overtime peak", hkLedFrame("overtime", 0, 625, false), [1, 0, 0, 0])
+    assertFrame("overtime trough", hkLedFrame("overtime", 0, 1875, false), [0.15, 0, 0, 0])
+    lit = []
+    for i = 0 to 6
+        f = hkLedFrame("done", 0, i * 120, false)
+        for j = 0 to 3
+            if f[j] = 1 then lit.push(j.toStr())
+        end for
+    end for
+    assertEq("done ping-pong", lit.join(","), "0,1,2,3,2,1,0")
+    assertFrame("calm t0", hkLedFrame("done_calm", 0, 0, false), [0.6, 0, 0, 0])
+    assertFrame("calm head+trail", hkLedFrame("done_calm", 0, 450, false), [0.2, 0.6, 0, 0])
+    assertFrame("calm turn", hkLedFrame("done_calm", 0, 4 * 450, false), [0, 0, 0.6, 0.2])
+    assertFrame("calm wrap", hkLedFrame("done_calm", 0, 6 * 450, false), [0.6, 0.2, 0, 0])
+    assertFrame("stale t0", hkLedFrame("idle", 0, 0, true), [1, 0, 0.1, 0.35])
+    assertFrame("stale 150", hkLedFrame("idle", 0, 150, true), [0.35, 1, 0, 0.1])
+    assertFrame("stale 450", hkLedFrame("idle", 0, 450, true), [0, 0.1, 0.35, 1])
+    assertFrame("stale beats running", hkLedFrame("running", 3, 150, true), [0.35, 1, 0, 0.1])
+    assertFrame("unknown dark", hkLedFrame("spinning", 4, 0, false), [0, 0, 0, 0])
+end sub
+
+sub test_hkLedStepAndColor()
+    print "== hkLedStepMs / hkLedAnimates / hkLedColor =="
+    assertEq("idle static", hkLedStepMs("idle"), 0)
+    assertEq("running static", hkLedStepMs("running"), 0)
+    assertEq("overtime", hkLedStepMs("overtime"), 100)
+    assertEq("done", hkLedStepMs("done"), 120)
+    assertEq("done_calm", hkLedStepMs("done_calm"), 450)
+    assertEq("stale", hkLedStepMs("stale"), 150)
+    assertEq("animates done", hkLedAnimates("done", false, false), true)
+    assertEq("quiet holds", hkLedAnimates("done", false, true), false)
+    assertEq("stale machine sweeps", hkLedAnimates("running", true, false), true)
+    assertEq("running holds", hkLedAnimates("running", false, false), false)
+    assertEq("stale violet", hkLedColor("running", true, "0x00AAFFFF"), HK_LED_STALE())
+    assertEq("idle red", hkLedColor("idle", false, "0x00AAFFFF"), HK_LED_IDLE())
+    assertEq("machine colour", hkLedColor("done", false, "0x00AAFFFF"), "0x00AAFFFF")
+end sub
+
+sub test_hkVisibleRowCount()
+    print "== hkVisibleRowCount =="
+    act = []
+    for i = 1 to 12
+        act.push({ kind: "event", title: i.toStr() })
+    end for
+    rowH = HK_ROW_ACTIVITY()
+    assertEq("activity whole rows", hkVisibleRowCount(act, true, 9 * rowH), 9)
+    assertEq("activity just short", hkVisibleRowCount(act, true, 9 * rowH - 1), 8)
+    assertEq("activity none", hkVisibleRowCount(act, true, rowH - 1), 0)
+    assertEq("activity fewer items", hkVisibleRowCount([act[0], act[1]], true, 9 * rowH), 2)
+    cal = [{ kind: "header", title: "TODAY" }, { kind: "event", title: "a" }, { kind: "header", title: "TOMORROW" }, { kind: "event", title: "b" }, { kind: "event", title: "c" }]
+    assertEq("calendar mixed", hkVisibleRowCount(cal, false, 2 * HK_ROW_DAY() + 3 * HK_ROW_EVENT()), 5)
+    assertEq("never ends on a header", hkVisibleRowCount(cal, false, 2 * HK_ROW_DAY() + HK_ROW_EVENT() + 1), 2)
+    assertEq("lone header", hkVisibleRowCount([cal[0]], false, 500), 0)
+    assertEq("empty", hkVisibleRowCount([], false, 500), 0)
+    assertEq("no room", hkVisibleRowCount(cal, false, -5), 0)
+end sub
+
+sub test_hkDayLabel()
+    print "== hkDayLabel =="
+    assertEq("today", hkDayLabel("TODAY"), "Today")
+    assertEq("dated", hkDayLabel("WED · OCT 7"), "Wed · Oct 7")
+    assertEq("empty", hkDayLabel(""), "")
+end sub
+
+sub test_hkWithLayout()
+    print "== hkWithLayout =="
+    assertEq("plain", hkWithLayout("http://h:1986/api/config", "roku"), "http://h:1986/api/config?layout=roku")
+    assertEq("has query", hkWithLayout("http://h/api/card/x.png?w=1", "roku"), "http://h/api/card/x.png?w=1&layout=roku")
+    assertEq("no layout", hkWithLayout("http://h/api/state", ""), "http://h/api/state")
+end sub
+
+sub test_hkSlimConfig()
+    print "== hkSlimConfig =="
+    cfg = { grid: { cols: 6 }, modules: [{ id: "water", kind: "water", entities: { flow: "x" }, drill: { type: "value" }, refreshMs: 30000, tile: { type: "value" } }] }
+    slim = hkSlimConfig(cfg)
+    md = slim.modules[0]
+    assertEq("keeps id", md.id, "water")
+    assertEq("keeps tile", md.tile.type, "value")
+    assertEq("drops entities", md.entities, invalid)
+    assertEq("drops drill", md.drill, invalid)
+    assertEq("drops refreshMs", md.refreshMs, invalid)
+    assertEq("keeps grid", slim.grid.cols, 6)
+    assertEq("source untouched", cfg.modules[0].entities.flow, "x")
 end sub

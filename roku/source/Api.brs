@@ -31,10 +31,6 @@ function hkHubHealthUrl(base as string) as string
     return hkJoin(base, "/api/health")
 end function
 
-function hkHubModuleUrl(base as string, moduleId as string) as string
-    return hkJoin(base, "/api/module/" + moduleId)
-end function
-
 ' A rendered PNG card. `path` is the descriptor's drill/tile card path
 ' ("/api/card/weather_forecast.png"); `v` is a cache-buster (the /api/state ts)
 ' that forces the Poster to re-fetch at this stable URL — the render cache ignores it.
@@ -43,16 +39,6 @@ function hkHubCardUrl(base as string, path as string, w as integer, h as integer
     sep = "?"
     if Instr(1, path, "?") > 0 then sep = "&"
     return hkJoin(base, path) + sep + "w=" + w.toStr() + "&h=" + h.toStr() + "&v=" + v
-end function
-
-' A module's home-tile accent icon. `v` here is a sidecar-computed BUCKET
-' (weather condition string, or a 5%-stepped fill percentage), not a poll
-' timestamp — so the URL, and therefore the Poster, only changes when the
-' icon would actually look different (see icons.py::fill_bucket_pct).
-function hkHubIconUrl(base as string, moduleId as string, v as string, w as integer, h as integer) as string
-    if moduleId = invalid or moduleId = "" then return ""
-    if v = invalid then v = ""
-    return hkJoin(base, "/api/icon/" + moduleId + ".png") + "?w=" + w.toStr() + "&h=" + h.toStr() + "&v=" + v
 end function
 
 ' Join a base and a root-relative path, tolerating a trailing slash on base.

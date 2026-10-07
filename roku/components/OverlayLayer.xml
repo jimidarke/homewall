@@ -31,6 +31,7 @@
     </interface>
     <script type="text/brightscript" uri="OverlayLayer.brs" />
     <script type="text/brightscript" uri="pkg:/source/Config.brs" />
+    <script type="text/brightscript" uri="pkg:/source/Glyphs.brs" />
     <children>
 
         <!-- Top-fade gradient (visible only when chip stack is non-empty) -->

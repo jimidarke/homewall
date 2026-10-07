@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  LaundryBody — one block per machine (tablet LaundryCard): glyph in the machine's colour, label and status, and under them the 4-segment LED bar (hkLedFrame). Machines stack on a 1-wide card and sit side by side from 540 px wide. Animated bars step on a Timer, and only while the card isn't quiet.
+  A ModuleTile body: drawn in the card under its header row, bodyW x bodyH px.
+-->
+<component name="LaundryBody" extends="Group">
+    <interface>
+        <field id="descriptor" type="assocarray" />
+        <field id="values" type="assocarray" onChange="paint" />
+        <field id="fonts" type="assocarray" />
+        <field id="bodyW" type="integer" value="246" />
+        <field id="bodyH" type="integer" value="188" />
+        <field id="quiet" type="boolean" value="false" onChange="paint" />
+        <field id="lit" type="boolean" value="false" onChange="paint" />
+        <field id="alert" type="boolean" value="false" onChange="paint" />
+        <field id="tone" type="string" value="0x5B8C7FFF" onChange="paint" />
+    </interface>
+    <script type="text/brightscript" uri="LaundryBody.brs" />
+    <script type="text/brightscript" uri="pkg:/source/Config.brs" />
+    <script type="text/brightscript" uri="pkg:/source/Glyphs.brs" />
+    <script type="text/brightscript" uri="pkg:/source/Ui.brs" />
+</component>

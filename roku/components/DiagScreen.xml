@@ -22,6 +22,7 @@
 
     <script type="text/brightscript" uri="DiagScreen.brs" />
     <script type="text/brightscript" uri="pkg:/source/Config.brs" />
+    <script type="text/brightscript" uri="pkg:/source/Glyphs.brs" />
 
     <children>
         <Rectangle id="dim" width="1920" height="1080" color="0x0A0E0D80" />

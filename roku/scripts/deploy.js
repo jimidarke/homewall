@@ -17,7 +17,7 @@ const opts = {
   rootDir: path.resolve(__dirname, ".."),
   outDir: path.resolve(__dirname, "..", "dist"),
   outFile: "haku",
-  files: ["manifest", "source/**/*", "components/**/*", "images/**/*"],
+  files: ["manifest", "source/**/*", "components/**/*", "images/**/*", "fonts/**/*"],
   retainStagingFolder: false,
 };
 

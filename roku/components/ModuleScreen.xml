@@ -15,6 +15,7 @@
     </interface>
     <script type="text/brightscript" uri="ModuleScreen.brs" />
     <script type="text/brightscript" uri="pkg:/source/Config.brs" />
+    <script type="text/brightscript" uri="pkg:/source/Glyphs.brs" />
     <script type="text/brightscript" uri="pkg:/source/Api.brs" />
     <children>
         <!-- Dark glass over the rotating photo; the drill-down PNG is now dark-

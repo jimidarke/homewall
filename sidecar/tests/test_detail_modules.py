@@ -486,6 +486,24 @@ def test_weather_outlook_day_zero_in_utc_tomorrow_is_still_today():
     assert [d["label"] for d in days] == ["Fri", "Sat", "Sun"]
 
 
+def test_weather_tile_outlook_is_opt_in():
+    """`outlook: true` (the Roku's forecast strip) adds the detail panel's 3 days to values()."""
+    ha = FakeHA(WEATHER_STATES, FORECASTS)
+    desc = {"id": "forecast", "kind": "weather", "tile": {"type": "forecast"},
+            "entities": WEATHER_ENTS}
+    assert "outlook" not in modules.module_values(ha, desc)
+    days = modules.module_values(ha, {**desc, "outlook": True})["outlook"]
+    assert days == _block(_weather()[0], "forecast")["days"]
+    assert all(t == "daily" for _, t in ha.forecast_calls)        # no extra forecast type
+
+
+def test_weather_tile_outlook_absent_without_a_forecast():
+    ha = FakeHA(WEATHER_STATES, {"daily": [], "hourly": []})
+    out = modules.module_values(ha, {"id": "forecast", "kind": "weather", "outlook": True,
+                                     "tile": {"type": "forecast"}, "entities": WEATHER_ENTS})
+    assert "outlook" not in out and "error" not in out
+
+
 def test_weather_hourly_strip_is_the_next_eight_hours_across_midnight():
     items = _block(_weather()[0], "hourly")["items"]
     assert items == [

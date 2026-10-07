@@ -6,9 +6,10 @@ install is bound to its Home Assistant entities. It is served near-verbatim at
 install is a config edit, no code change. mtime-cached so edits apply without a
 restart.
 
-An optional top-level `layouts` map gives another display (the kitchen tablet) its
-own module set: `?layout=<name>` serves `get_layout(name)` instead. The default view
-(`public_config()`) never carries `layouts`, so what the Roku caches is unchanged.
+An optional top-level `layouts` map gives each display its own module set (`tablet`
+for the kitchen tablet, `roku` for the wall Rokus): `?layout=<name>` serves
+`get_layout(name)` instead. The default view (`public_config()`) never carries
+`layouts`, so what an older Roku channel caches is unchanged.
 """
 import logging
 import os
@@ -43,7 +44,7 @@ DEFAULT_CONFIG = {
 _cache = CachedJson(CONFIG_PATH, DEFAULT_CONFIG)
 
 # tile.type values the Roku knows how to render (forward-compat: unknown → neutral).
-KNOWN_TILE_TYPES = {"value", "chart", "image", "camera", "agenda"}
+KNOWN_TILE_TYPES = {"value", "chart", "image", "camera", "agenda", "forecast"}
 
 
 def _valid_module(m):
@@ -105,8 +106,9 @@ def get_layout(name):
     public_cfg is a new, None-pruned dict {version, site, timezone, grid, nightDim?,
     background?, modules}; nothing in it aliases the cached config. A layout module
     with `ref` is that top-level module shallow-merged with the entry's other keys
-    (a `tile` or `entities` override replaces the whole sub-object); one without
-    `ref` is a layout-only module. Modules that fail `_valid_module` are dropped and
+    (a `tile` or `entities` override replaces the whole sub-object), or, for a qualified
+    `"<layout>:<id>"` ref, that other layout's resolved entry; one without `ref` is a
+    layout-only module. Modules that fail `_valid_module` are dropped and
     logged, and a `modules` that isn't a list is logged and served as no modules. The
     layout `background` is shallow-merged over the top-level one, and its `dir` is popped
     out and returned as bg_dir (None: use HAKU_BG_DIR as today), so a server path never
@@ -125,26 +127,7 @@ def get_layout(name):
     for m in get_modules(base):
         by_id.setdefault(m["id"], m)  # first wins, as in get_module()
 
-    entries = layout.get("modules")
-    if entries is None:
-        entries = []
-    elif not isinstance(entries, list):
-        log.warning("layout %r: modules is not a list (%s), serving no modules",
-                    name, type(entries).__name__)
-        entries = []
-
-    resolved = []
-    for entry in entries:
-        ref = entry.get("ref") if isinstance(entry, dict) else None
-        if ref is not None:
-            if not isinstance(ref, str) or ref not in by_id:
-                raise UnknownRef(ref)
-            entry = {**by_id[ref], **{k: v for k, v in entry.items() if k != "ref"}}
-        if not _valid_module(entry):
-            label = entry.get("id", ref) if isinstance(entry, dict) else entry
-            log.warning("layout %r: dropping invalid module %r", name, label)
-            continue
-        resolved.append(entry)
+    resolved = _resolve_entries(name, layout, by_id, layouts)
 
     background = {**_as_dict(base.get("background")), **_as_dict(layout.get("background"))}
     bg_dir = background.pop("dir", None)
@@ -163,6 +146,57 @@ def get_layout(name):
         "modules": resolved,
     })
     return public, bg_dir
+
+
+def _resolve_entries(name, layout, by_id, layouts, qualified=True):
+    """Layout `name`'s module entries, each `ref` merged over what it names.
+
+    A bare `ref` names a top-level module id. A qualified one, "<layout>:<id>", names
+    the entry with that id in another layout, resolved first (the Roku's wall layout
+    reuses the tablet's tiles that way). Only one hop: the other layout's own entries
+    may not be qualified, so there are no chains or cycles (`qualified=False`).
+    """
+    entries = layout.get("modules")
+    if entries is None:
+        entries = []
+    elif not isinstance(entries, list):
+        log.warning("layout %r: modules is not a list (%s), serving no modules",
+                    name, type(entries).__name__)
+        entries = []
+
+    others = {}  # other layout name -> its resolved entries, resolved once per call
+    resolved = []
+    for entry in entries:
+        ref = entry.get("ref") if isinstance(entry, dict) else None
+        if ref is not None:
+            entry = {**_ref_target(ref, by_id, layouts, others, qualified),
+                     **{k: v for k, v in entry.items() if k != "ref"}}
+        if not _valid_module(entry):
+            label = entry.get("id", ref) if isinstance(entry, dict) else entry
+            log.warning("layout %r: dropping invalid module %r", name, label)
+            continue
+        resolved.append(entry)
+    return resolved
+
+
+def _ref_target(ref, by_id, layouts, others, qualified):
+    """The module a `ref` names (see _resolve_entries); UnknownRef when it names none."""
+    if not isinstance(ref, str):
+        raise UnknownRef(ref)
+    if ":" not in ref:
+        if ref not in by_id:
+            raise UnknownRef(ref)
+        return by_id[ref]
+    other, _, mid = ref.partition(":")
+    layout = layouts.get(other) if qualified and isinstance(layouts, dict) else None
+    if not isinstance(layout, dict):
+        raise UnknownRef(ref)
+    if other not in others:
+        others[other] = _resolve_entries(other, layout, by_id, layouts, qualified=False)
+    target = next((m for m in others[other] if m["id"] == mid), None)
+    if target is None:
+        raise UnknownRef(ref)
+    return target
 
 
 def _as_dict(v):

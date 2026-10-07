@@ -22,8 +22,8 @@ MODULES = {
     "climate": climate,
     "calendar": calendar,
     "timeline": timeline,
-    "doors": doors,        # tablet layout (the Roku reserves the kind; no Roku layout uses it)
-    "laundry": laundry,    # tablet layout only; the Roku has no laundry kind
+    "doors": doors,        # tablet and roku layouts (layout-only; reused via `tablet:doors`)
+    "laundry": laundry,    # tablet and roku layouts (layout-only; reused via `tablet:laundry`)
 }
 
 

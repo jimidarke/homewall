@@ -128,11 +128,12 @@ the same device class and state as the item's `sub`. An event with no mapping ha
 
 ### Layouts
 
-The top-level `modules` list is the Roku layout. An optional top-level `layouts` map
-gives another display its own module set. A client selects one by adding
-`?layout=<name>` to `/api/config`, `/api/state`, `/api/module/<id>`,
-`/api/card/<name>.png` or `/api/icon/<id>.png`. The kitchen tablet uses
-`?layout=tablet`; see the `layouts.tablet` block in `dashboard.json.example`.
+The top-level `modules` list is the default view (what Roku channels before 0.11 read).
+An optional top-level `layouts` map gives each display its own module set. A client
+selects one by adding `?layout=<name>` to `/api/config`, `/api/state`,
+`/api/module/<id>`, `/api/card/<name>.png` or `/api/icon/<id>.png`. The kitchen tablet
+uses `?layout=tablet` and the wall Rokus (0.11+) use `?layout=roku`; see the `layouts`
+blocks in `dashboard.json.example`.
 
 ```json
 "layouts": {
@@ -155,6 +156,10 @@ gives another display its own module set. A client selects one by adding
 - **`ref` entries.** `{"ref": "<id>", …}` is the top-level module with that id, with the
   entry's other keys laid over it. The merge is shallow: a `tile` or `entities` given
   here replaces the whole object.
+- **Qualified `ref`s.** `{"ref": "<layout>:<id>", …}` is the entry with that id in
+  another layout, resolved first, again with this entry's keys laid over it. The Roku
+  layout is built this way from `tablet:` refs, so moving a tablet tile moves the Roku's
+  too. Only one hop: the other layout's own entries can't be qualified refs.
 - **Layout-only modules.** An entry without `ref` is a module that only this layout shows.
 - **What `?layout=` returns.** The response carries `version`, `site` and `timezone`
   from the top level, plus:
@@ -171,10 +176,23 @@ gives another display its own module set. A client selects one by adding
   - A `background.dir` that isn't a non-empty string is logged and ignored, so
     `HAKU_BG_DIR` applies.
   - An unknown layout returns `404 {"error": "unknown layout", "layout": …}`.
-  - A `ref` that names no module returns `404 {"error": "unknown ref", "ref": …}`.
+  - A `ref` that names no module (or a qualified ref naming no layout or entry, or one
+    that chains) returns `404 {"error": "unknown ref", "ref": …}` for that layout only.
 - **Without `?layout=`, nothing changes.** `/api/config` serves the file minus
   `layouts`, so the Roku's ~16 KB config cache never sees it. No discovery schema bump
   is needed.
+
+### The Roku layout (`layouts.roku`)
+
+The wall Rokus show a read-only 6×3 grid at 1920×1080: the tablet's 4×3 tiles in the left
+four columns (bare `tablet:` refs), a 2×2 `cameras` square on the right, and a 2×1
+`forecast` strip under it. The grid carries the Roku's pixel geometry (`cellW`, `cellH`,
+`originX`, `originY`, `gap`). The forecast tile is a second weather entry
+(`"ref": "tablet:weather", "id": "forecast", "feedKey": "forecast"`) with
+`"outlook": true`, which adds `outlook` to its values: the next 3 days after today, as
+`[{"label": "Fri", "glyph", "cond"?, "hi"?, "lo"?, "sub"?}]` (the weather detail panel's
+compact forecast, from the daily forecast the tile already reads). Without `outlook` the
+weather values are unchanged. Its `tile.type` is `forecast`.
 
 ### Doors and laundry (tablet layout)
 

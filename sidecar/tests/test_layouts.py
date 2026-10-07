@@ -315,3 +315,62 @@ def test_icon_and_card_routes_resolve_through_layout(client, monkeypatch):
     assert client.get("/api/icon/outside.png").status_code == 404
     r = client.get("/api/card/weather_forecast.png?layout=nowx")  # no weather module there
     assert (r.status_code, r.get_json()) == (404, {"error": "unknown card", "name": "weather_forecast"})
+
+
+# --- qualified refs ("<layout>:<id>") ------------------------------------------
+def _with_wall(monkeypatch, wall_modules):
+    layouts = {**LAYOUTS, "wall": {"grid": {"cols": 6, "rows": 3}, "modules": wall_modules}}
+    _use_config(monkeypatch, {**BASE_CFG, "layouts": layouts})
+
+
+def test_qualified_ref_resolves_through_the_other_layout(monkeypatch):
+    _with_wall(monkeypatch, [{"ref": "tablet:water"}, {"ref": "tablet:doors"}, {"ref": "cameras"}])
+    public, _ = cfg_module.get_layout("wall")
+    water, doors, cameras = public["modules"]
+    # The tablet's resolved entry: top-level module + the tablet's own overrides.
+    assert water == {**WATER, "runningSeverity": "normal", "tile": WATER_TABLET_TILE}
+    assert doors == DOORS                                       # a tablet layout-only module
+    assert cameras == CAMERAS                                   # bare refs still mean top-level
+    assert public["grid"] == {"cols": 6, "rows": 3}
+
+
+def test_qualified_ref_overrides_merge_over_the_resolved_entry(monkeypatch):
+    tile = {"type": "forecast", "col": 4, "row": 2, "w": 2, "h": 1}
+    _with_wall(monkeypatch, [{"ref": "tablet:weather", "id": "forecast", "outlook": True, "tile": tile}])
+    (fc,) = cfg_module.get_layout("wall")[0]["modules"]
+    assert fc["id"] == "forecast" and fc["outlook"] is True and fc["tile"] == tile
+    assert fc["entities"] == WEATHER["entities"] and fc["kind"] == "weather"
+    assert "ref" not in fc
+
+
+@pytest.mark.parametrize("ref", ["tablet:ghost", "nope:water", ":water", "tablet:"])
+def test_qualified_ref_unknown_404_only_for_that_layout(client, monkeypatch, ref):
+    _with_wall(monkeypatch, [{"ref": "tablet:water"}, {"ref": ref}])
+    _use_fake_ha(monkeypatch)
+    r = client.get("/api/config?layout=wall")
+    assert (r.status_code, r.get_json()) == (404, {"error": "unknown ref", "ref": ref})
+    assert client.get("/api/config?layout=tablet").status_code == 200
+    assert client.get("/api/config").status_code == 200
+
+
+def test_qualified_ref_cannot_chain(monkeypatch):
+    layouts = {
+        **LAYOUTS,
+        "wall": {"modules": [{"ref": "tablet:water"}]},
+        "hall": {"modules": [{"ref": "wall:water"}]},           # wall's entry is itself qualified
+    }
+    _use_config(monkeypatch, {**BASE_CFG, "layouts": layouts})
+    assert _ids(cfg_module.get_layout("wall")[0]) == ["water"]
+    with pytest.raises(cfg_module.UnknownRef) as exc:
+        cfg_module.get_layout("hall")
+    assert exc.value.ref == "tablet:water"
+
+
+def test_qualified_ref_does_not_mutate_cache(monkeypatch):
+    _with_wall(monkeypatch, [{"ref": "tablet:water"}, {"ref": "tablet:doors"}])
+    before = copy.deepcopy(cfg_module.get_config())
+    public, _ = cfg_module.get_layout("wall")
+    for m in public["modules"]:
+        m["tile"]["col"] = 99
+        m.setdefault("entities", {})["scribble"] = "x"
+    assert cfg_module.get_config() == before

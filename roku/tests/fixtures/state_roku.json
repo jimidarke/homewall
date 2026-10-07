@@ -1,0 +1,701 @@
+{
+    "calendar": {
+        "count": 10,
+        "items": [
+            {
+                "kind": "header",
+                "title": "TODAY"
+            },
+            {
+                "dot": "0x5B8C7FFF",
+                "kind": "event",
+                "severity": "normal",
+                "time": "4:30 PM",
+                "title": "Sample event 1"
+            },
+            {
+                "kind": "header",
+                "title": "TOMORROW"
+            },
+            {
+                "dot": "0x5B8C7FFF",
+                "kind": "event",
+                "severity": "normal",
+                "time": "3:30 PM",
+                "title": "Sample event 2"
+            },
+            {
+                "kind": "header",
+                "title": "SUN · OCT 11"
+            },
+            {
+                "dot": "0x5B8C7FFF",
+                "kind": "event",
+                "severity": "normal",
+                "time": "5:00 PM",
+                "title": "Sample event 3"
+            },
+            {
+                "kind": "header",
+                "title": "MON · OCT 12"
+            },
+            {
+                "dot": "0x5B8C7FFF",
+                "kind": "event",
+                "severity": "normal",
+                "time": "all day",
+                "title": "Sample event 4"
+            },
+            {
+                "kind": "header",
+                "title": "WED · OCT 14"
+            },
+            {
+                "dot": "0x5B8C7FFF",
+                "kind": "event",
+                "severity": "normal",
+                "time": "7:00 AM",
+                "title": "Sample event 5"
+            },
+            {
+                "dot": "0x5B8C7FFF",
+                "kind": "event",
+                "severity": "normal",
+                "time": "12:00 PM",
+                "title": "Sample event 6"
+            },
+            {
+                "dot": "0x5B8C7FFF",
+                "kind": "event",
+                "severity": "normal",
+                "time": "4:30 PM",
+                "title": "Sample event 7"
+            },
+            {
+                "kind": "header",
+                "title": "THU · OCT 15"
+            },
+            {
+                "dot": "0x5B8C7FFF",
+                "kind": "event",
+                "severity": "normal",
+                "time": "3:30 PM",
+                "title": "Sample event 8"
+            },
+            {
+                "kind": "header",
+                "title": "MON · OCT 19"
+            },
+            {
+                "dot": "0x5B8C7FFF",
+                "kind": "event",
+                "severity": "normal",
+                "time": "all day",
+                "title": "Sample event 9"
+            },
+            {
+                "kind": "header",
+                "title": "WED · OCT 21"
+            },
+            {
+                "dot": "0x5B8C7FFF",
+                "kind": "event",
+                "severity": "normal",
+                "time": "7:00 AM",
+                "title": "Sample event 10"
+            }
+        ],
+        "tile": {
+            "active": false,
+            "detail": "1 today",
+            "glyph": "calendar",
+            "hero": "4:30 PM  Sample event 1",
+            "severity": "normal",
+            "sub": "then 3:30 PM  Sample event 2"
+        }
+    },
+    "cameras": {
+        "cams": {
+            "backyard": {
+                "motion": false,
+                "motion_age_s": 5140
+            },
+            "front": {
+                "motion": false,
+                "motion_age_s": 320
+            }
+        },
+        "count": 5,
+        "streams": [
+            "front",
+            "yard",
+            "side",
+            "backyard",
+            "mosaic"
+        ]
+    },
+    "climate": {
+        "current_temp": 20.6,
+        "humidity": 43,
+        "hvac_action": "idle",
+        "hvac_mode": "heat",
+        "preset_mode": "away",
+        "stale": false,
+        "tile": {
+            "active": false,
+            "detail": "43% RH   Away mode",
+            "glyph": "thermostat",
+            "hero": "21°",
+            "severity": "normal",
+            "sub": "Idle"
+        }
+    },
+    "doors": {
+        "doors": [
+            {
+                "age": "6m",
+                "glyph": "door-closed",
+                "id": "front",
+                "label": "Front",
+                "severity": "normal",
+                "since": 1791406276,
+                "since_exact": true,
+                "state": "closed"
+            },
+            {
+                "age": "3h",
+                "glyph": "door-closed",
+                "id": "back",
+                "label": "Back",
+                "severity": "normal",
+                "since": 1791395668,
+                "since_exact": true,
+                "state": "closed"
+            }
+        ],
+        "open_count": 0,
+        "stale": false,
+        "tile": {
+            "active": false,
+            "detail": "Front 6m · Back 3h",
+            "glyph": "door-closed",
+            "hero": "All closed",
+            "icon": "closed",
+            "severity": "normal",
+            "sub": ""
+        }
+    },
+    "energy": {
+        "cost": 3.71,
+        "daily_kwh": 17,
+        "power_kw": 0.8,
+        "stale": false,
+        "tile": {
+            "active": false,
+            "detail": "$3.71 today",
+            "glyph": "flash",
+            "hero": "0.8 kW",
+            "icon": "15",
+            "level": 15,
+            "severity": "normal",
+            "sub": "17 kWh today"
+        }
+    },
+    "forecast": {
+        "cond_label": "Sunny",
+        "condition": "sunny",
+        "high_c": 17.0,
+        "humidity": 33,
+        "low_c": 7.0,
+        "observed_hm": "20:03",
+        "outlook": [
+            {
+                "cond": "Rainy",
+                "glyph": "weather-rainy",
+                "hi": "13°",
+                "label": "Thu",
+                "lo": "8°",
+                "sub": "30%"
+            },
+            {
+                "cond": "Rainy",
+                "glyph": "weather-rainy",
+                "hi": "9°",
+                "label": "Fri",
+                "lo": "3°",
+                "sub": "60%"
+            },
+            {
+                "cond": "Rainy",
+                "glyph": "weather-rainy",
+                "hi": "5°",
+                "label": "Sat",
+                "lo": "1°"
+            }
+        ],
+        "stale": false,
+        "temp_c": 14.8,
+        "tile": {
+            "active": false,
+            "detail": "H 17°  L 7°   33% RH",
+            "glyph": "weather-sunny",
+            "hero": "15°",
+            "icon": "sunny",
+            "severity": "normal",
+            "sub": "Sunny"
+        },
+        "wind_kmh": 17
+    },
+    "gas": {
+        "daily": 4.2,
+        "flow": 0.0,
+        "stale": false,
+        "tile": {
+            "active": false,
+            "glyph": "meter-gas",
+            "hero": "0 m³/h",
+            "icon": "0",
+            "level": 0,
+            "severity": "normal",
+            "sub": "4.2 m³ today"
+        },
+        "total": 17670.3
+    },
+    "laundry": {
+        "machines": [
+            {
+                "color": "#00AAFF",
+                "glyph": "washing-machine",
+                "id": "washer",
+                "label": "Washer",
+                "leds": 0,
+                "mode": "idle",
+                "power_w": 2,
+                "stale": false,
+                "status": "idle"
+            },
+            {
+                "color": "#FF6900",
+                "glyph": "tumble-dryer",
+                "id": "dryer",
+                "label": "Dryer",
+                "leds": 0,
+                "mode": "idle",
+                "power_w": 2,
+                "stale": false,
+                "status": "idle"
+            }
+        ],
+        "stale": false,
+        "tile": {
+            "active": false,
+            "detail": "",
+            "glyph": "washing-machine",
+            "hero": "Laundry idle",
+            "icon": "idle:0|idle:0",
+            "severity": "normal",
+            "sub": ""
+        }
+    },
+    "timeline": {
+        "count": 38,
+        "items": [
+            {
+                "kind": "header",
+                "title": "TODAY"
+            },
+            {
+                "glyph": "motion-sensor",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "motion",
+                "time": "6m",
+                "title": "Front Entrance",
+                "when": 1791406277
+            },
+            {
+                "glyph": "door-closed",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "opened · <1m",
+                "time": "6m",
+                "title": "Front Door",
+                "when": 1791406272
+            },
+            {
+                "glyph": "motion-sensor",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "motion",
+                "time": "12m",
+                "title": "Front Entrance",
+                "when": 1791405940
+            },
+            {
+                "glyph": "door-closed",
+                "kind": "event",
+                "severity": "high",
+                "sub": "opened 3×",
+                "time": "13m",
+                "title": "Front Door",
+                "when": 1791405866
+            },
+            {
+                "glyph": "motion-sensor",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "motion",
+                "time": "18m",
+                "title": "Front Entrance",
+                "when": 1791405587
+            },
+            {
+                "glyph": "motion-sensor",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "motion",
+                "time": "27m",
+                "title": "Front Entrance",
+                "when": 1791405036
+            },
+            {
+                "glyph": "motion-sensor",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "motion",
+                "time": "1h",
+                "title": "Backyard",
+                "when": 1791401457
+            },
+            {
+                "glyph": "motion-sensor",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "motion",
+                "time": "1h",
+                "title": "Front Entrance",
+                "when": 1791399719
+            },
+            {
+                "glyph": "motion-sensor",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "motion",
+                "time": "1h",
+                "title": "Backyard",
+                "when": 1791399506
+            },
+            {
+                "glyph": "tumble-dryer",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "done",
+                "time": "2h",
+                "title": "Dryer",
+                "when": 1791398341
+            },
+            {
+                "glyph": "washing-machine",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "done",
+                "time": "2h",
+                "title": "Washer",
+                "when": 1791397510
+            },
+            {
+                "glyph": "motion-sensor",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "motion",
+                "time": "2h",
+                "title": "Front Entrance",
+                "when": 1791396019
+            },
+            {
+                "glyph": "door-closed",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "opened 4×",
+                "time": "2h",
+                "title": "Front Door",
+                "when": 1791396016
+            },
+            {
+                "glyph": "door-closed",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "opened · <1m",
+                "time": "3h",
+                "title": "Back Door",
+                "when": 1791395660
+            },
+            {
+                "glyph": "motion-sensor",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "motion",
+                "time": "3h",
+                "title": "Front Entrance",
+                "when": 1791395604
+            },
+            {
+                "glyph": "washing-machine",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "done",
+                "time": "3h",
+                "title": "Washer",
+                "when": 1791393825
+            },
+            {
+                "glyph": "motion-sensor",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "motion",
+                "time": "4h",
+                "title": "Front Entrance",
+                "when": 1791391356
+            },
+            {
+                "glyph": "motion-sensor",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "motion",
+                "time": "4h",
+                "title": "Front Entrance",
+                "when": 1791390840
+            },
+            {
+                "glyph": "door-open",
+                "kind": "event",
+                "severity": "high",
+                "sub": "open now",
+                "time": "5h",
+                "title": "Bathroom door",
+                "when": 1791387882
+            },
+            {
+                "glyph": "door-closed",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "opened · <1m",
+                "time": "5h",
+                "title": "Front Door",
+                "when": 1791386860
+            },
+            {
+                "glyph": "motion-sensor",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "motion",
+                "time": "5h",
+                "title": "Front Entrance",
+                "when": 1791386853
+            },
+            {
+                "glyph": "home-account",
+                "kind": "event",
+                "severity": "low",
+                "sub": "→ home",
+                "time": "5h",
+                "title": "Alex",
+                "when": 1791386852
+            },
+            {
+                "glyph": "account-arrow-right",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "→ Cafe",
+                "time": "5h",
+                "title": "Alex",
+                "when": 1791385346
+            },
+            {
+                "glyph": "account-arrow-right",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "→ away",
+                "time": "6h",
+                "title": "Alex",
+                "when": 1791384205
+            },
+            {
+                "glyph": "account-arrow-right",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "→ Work",
+                "time": "6h",
+                "title": "Alex",
+                "when": 1791383753
+            },
+            {
+                "glyph": "account-arrow-right",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "→ away",
+                "time": "6h",
+                "title": "Alex",
+                "when": 1791382061
+            },
+            {
+                "glyph": "door-closed",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "opened 5×",
+                "time": "6h",
+                "title": "Front Door",
+                "when": 1791381940
+            },
+            {
+                "glyph": "motion-sensor",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "motion",
+                "time": "6h",
+                "title": "Front Entrance",
+                "when": 1791381867
+            },
+            {
+                "glyph": "door-closed",
+                "kind": "event",
+                "severity": "high",
+                "sub": "opened 3×",
+                "time": "6h",
+                "title": "Bathroom door",
+                "when": 1791381519
+            },
+            {
+                "glyph": "door-closed",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "opened · <1m",
+                "time": "7h",
+                "title": "Back Door",
+                "when": 1791380573
+            },
+            {
+                "glyph": "door-closed",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "closed",
+                "time": "7h",
+                "title": "Bathroom door",
+                "when": 1791380449
+            },
+            {
+                "glyph": "door-closed",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "opened · <1m",
+                "time": "7h",
+                "title": "Back Door",
+                "when": 1791379528
+            },
+            {
+                "glyph": "door-closed",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "opened · <1m",
+                "time": "7h",
+                "title": "Back Door",
+                "when": 1791378624
+            },
+            {
+                "glyph": "motion-sensor",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "motion",
+                "time": "8h",
+                "title": "Backyard",
+                "when": 1791376843
+            },
+            {
+                "glyph": "motion-sensor",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "motion",
+                "time": "8h",
+                "title": "Front Entrance",
+                "when": 1791376047
+            },
+            {
+                "glyph": "door-closed",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "opened · <1m",
+                "time": "8h",
+                "title": "Front Door",
+                "when": 1791376035
+            },
+            {
+                "glyph": "door-closed",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "opened · <1m",
+                "time": "8h",
+                "title": "Back Door",
+                "when": 1791375876
+            },
+            {
+                "glyph": "door-closed",
+                "kind": "event",
+                "severity": "normal",
+                "sub": "opened · <1m",
+                "time": "8h",
+                "title": "Back Door",
+                "when": 1791375428
+            }
+        ],
+        "tile": {
+            "active": false,
+            "detail": "Front Door · 6m",
+            "glyph": "history",
+            "hero": "Front Entrance",
+            "severity": "normal",
+            "sub": "motion · 6m"
+        }
+    },
+    "ts": 1791406687,
+    "v": 1,
+    "water": {
+        "cost_today": 1.17,
+        "daily": 235.9,
+        "flow": 0.0,
+        "hourly": 14.7,
+        "monthly": 3.4,
+        "running": false,
+        "stale": false,
+        "tile": {
+            "active": false,
+            "detail": "$1.17 today",
+            "glyph": "water-outline",
+            "hero": "0 L/min",
+            "icon": "0",
+            "level": 0,
+            "severity": "normal",
+            "sub": "236 L today"
+        },
+        "total": 95.4
+    },
+    "weather": {
+        "cond_label": "Sunny",
+        "condition": "sunny",
+        "high_c": 17.0,
+        "humidity": 33,
+        "low_c": 7.0,
+        "observed_hm": "20:03",
+        "stale": false,
+        "temp_c": 14.8,
+        "tile": {
+            "active": false,
+            "detail": "H 17°  L 7°   33% RH",
+            "glyph": "weather-sunny",
+            "hero": "15°",
+            "icon": "sunny",
+            "severity": "normal",
+            "sub": "Sunny"
+        },
+        "wind_kmh": 17
+    }
+}

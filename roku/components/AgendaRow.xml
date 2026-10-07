@@ -16,6 +16,7 @@
     </interface>
     <script type="text/brightscript" uri="AgendaRow.brs" />
     <script type="text/brightscript" uri="pkg:/source/Config.brs" />
+    <script type="text/brightscript" uri="pkg:/source/Glyphs.brs" />
     <children>
         <Rectangle id="rowbg" color="0x00000000" />
         <Rectangle id="hdrline" color="0x5B8C7F66" visible="false" />

@@ -24,4 +24,5 @@
     </interface>
     <script type="text/brightscript" uri="JpegPipTask.brs" />
     <script type="text/brightscript" uri="pkg:/source/Config.brs" />
+    <script type="text/brightscript" uri="pkg:/source/Glyphs.brs" />
 </component>
