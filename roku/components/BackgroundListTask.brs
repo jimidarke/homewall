@@ -19,10 +19,12 @@ sub runList()
         for each img in data.images
             if img <> invalid and img.url <> invalid and img.url <> "" then
                 ' Ask the sidecar to pre-size to the panel so we don't hold
-                ' oversized bitmaps; the sidecar caches per (name, size).
+                ' oversized bitmaps; the sidecar caches per (name, size, fit). `cover`
+                ' fills the screen: most of the shared drone photos are 4:3, which
+                ' `contain` would pillarbox in black.
                 sep = "?"
                 if Instr(1, img.url, "?") > 0 then sep = "&"
-                urls.push(img.url + sep + "w=1920&h=1080")
+                urls.push(img.url + sep + "w=1920&h=1080&fit=cover")
             end if
         end for
     end if

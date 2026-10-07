@@ -75,6 +75,7 @@ function HK_RETURN_HOME_MS()  as integer : return 60000  : end function  ' after
 function HK_BG_ROTATE_MS()    as integer : return 20000 : end function  ' default dwell per image
 function HK_BG_ROTATE_MIN_MS() as integer : return 5000 : end function  ' floor (avoid decode thrash)
 function HK_BG_CROSSFADE_MS() as integer : return 800   : end function  ' photo dissolve duration
+function HK_BG_LIST_MS()      as integer : return 600000 : end function  ' photo list refresh (tablet LIST_EVERY_MS)
 
 ' Overlay default time-to-live, by kind. Caller may override via `dwell=` (sec)
 ' or `duration=` (sec) in the ECP /input payload.
@@ -308,6 +309,39 @@ end function
 function hkBgNextIndex(idx as integer, count as integer) as integer
     if count <= 0 then return 0
     return (idx + 1) mod count
+end function
+
+' How the gallery takes a refreshed photo list (`nxt`) while showing `shown` from `cur`:
+'   first  nothing yet: start from photo 0
+'   empty  nothing yet and nothing now: the fallback image
+'   keep   a failed or empty refresh: carry on with the photos it has
+'   same   nothing changed
+'   swap   a changed list: carry on from where it was; idx is the shown photo's place
+'          in the new list, or the last place when it went, so the next is the first
+function hkBgListUpdate(cur as object, nxt as object, shown as string) as object
+    if nxt.count() = 0 then
+        if cur.count() = 0 then return { action: "empty", idx: 0 }
+        return { action: "keep", idx: 0 }
+    end if
+    if cur.count() = 0 then return { action: "first", idx: 0 }
+    same = (cur.count() = nxt.count())
+    if same then
+        for i = 0 to cur.count() - 1
+            if cur[i] <> nxt[i] then
+                same = false
+                exit for
+            end if
+        end for
+    end if
+    if same then return { action: "same", idx: 0 }
+    idx = nxt.count() - 1
+    for i = 0 to nxt.count() - 1
+        if nxt[i] = shown then
+            idx = i
+            exit for
+        end if
+    end for
+    return { action: "swap", idx: idx }
 end function
 
 ' Resolve the background rotate interval (ms) from /api/config, floored so a

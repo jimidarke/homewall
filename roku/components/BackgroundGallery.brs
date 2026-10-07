@@ -30,6 +30,7 @@ sub init()
     m.idx     = 0        ' index currently shown on bgA
     m.pending = 0        ' index being transitioned to
     m.phase   = "idle"
+    m.queued  = invalid  ' a refreshed list waiting for the current transition to settle
 
     m.crossfade.duration = HK_BG_CROSSFADE_MS() / 1000.0
     m.rotate.duration = HK_BG_ROTATE_MS() / 1000.0
@@ -44,14 +45,31 @@ end sub
 ' Inputs
 ' ---------------------------------------------------------------------------
 sub onImages()
+    nxt = []
     imgs = m.top.images
-    m.list = []
     if imgs <> invalid then
         for each u in imgs
-            if u <> invalid and u <> "" then m.list.push(u.toStr())
+            if u <> invalid and u <> "" then nxt.push(u.toStr())
         end for
     end if
 
+    shown = ""
+    if m.list.count() > 0 then shown = m.list[m.idx]
+    up = hkBgListUpdate(m.list, nxt, shown)
+    if up.action = "same" then return
+    if up.action = "keep" then
+        hkEvent("bg_list_kept", { count: m.list.count() })
+        return
+    end if
+    if up.action = "swap" then
+        ' The list is refreshed every few minutes: carry on from the photo on screen,
+        ' once any transition in flight has settled (its indexes are the old list's).
+        m.queued = { list: nxt, idx: up.idx }
+        if m.phase = "idle" then applyQueued()
+        return
+    end if
+
+    m.list = nxt
     resetTransition()
     m.idx = 0
     m.bgB.opacity = 0.0
@@ -70,6 +88,20 @@ sub onImages()
         m.bgA.opacity = 1.0
     end if
     hkEvent("bg_images", { count: m.list.count() })
+    startRotation()
+end sub
+
+' A changed list, taken between transitions: bgA keeps the photo on screen and the
+' hidden overlay preloads the new next one.
+sub applyQueued()
+    q = m.queued
+    if q = invalid then return
+    m.queued = invalid
+    m.list = q.list
+    m.idx = q.idx
+    hkEvent("bg_images", { count: m.list.count(), refreshed: true })
+    m.bgB.opacity = 0.0
+    m.bgB.uri = ""
     startRotation()
 end sub
 
@@ -122,6 +154,7 @@ sub resetTransition()
     m.settleTimer.control = "stop"
     m.loadTimer.control = "stop"
     m.phase = "idle"
+    applyQueued()
 end sub
 
 sub onRotateFire()
@@ -151,6 +184,7 @@ sub onLoadTimer()
     if m.phase = "loadingOverlay" then
         m.bgB.opacity = 0.0
         m.phase = "idle"
+        applyQueued()
     end if
 end sub
 
@@ -182,6 +216,10 @@ sub finishSettle()
     m.settleTimer.control = "stop"
     m.bgB.opacity = 0.0                       ' reveal bgA (now the new image)
     m.phase = "idle"
+    if m.queued <> invalid then
+        applyQueued()
+        return
+    end if
     ' Preload the following frame so the next tick can fade instantly.
     if m.list.count() >= 2 then
         m.bgB.uri = m.list[hkBgNextIndex(m.idx, m.list.count())]

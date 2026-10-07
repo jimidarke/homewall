@@ -31,6 +31,7 @@ sub init()
     m.idleTimer      = m.top.findNode("idleTimer")
     m.returnHomeTimer = m.top.findNode("returnHomeTimer")
     m.keepAwakeWatchdog = m.top.findNode("keepAwakeWatchdog")
+    m.bgListTimer    = m.top.findNode("bgListTimer")
 
     m.discover.observeField("result", "onDiscoveryResult")
     m.inputPump.observeField("event", "onInputEvent")
@@ -50,6 +51,7 @@ sub init()
     m.idleTimer.observeField("fire", "onIdleTimer")
     m.returnHomeTimer.observeField("fire", "onReturnHomeTimer")
     m.keepAwakeWatchdog.observeField("fire", "onKeepAwakeWatchdog")
+    m.bgListTimer.observeField("fire", "runBgList")
 
     m.route = "home"
     m.config = invalid
@@ -75,6 +77,8 @@ sub init()
     m.stateTimer.duration = HK_STATE_POLL_MS() / 1000
     m.idleTimer.duration = HK_IDLE_TO_HOME_MS() / 1000
     m.returnHomeTimer.duration = HK_RETURN_HOME_MS() / 1000
+    m.bgListTimer.duration = HK_BG_LIST_MS() / 1000
+    m.bgListTimer.control = "start"
 
     ' Input pump must run immediately so hot ECP relaunches arrive before discovery.
     m.inputPump.control = "RUN"
@@ -246,8 +250,9 @@ sub onModuleConfig()
     hkEvent("config_ok", { modules: moduleIds(cfg) })
 end sub
 
-' Kick the background-list task at the current hub base. Its result feeds
-' BackgroundGallery.images.
+' Kick the background-list task at the current hub base (at boot, on discovery, and
+' every HK_BG_LIST_MS). Its result feeds BackgroundGallery.images, which keeps its
+' photos when a refresh comes back empty.
 sub runBgList()
     if m.hubBase = "" then return
     m.bgList.hubBase = m.hubBase
