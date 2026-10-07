@@ -58,7 +58,9 @@ sleep 2
 # Single subshell: telnet as a background job inside so the parent doesn't
 # inherit it (avoids SIGHUP cascades).
 (
-    ( exec 3<>"/dev/tcp/${ROKU_IP}/8085"; cat <&3 ) &
+    # `exec cat`, so TELNET_PID is cat itself: killing a plain subshell left cat
+    # orphaned, holding the Roku's single console connection.
+    ( exec 3<>"/dev/tcp/${ROKU_IP}/8085"; exec cat <&3 ) &
     TELNET_PID=$!
     sleep 1
     curl -sf -X POST -d '' "http://${ROKU_IP}:8060/launch/dev" >/dev/null 2>&1 || true

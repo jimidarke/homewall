@@ -28,9 +28,9 @@ fi
 
 # Images only, top level only; anything else in DST goes (--delete-excluded). -rt, not
 # -a: media can't chown. Temp files rsync writes are dotfiles, which the sidecar never
-# lists. The directory's mtime changes whenever a photo comes or goes, which is what
-# invalidates the sidecar's listing cache.
-out=$(timeout 600 rsync -rt --delete --delete-excluded --chmod=D755,F644 \
+# lists. --omit-dir-times leaves DST's mtime as its real last change, so it moves
+# whenever a photo comes or goes, which is what invalidates the sidecar's listing cache.
+out=$(timeout 600 rsync -rt --omit-dir-times --delete --delete-excluded --chmod=D755,F644 \
     --exclude='.*' --exclude='*/' \
     --include='*.[jJ][pP][gG]' --include='*.[jJ][pP][eE][gG]' \
     --include='*.[pP][nN][gG]' --include='*.[wW][eE][bB][pP]' --exclude='*' \
