@@ -57,8 +57,8 @@ streams:
       -f rtsp {output}
 
   # ----- Phase 2 per-cam streams (credentials via EnvironmentFile) -----
-  # User-camera mapping confirmed 2026-05-08:
-  #   front     192.0.2.35   Amcrest, PTZ, front door
+  # User-camera mapping confirmed 2026-05-08 (front re-pointed 2026-10-07):
+  #   front     192.0.2.31  Genbolt dual-lens, PTZ lens (/21), front walk
   #   yard      192.0.2.32  Reolink, PTZ, full back yard / drive pad / fence
   #   side      192.0.2.33  Amcrest, PTZ, side gate
   #   backyard  192.0.2.34  Reolink-family, no PTZ, playground behind garage
@@ -71,9 +71,30 @@ streams:
   # Creds come from /etc/haku/cam-creds.env via the systemd unit:
   #   HAKU_CAM_USER=admin
   #   HAKU_CAM_PASSWORD=<...>
+  #   HAKU_FRONT_USER=<...>       the Genbolt has its own login (HA keeps it as genbolt_ptz_stream)
+  #   HAKU_FRONT_PASSWORD=<...>
   # go2rtc supports ${VAR} substitution in stream URLs.
+  #
+  # front: the Genbolt's PTZ lens (/21) is HEVC Main 1920x1080 @ 15 fps, which the
+  # Express and Stick Rokus can't decode, so it's transcoded via Quick Sync like the mosaic:
+  # QSV HEVC decode -> vpp_qsv scale to 1280x720 (also feeds the full-screen takeover) ->
+  # h264_qsv main, GOP 30 (= 2 s @ 15 fps, HLS-segment-aligned), ~2 Mbps CBR, no audio.
+  # It reads the camera directly: an intermediate raw stream would show up in discovery.
   front:
-    - rtsp://${HAKU_CAM_USER}:${HAKU_CAM_PASSWORD}@192.0.2.35:554/cam/realmonitor?channel=1&subtype=0
+    - >-
+      exec:ffmpeg
+      -hide_banner -loglevel warning
+      -rtsp_transport tcp
+      -hwaccel qsv -hwaccel_output_format qsv -c:v hevc_qsv
+      -i rtsp://${HAKU_FRONT_USER}:${HAKU_FRONT_PASSWORD}@192.0.2.31:554/21
+      -vf "vpp_qsv=w=1280:h=720"
+      -c:v h264_qsv
+      -preset veryfast
+      -profile:v main -level:v 4.0
+      -look_ahead 0 -bf 0 -g 30 -keyint_min 30
+      -b:v 2000k -maxrate 2500k -bufsize 4000k
+      -an
+      -f rtsp {output}
   yard:
     - rtsp://${HAKU_CAM_USER}:${HAKU_CAM_PASSWORD}@192.0.2.32:554/h264Preview_01_sub
   side:

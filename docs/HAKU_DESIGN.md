@@ -30,7 +30,7 @@ Validated 2026-05-08 against Mikrotik DHCP leases + TCP-port probe:
 
 | Friendly | LAN IP | MAC | Vendor | Open ports | RTSP URL convention |
 |---|---|---|---|---|---|
-| frontcam   | `192.0.2.35`  | `xx:xx:xx:xx:xx:xx` | **Amcrest** (`<serial>`) | 80, 554, 37777 | `rtsp://USER:PW@192.0.2.35:554/cam/realmonitor?channel=1&subtype=0` (main) / `subtype=1` (sub) |
+| frontcam   | `192.0.2.31` | — | **Genbolt** dual-lens (XiongMai), WAN-blocked | 80, 554, 8080 (ONVIF) | `rtsp://USER:PW@192.0.2.31:554/21` PTZ lens (HEVC 1080p15; `/22` sub, `/11` fixed lens). *2026-10-07: replaced the Amcrest at `.35`, which is gone; HAku transcodes `/21` to H.264 720p.* |
 | yardcam    | `192.0.2.32` | `xx:xx:xx:xx:xx:xx` | **Reolink** (host-name `Back` — *labelled "yard" but DHCP host-name "Back", confirm physical placement*) | 80, 554, 8000 | `rtsp://USER:PW@192.0.2.32:554/h264Preview_01_main` (or `_sub`) |
 | sidecam    | `192.0.2.33` | `xx:xx:xx:xx:xx:xx` | **Amcrest** (`<serial>`) | 80, 554, 37777 | `rtsp://USER:PW@192.0.2.33:554/cam/realmonitor?channel=1&subtype=0` |
 | backyardcam| `192.0.2.34` | `xx:xx:xx:xx:xx:xx` | **Reolink-family IPC** | 80, 443, 554, 8000 | `rtsp://USER:PW@192.0.2.34:554/h264Preview_01_main` |
@@ -164,13 +164,13 @@ Plus three overlays that float above any mode:
 
 | ID | Friendly | Vendor | RTSP source (validated) | HLS at (phase 2 once added to go2rtc.yaml) | Maps to event sources |
 |---|---|---|---|---|---|
-| `front`    | Front Door | Amcrest | `rtsp://USER:PW@192.0.2.35:554/cam/realmonitor?channel=1&subtype=0`  | `:1985/hls/front.m3u8`    | `front_doorcontact_contact`, `front_motion_occupancy` |
+| `front`    | Front Door | Genbolt | `rtsp://USER:PW@192.0.2.31:554/21` (HEVC → QSV H.264 720p) | `:1985/hls/front.m3u8`    | `front_doorcontact_contact`, `front_motion_occupancy` |
 | `yard`     | Yard       | Reolink | `rtsp://USER:PW@192.0.2.32:554/h264Preview_01_main`                | `:1985/hls/yard.m3u8`     | *gate_doorcontact currently unavailable — motion-only until restored* |
 | `side`     | Side       | Amcrest | `rtsp://USER:PW@192.0.2.33:554/cam/realmonitor?channel=1&subtype=0` | `:1985/hls/side.m3u8`     | *garage_doorcontact currently unavailable — motion-only until restored* |
 | `backyard` | Backyard   | Reolink | `rtsp://USER:PW@192.0.2.34:554/h264Preview_01_main`                | `:1985/hls/backyard.m3u8` | `back_doorcontact_contact`, `backyard_motion_occupancy`, `back_yard_motion` (corner sensor offline) |
 | `mosaic`   | NVR 4-up   | (server) | NVR HDMI-out via USB capture → go2rtc QSV encode | **`:1985/hls/mosaic.m3u8` — DEPLOYED** | (rendered, not a physical cam) |
 
-Two vendors, two URL conventions: **Amcrest** (front, side) uses Dahua-style `cam/realmonitor?channel=N&subtype=0`; **Reolink** (yard, backyard) uses `h264Preview_01_main`. Both confirmed responding on port 554. Use `_sub` / `subtype=1` for the lower-res substream when ingesting into the mosaic — saves CPU on `nserver`'s ffmpeg `xstack`. **Fallback**: if a per-cam path proves flaky on a given firmware, the same feed is reachable via the NVR at `rtsp://USER:PW@192.0.2.30:554/cam/realmonitor?channel={1..4}&subtype=0`. Credentials: pull from existing NVR config / secrets vault (do **not** hard-code).
+Two vendors, two URL conventions (front is now a Genbolt on `/21`, transcoded; see `stream/go2rtc.yaml`): **Amcrest** (side) uses Dahua-style `cam/realmonitor?channel=N&subtype=0`; **Reolink** (yard, backyard) uses `h264Preview_01_main`. Both confirmed responding on port 554. Use `_sub` / `subtype=1` for the lower-res substream when ingesting into the mosaic — saves CPU on `nserver`'s ffmpeg `xstack`. **Fallback**: if a per-cam path proves flaky on a given firmware, the same feed is reachable via the NVR at `rtsp://USER:PW@192.0.2.30:554/cam/realmonitor?channel={1..4}&subtype=0`. Credentials: pull from existing NVR config / secrets vault (do **not** hard-code).
 | `mosaic` | Grid view | composed via ffmpeg `xstack` | `:1985/hls/mosaic.m3u8` | `streams.mosaic` |
 
 Order in the carousel: `front → yard → side → backyard` (front of house first, walking the perimeter clockwise — matches how the user thinks about the property).
@@ -630,7 +630,7 @@ Four direct-cam RTSP streams added to `go2rtc.yaml` plus a templated `haku-hls@.
 ```yaml
 streams:
   mosaic:    # NVR HDMI capture, encoded h264_qsv (already deployed)
-  front:     rtsp://${HAKU_CAM_USER}:${HAKU_CAM_PASSWORD}@192.0.2.35:554/cam/realmonitor?channel=1&subtype=0   # Amcrest
+  front:     exec:ffmpeg … rtsp://${HAKU_FRONT_USER}:${HAKU_FRONT_PASSWORD}@192.0.2.31:554/21 … h264_qsv   # Genbolt PTZ lens, HEVC → H.264 720p (2026-10-07)
   yard:      rtsp://${HAKU_CAM_USER}:${HAKU_CAM_PASSWORD}@192.0.2.32:554/h264Preview_01_sub                   # Reolink — sub-stream (main is HEVC 4K)
   side:      rtsp://${HAKU_CAM_USER}:${HAKU_CAM_PASSWORD}@192.0.2.33:554/cam/realmonitor?channel=1&subtype=0  # Amcrest
   backyard:  rtsp://${HAKU_CAM_USER}:${HAKU_CAM_PASSWORD}@192.0.2.34:554/h264Preview_01_main                  # Reolink-family
@@ -788,7 +788,7 @@ Running `curl http://192.0.2.10:8123/api/states` against HA caught a handful of 
 ## Hard requirements before v0.1 sideload
 
 - [x] ~~**Inventory the rest of the Roku fleet.**~~ **PARTIAL 2026-05-08:** ECP scan found 5 Rokus on `192.0.2.0/24`. 4 are dev-unlocked + running HAku: `living=.51` (Stick+), `kids=.52` (Express), `bedroom=.53` (Stick), `den=.54` (Express 4K). 1 not dev-unlocked: `dad=.56` (Streaming Stick). Garage Roku not seen on the scan — likely powered off or on a different VLAN. Still need to fold these into `homeController/infra/network/inventory.yaml`.
-- [x] ~~**Confirm RTSP URL paths per camera with creds.**~~ **DONE 2026-05-08:** all four cams respond on port 554 with `the shared camera login` (pulled from HA's Reolink integration). `front` (.35 Amcrest) + `side` (.33 Amcrest) = `cam/realmonitor?channel=1&subtype=0` (H.264 1920×1080 High @ 50fps). `yard` (.32 Reolink) — main is HEVC 4K (Roku-incompatible), use `h264Preview_01_sub` (H.264 640×360 @ 10fps). `backyard` (.34 Reolink-family) = `h264Preview_01_main` (H.264 2048×1536 @ 20fps). Creds in `/etc/haku/cam-creds.env` on nserver, mode 0640 root:media; referenced from `go2rtc.yaml` as `${HAKU_CAM_USER}`/`${HAKU_CAM_PASSWORD}`.
+- [x] ~~**Confirm RTSP URL paths per camera with creds.**~~ **DONE 2026-05-08:** all four cams respond on port 554 with the shared camera login (pulled from HA's Reolink integration). `front` (.35 Amcrest) + `side` (.33 Amcrest) = `cam/realmonitor?channel=1&subtype=0` (H.264 1920×1080 High @ 50fps). `yard` (.32 Reolink) — main is HEVC 4K (Roku-incompatible), use `h264Preview_01_sub` (H.264 640×360 @ 10fps). `backyard` (.34 Reolink-family) = `h264Preview_01_main` (H.264 2048×1536 @ 20fps). Creds in `/etc/haku/cam-creds.env` on nserver, mode 0640 root:media; referenced from `go2rtc.yaml` as `${HAKU_CAM_USER}`/`${HAKU_CAM_PASSWORD}`.
 - [x] ~~**Confirm yardcam vs. "Back" labelling.**~~ **RESOLVED 2026-05-08:** physically, .32 (HA "Back Yard") is the Reolink-PTZ on the house-corner facing back yard / drive pad / fence — the wider open back area, mapped to `yard`. .34 is the no-PTZ Reolink-family behind the garage facing the playground — tucked-in spot, mapped to `backyard`. HA's "Back Yard" naming on .32 was misleading; design-doc mapping was correct.
 - [x] ~~**Decide mosaic origin.**~~ **DONE 2026-05-08:** go2rtc on nserver, capturing the NVR's existing HDMI-out 4-up split via the USB capture card and encoding via Intel QSV. Configs version-controlled in `stream/`; legacy mjpg_streamer at `:8090` stopped + disabled. HA's `camera.camerafeed` (`mjpeg` integration entry `<config-entry-id>`) re-pointed at `http://192.0.2.20:1984/api/stream.mjpeg?src=mosaic` with snapshot `…/api/frame.jpeg?src=mosaic`; backup at `.storage/core.config_entries.bak-20260509-001244` on mserver.
 - [x] ~~**Generate HA long-lived token**~~ **DONE 2026-05-08:** long-lived token generated in HA UI and seeded to all 4 dev-unlocked Rokus via the deep-link bootstrap (`?contentId=setup&haToken=…&haUrl=…`, URL-encoded — without encoding the `:` in `http://` Roku returns 404). Reference copy in gitignored `rokuApp/.env`. **Rotate after this conversation** — token value appeared in chat transcript.

@@ -48,9 +48,11 @@ discovery so consumers don't hardcode IPs.
 ```
 HAKU_CAM_USER=admin
 HAKU_CAM_PASSWORD=<from HA Reolink integration / 1Password>
+HAKU_FRONT_USER=<the Genbolt's login: HA secrets.yaml genbolt_ptz_stream>
+HAKU_FRONT_PASSWORD=<...>
 ```
 
-These are substituted into per-cam RTSP URLs in `go2rtc.yaml` as `${HAKU_CAM_USER}` / `${HAKU_CAM_PASSWORD}` so the yaml stays committable.
+These are substituted into per-cam RTSP URLs in `go2rtc.yaml` as `${HAKU_CAM_USER}` / `${HAKU_CAM_PASSWORD}` (and `${HAKU_FRONT_USER}` / `${HAKU_FRONT_PASSWORD}` for the front Genbolt) so the yaml stays committable. Add a key to the live file by appending; the install step below rewrites it with placeholders.
 
 The go2rtc binary itself is at `/usr/local/bin/go2rtc` (single static
 x86_64 binary downloaded from the official GitHub releases — currently
@@ -59,12 +61,13 @@ v1.9.x).
 ## Endpoints (served on `enp1s0` IP `192.0.2.20`)
 
 go2rtc publishes one stream per source. The mosaic is encoded locally; the
-four per-cam streams are direct RTSP forwards from the cameras themselves.
+per-cam streams are direct RTSP forwards from the cameras themselves, except
+`front`, whose HEVC PTZ lens is transcoded to H.264 the same way.
 
 | Stream | Origin | Codec/dims | Roku-deep HLS endpoint |
 |---|---|---|---|
 | `mosaic` | NVR HDMI → USB → QSV-encoded H.264 | H.264 Main 4.0, 1920×1080 @ 20 fps | `:1985/hls/mosaic.m3u8` |
-| `front` | Amcrest @ 192.0.2.35 | H.264 High 4.1, 1920×1080 @ 50 fps | `:1985/hls/front.m3u8` |
+| `front` | Genbolt PTZ lens @ 192.0.2.31 `/21` (HEVC 1080p15) → QSV transcode | H.264 Main 4.0, 1280×720 @ 15 fps | `:1985/hls/front.m3u8` |
 | `yard` | Reolink @ 192.0.2.32 (sub-stream — main is HEVC 4K) | H.264 High 5.1, 640×360 @ 10 fps | `:1985/hls/yard.m3u8` |
 | `side` | Amcrest @ 192.0.2.33 | H.264 High 4.1, 1920×1080 @ 50 fps | `:1985/hls/side.m3u8` |
 | `backyard` | Reolink-family @ 192.0.2.34 | H.264 Main 5.0, 2048×1536 @ 20 fps | `:1985/hls/backyard.m3u8` |
@@ -138,6 +141,8 @@ mkdir -p /etc/haku
 install -m 0640 -o root -g media /dev/stdin /etc/haku/cam-creds.env <<'CREDS'
 HAKU_CAM_USER=admin
 HAKU_CAM_PASSWORD=<set me>
+HAKU_FRONT_USER=<set me>
+HAKU_FRONT_PASSWORD=<set me>
 CREDS
 
 # 4. Install configs and units
@@ -209,7 +214,7 @@ confirmed and the "yardcam vs `Back`" labelling question (see
 ```yaml
 streams:
   mosaic:    [...as today...]
-  front:     rtsp://USER:PW@192.0.2.35:554/cam/realmonitor?channel=1&subtype=0   # Amcrest
+  front:     rtsp://USER:PW@192.0.2.35:554/cam/realmonitor?channel=1&subtype=0   # Amcrest (since replaced: see go2rtc.yaml)
   yard:      rtsp://USER:PW@192.0.2.32:554/h264Preview_01_main                  # Reolink
   side:      rtsp://USER:PW@192.0.2.33:554/cam/realmonitor?channel=1&subtype=0  # Amcrest
   backyard:  rtsp://USER:PW@192.0.2.34:554/h264Preview_01_main                  # Reolink
