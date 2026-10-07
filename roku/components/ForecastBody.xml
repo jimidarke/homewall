@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <!--
-  ForecastBody — the wall's 3-day forecast strip (weather values.outlook, opt-in per layout): per day its name, condition glyph, and high over low.
+  ForecastBody — the wall's 3-day forecast strip (weather values.outlook, opt-in per layout): per day its name, condition glyph, and high over low. In a tall card with a tile.card path (0.12's 2x2), the strip sits on top and the sidecar's temperature chart PNG (/api/card/weather_chart.png, 48 h observed + forecast) fills the rest, refetched every 5 minutes.
   A ModuleTile body: drawn in the card under its header row, bodyW x bodyH px.
 -->
 <component name="ForecastBody" extends="Group">
@@ -8,6 +8,8 @@
         <field id="descriptor" type="assocarray" />
         <field id="values" type="assocarray" onChange="paint" />
         <field id="fonts" type="assocarray" />
+        <!-- the sidecar base, for the chart image URL ("" = no chart) -->
+        <field id="hubBase" type="string" value="" onChange="paint" />
         <field id="bodyW" type="integer" value="246" />
         <field id="bodyH" type="integer" value="188" />
         <field id="quiet" type="boolean" value="false" onChange="paint" />
@@ -19,4 +21,5 @@
     <script type="text/brightscript" uri="pkg:/source/Config.brs" />
     <script type="text/brightscript" uri="pkg:/source/Glyphs.brs" />
     <script type="text/brightscript" uri="pkg:/source/Ui.brs" />
+    <script type="text/brightscript" uri="pkg:/source/Api.brs" />
 </component>

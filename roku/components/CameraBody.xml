@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  CameraBody — the camera card's live feed (0.12): the tile's camera (hkTileCam, the
+  front PTZ on the wall) as muted HLS, fitted 16:9 in the body under the card's rim.
+
+  It owns the channel's one H.264 decoder while `active`: MainScene sets that only on
+  home, and stops the hidden keep-awake clip first (live playback keeps the screensaver
+  away). Every other route clears `active` before it plays anything.
+
+  Errors back off on the live view's schedule (hkNextBackoffSeconds). After REST_AFTER
+  errors in a row the card says "Camera offline" and rests for REST_S, playing the
+  keep-awake clip invisibly on this same Video node (still one decoder, still no
+  screensaver), then tries the stream again. A stall watchdog restarts a feed that
+  hasn't played for STALL_S.
+  A ModuleTile body: drawn in the card under its header row, bodyW x bodyH px.
+-->
+<component name="CameraBody" extends="Group">
+    <interface>
+        <field id="descriptor" type="assocarray" onChange="sync" />
+        <field id="values" type="assocarray" />
+        <field id="fonts" type="assocarray" onChange="paintOffline" />
+        <field id="bodyW" type="integer" value="554" />
+        <field id="bodyH" type="integer" value="360" />
+        <field id="quiet" type="boolean" value="false" />
+        <field id="lit" type="boolean" value="false" />
+        <field id="alert" type="boolean" value="false" />
+        <field id="tone" type="string" value="0x5B8C7FFF" />
+        <!-- discovery's streams map ({ <cam>: { hls } }) -->
+        <field id="streams" type="assocarray" onChange="sync" />
+        <!-- in: this card may hold the decoder (home is showing) -->
+        <field id="active" type="boolean" value="false" onChange="sync" />
+    </interface>
+    <script type="text/brightscript" uri="CameraBody.brs" />
+    <script type="text/brightscript" uri="pkg:/source/Config.brs" />
+    <script type="text/brightscript" uri="pkg:/source/Glyphs.brs" />
+    <script type="text/brightscript" uri="pkg:/source/Ui.brs" />
+    <children>
+        <Video id="video" mute="true" enableUI="false" />
+        <Group id="offline" visible="false">
+            <Poster id="offlineGlyph" width="56" height="56" />
+            <Label id="offlineText" text="Camera offline" horizAlign="center" />
+        </Group>
+        <Timer id="backoff" repeat="false" />
+        <Timer id="rest" repeat="false" />
+        <Timer id="watchdog" repeat="true" duration="30" />
+    </children>
+</component>

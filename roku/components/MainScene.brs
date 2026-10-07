@@ -3,10 +3,12 @@
 '           (2x2) · module (drill-down, no longer reached from home) · diag (status). Owns discovery, the
 '           sidecar poll, ECP fan-out, overlays, toasts, and idle/auto-takeover.
 ' Live video is gated by LiveGroup.cam: home/module/diag leave it "" so the single
-' H.264 decoder is free — and a hidden keep-awake Video plays there instead to stop
-' the OS screensaver taking over (Roku exposes no API to disable it). The keep-awake
-' clip is stopped whenever the live/mosaic decoder runs, preserving the one-decoder
-' budget. The rotating BackgroundGallery covers burn-in.
+' H.264 decoder is free. On home the camera card's feed (HomeGroup.camActive) holds it
+' when there is one; otherwise, and on module/diag, a hidden keep-awake Video plays
+' instead to stop the OS screensaver taking over (Roku exposes no API to disable it;
+' any playback suppresses it). Whatever holds the decoder is stopped before anything
+' else plays, preserving the one-decoder budget (syncHomeDecoder). The rotating
+' BackgroundGallery covers burn-in.
 
 sub init()
     m.home           = m.top.findNode("home")
@@ -43,6 +45,7 @@ sub init()
     m.diagHealth.observeField("result", "onDiagHealth")
     m.diag.observeField("dismiss", "onDiagDismiss")
     m.keepAwake.observeField("state", "onKeepAwakeState")
+    m.home.observeField("hasCam", "onHomeHasCam")
     m.stateTimer.observeField("fire", "onStateTimer")
     m.idleTimer.observeField("fire", "onIdleTimer")
     m.returnHomeTimer.observeField("fire", "onReturnHomeTimer")
@@ -81,6 +84,7 @@ sub init()
     if cachedStreams <> invalid then
         m.live.streams = cachedStreams
         m.grid.streams = cachedStreams
+        m.home.streams = cachedStreams
     end if
     cachedCfg = readCachedConfig()
     if cachedCfg <> invalid then
@@ -92,6 +96,7 @@ sub init()
     if cachedBase <> "" then
         m.hubBase = cachedBase
         m.modules.hubBase = cachedBase
+        m.home.hubBase = cachedBase
         startHubPoll(true)
         runBgList()
     end if
@@ -127,6 +132,7 @@ sub onArgs()
         hkSetHubBase(args.hubBase)
         m.hubBase = args.hubBase
         m.modules.hubBase = args.hubBase
+        m.home.hubBase = args.hubBase
         startHubPoll(true)
     end if
 
@@ -153,6 +159,7 @@ sub onDiscoveryResult()
         hkEvent("discovery_ok", { streams: streamsKeys(r.streams), host: r.host, schemaVersion: r.schemaVersion })
         m.live.streams = r.streams
         m.grid.streams = r.streams
+        m.home.streams = r.streams
         writeCachedStreams(r.streams)
 
         ' Telemetry surfaced by the diagnostic screen.
@@ -164,6 +171,7 @@ sub onDiscoveryResult()
             m.hubBase = r.sidecar.base
             hkSetHubBase(r.sidecar.base)
             m.modules.hubBase = r.sidecar.base
+            m.home.hubBase = r.sidecar.base
             startHubPoll(true)
             runBgList()
         end if
@@ -323,10 +331,10 @@ sub goHome()
     m.moduleScreen.visible = false
     m.diag.visible = false
     setBackdrop(true)
-    startKeepAwake()
     m.home.visible = true
     m.home.setFocus(true)
     m.route = "home"
+    syncHomeDecoder()
     m.takeoverActive = false
     m.returnHomeTimer.control = "stop"
     resetIdle()
@@ -343,7 +351,8 @@ end sub
 sub goLive(cam as string, replaySeconds as integer)
     if cam = "" then cam = m.lastLiveCam
     if cam = "" then cam = HK_CAMS()[0]
-    stopKeepAwake()              ' free the decoder before the live player claims it
+    m.home.camActive = false     ' free the decoder before the live player claims it
+    stopKeepAwake()
     setBackdrop(false)
     m.home.visible = false
     m.moduleScreen.visible = false
@@ -372,6 +381,7 @@ sub goModule(md as object)
     m.grid.active = false
     m.grid.visible = false
     m.home.visible = false
+    m.home.camActive = false
     m.diag.visible = false
     setBackdrop(true)
     startKeepAwake()
@@ -406,7 +416,8 @@ sub enterGrid()
     hkEvent("route", { to: "grid" })
     m.grid.setFocus(true)
     stopLivePlayer()
-    stopKeepAwake()              ' single-decoder budget: free it before the mosaic plays
+    m.home.camActive = false     ' single-decoder budget: free it before the mosaic plays
+    stopKeepAwake()
     setBackdrop(false)
     m.live.visible = false
     m.home.visible = false
@@ -438,6 +449,7 @@ sub goDiag()
     m.diag.device = dev
     m.diag.discovery = disc
     m.home.visible = false
+    m.home.camActive = false
     m.moduleScreen.visible = false
     setBackdrop(true)
     startKeepAwake()
@@ -536,6 +548,24 @@ end function
 ' ---------------------------------------------------------------------------
 ' Keep-awake decoder (screensaver suppression on home/module/diag)
 ' ---------------------------------------------------------------------------
+
+' On home the camera card's feed holds the decoder when there is one (its playback
+' keeps the screensaver away, and while it rests it plays the keep-awake clip itself);
+' otherwise the keep-awake clip does. One stops before the other starts.
+sub syncHomeDecoder()
+    if m.home.hasCam then
+        stopKeepAwake()
+        m.home.camActive = true
+    else
+        m.home.camActive = false
+        startKeepAwake()
+    end if
+end sub
+
+' The config or discovery arrived (or went): re-pick home's decoder holder.
+sub onHomeHasCam()
+    if m.route = "home" then syncHomeDecoder()
+end sub
 sub startKeepAwake()
     if m.keepAwakeOn then return
     m.keepAwakeOn = true

@@ -31,12 +31,15 @@ sub paint()
         detail = hkStrOr(t.detail, "")
     end if
 
-    ' Fixed slots from the bottom, so neighbouring cards' lines stay level.
-    detailY = bh - 32
-    subY = detailY - 40
-    heroY = subY - 76
+    ' Fixed slots from the bottom, so neighbouring cards' lines stay level. A short body
+    ' (the 0.12 wall's 1x1 is 124 px) takes the tight slots, so the hero clears the title.
+    slots = { hero: 76, sub: 40, detail: 32 }
+    if bh < 148 then slots = { hero: 64, sub: 32, detail: 28 }
+    detailY = bh - slots.detail
+    subY = detailY - slots.sub
+    heroY = subY - slots.hero
     m.hero.translation = [0, heroY]
-    m.hero.height = 76
+    m.hero.height = slots.hero
     hkFitLabel(m.hero, hero, [f.hero, f.hero2, f.hero3], bw)
     m.hero.color = HK_INK()
     if m.top.alert then m.hero.color = HK_CORAL()
@@ -46,14 +49,14 @@ sub paint()
     m.sub.text = subText
     m.sub.translation = [0, subY]
     m.sub.width = bw
-    m.sub.height = 38
+    m.sub.height = slots.sub - 2
 
     m.detail.font = f.detail
     m.detail.color = HK_INK_MUTED()
     m.detail.text = detail
     m.detail.translation = [0, detailY]
     m.detail.width = bw
-    m.detail.height = 32
+    m.detail.height = slots.detail
 
     ' Level bar: on the card's bottom edge, down in its padding; faint ink at rest.
     level = -1

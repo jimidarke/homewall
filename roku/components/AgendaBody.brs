@@ -68,44 +68,61 @@ sub paint()
     end for
 end sub
 
-' Glyph (or a dot when this build doesn't ship it) in the row's accent, the title, then
-' "sub · time" muted.
+' One line (the 0.12 wall's 2x2 card): the glyph (or a dot when this build doesn't ship
+' it) in the row's accent, the title, then the sub muted in whatever room is left, and
+' the time on the right like a calendar event.
 sub paintActivity(r as object, it as object, f as object)
     bw = m.top.bodyW
+    rowH = HK_ROW_ACTIVITY()
     glyph = hkStrOr(it.glyph, "")
     accent = hkItemAccent(glyph)
     if HK_GLYPHS().doesExist(glyph) then
         r.mark.uri = hkGlyphUri(glyph, 32)
         r.mark.width = 32
         r.mark.height = 32
-        r.mark.translation = [0, 17]
+        r.mark.translation = [0, (rowH - 32) \ 2]
     else
         r.mark.uri = "pkg:/images/glass/dot.png"
         r.mark.width = 14
         r.mark.height = 14
-        r.mark.translation = [9, 26]
+        r.mark.translation = [9, (rowH - 14) \ 2]
     end if
     hkTint(r.mark, accent)
     r.mark.visible = true
 
+    r.time.font = f.detail
+    r.time.color = HK_INK_MUTED()
+    r.time.text = hkStrOr(it.time, "")
+    r.time.height = rowH
+    tw = 0
+    if r.time.text <> "" then tw = hkTextWidth(r.time)
+    r.time.translation = [bw - tw, 0]
+    r.time.visible = (tw > 0)
+    right = bw - tw
+    if tw > 0 then right = right - 12
+
     r.title.font = f.agendaTitle
     r.title.color = HK_INK()
     r.title.text = hkStrOr(it.title, "")
-    r.title.translation = [46, 2]
-    r.title.width = bw - 46
-    r.title.height = 32
+    r.title.translation = [46, 0]
+    r.title.height = rowH
+    r.title.vertAlign = "center"
+    titleW = hkTextWidth(r.title)
+    if titleW > right - 46 then titleW = right - 46
+    r.title.width = titleW
 
-    meta = []
-    if hkStrOr(it.sub, "").trim() <> "" then meta.push(it.sub)
-    if hkStrOr(it.time, "").trim() <> "" then meta.push(it.time)
-    r.meta.font = f.detail
-    r.meta.color = HK_INK_MUTED()
-    r.meta.text = meta.join(" · ")
-    r.meta.translation = [46, 34]
-    r.meta.width = bw - 46
-    r.meta.height = 28
-    r.meta.visible = true
-    r.time.visible = false
+    ' The sub only when a useful stretch of it fits; a clipped "· o…" reads as noise.
+    sub_ = hkStrOr(it.sub, "").trim()
+    metaX = 46 + titleW + 10
+    r.meta.visible = (sub_ <> "" and right - metaX >= 60)
+    if r.meta.visible then
+        r.meta.font = f.detail
+        r.meta.color = HK_INK_MUTED()
+        r.meta.text = "· " + sub_
+        r.meta.translation = [metaX, 0]
+        r.meta.width = right - metaX
+        r.meta.height = rowH
+    end if
 end sub
 
 sub paintDay(r as object, it as object, f as object)

@@ -16,6 +16,13 @@
         <field id="lastOk" type="integer" value="0" onChange="updateStatus" />
         <!-- a state fetch has finished, good or not (until then: "connecting") -->
         <field id="fetched" type="boolean" value="false" onChange="updateStatus" />
+        <!-- the sidecar base (the forecast chart image) and discovery's streams -->
+        <field id="hubBase" type="string" value="" onChange="onHubBase" />
+        <field id="streams" type="assocarray" onChange="onStreams" />
+        <!-- in: the camera card may hold the decoder (MainScene, while home shows) -->
+        <field id="camActive" type="boolean" value="false" onChange="onCamActive" />
+        <!-- out: there is a camera card with a playable stream -->
+        <field id="hasCam" type="boolean" value="false" />
         <!-- module id an HA focusModule= takeover points at -->
         <field id="attention" type="string" alwaysNotify="true" onChange="onAttention" />
     </interface>

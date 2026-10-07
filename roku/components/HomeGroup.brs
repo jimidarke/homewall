@@ -65,6 +65,9 @@ sub onConfig()
         tile.tileH = rect.h
         tile.translation = [rect.x, rect.y]
         tile.offline = m.offline
+        tile.hubBase = m.top.hubBase
+        if m.top.streams <> invalid then tile.streams = m.top.streams
+        tile.camActive = m.top.camActive
         tile.descriptor = md
         tile.addFields({ moduleId: hkStrOr(md.id, ""), feedKey: feedKeyOf(md) })
         m.tilesGroup.appendChild(tile)
@@ -73,7 +76,46 @@ sub onConfig()
     end for
 
     m.empty.visible = (m.tiles.count() = 0)
+    updateHasCam()
     onState()  ' paint any state we already have
+end sub
+
+' ---------------------------------------------------------------------------
+' Wall-wide inputs for the bodies: the sidecar base, discovery's streams, and the
+' decoder grant MainScene gives the camera card while home is showing
+' ---------------------------------------------------------------------------
+sub onHubBase()
+    for each t in m.tiles
+        t.hubBase = m.top.hubBase
+    end for
+end sub
+
+sub onStreams()
+    for each t in m.tiles
+        t.streams = m.top.streams
+    end for
+    updateHasCam()
+end sub
+
+sub onCamActive()
+    for each t in m.tiles
+        t.camActive = m.top.camActive
+    end for
+end sub
+
+' hasCam: a camera card whose camera discovery can play (MainScene then hands it the
+' decoder instead of the keep-awake clip).
+sub updateHasCam()
+    has = false
+    cfg = m.top.config
+    if cfg <> invalid and type(cfg.modules) = "roArray" then
+        for each md in cfg.modules
+            if md.tile <> invalid and hkStrOr(md.tile.type, "") = "camera" then
+                if hkStreamUrl(m.top.streams, hkTileCam(md.tile)) <> "" then has = true
+            end if
+        end for
+    end if
+    if has <> m.top.hasCam then m.top.hasCam = has
 end sub
 
 function feedKeyOf(md as object) as string

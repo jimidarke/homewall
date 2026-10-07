@@ -4,13 +4,13 @@
         "intervalMs": 60000
     },
     "grid": {
-        "cellH": 292,
-        "cellW": 286,
+        "cellH": 220,
+        "cellW": 289,
         "cols": 6,
-        "gap": 20,
+        "gap": 16,
         "originX": 52,
-        "originY": 124,
-        "rows": 3
+        "originY": 116,
+        "rows": 4
     },
     "modules": [
         {
@@ -39,7 +39,7 @@
                 "h": 1,
                 "row": 0,
                 "type": "value",
-                "w": 1
+                "w": 2
             },
             "title": "Doors"
         },
@@ -67,13 +67,150 @@
             ],
             "refreshMs": 5000,
             "tile": {
-                "col": 1,
+                "col": 0,
                 "h": 1,
-                "row": 0,
+                "row": 1,
                 "type": "value",
                 "w": 1
             },
             "title": "Laundry"
+        },
+        {
+            "drill": {
+                "type": "value"
+            },
+            "entities": {
+                "cost_today": "sensor.water_cost_today",
+                "daily": "sensor.water_daily_usage",
+                "flow": "sensor.water_flow_lpm",
+                "hourly": "sensor.water_hourly_usage",
+                "monthly": "sensor.water_monthly_usage",
+                "monthly_cost": "sensor.water_monthly_estimated_cost",
+                "stat_cost": "sensor.water_meter_total_cost",
+                "stat_usage": "sensor.water_meter_total",
+                "total": "sensor.water_meter_total"
+            },
+            "feedKey": "water",
+            "icon": "drop",
+            "id": "water",
+            "kind": "water",
+            "refreshMs": 30000,
+            "runningSeverity": "normal",
+            "tile": {
+                "col": 1,
+                "h": 1,
+                "row": 1,
+                "type": "value",
+                "w": 1
+            },
+            "tileStyle": "rate",
+            "title": "Water"
+        },
+        {
+            "drill": {
+                "type": "value"
+            },
+            "entities": {
+                "cost": "sensor.electricity_daily_cost",
+                "daily_energy": "sensor.emporia_total_daily_energy_kwh",
+                "monthly": "sensor.electricity_monthly_usage",
+                "monthly_cost": "sensor.electricity_monthly_estimated_cost",
+                "power": "sensor.emporia_total_power",
+                "stat_cost": "sensor.emporia_total_daily_energy_kwh_cost",
+                "stat_usage": "sensor.emporia_total_daily_energy_kwh"
+            },
+            "feedKey": "energy",
+            "icon": "bolt",
+            "id": "energy",
+            "kind": "energy",
+            "refreshMs": 30000,
+            "tile": {
+                "col": 0,
+                "h": 1,
+                "row": 2,
+                "type": "value",
+                "w": 1
+            },
+            "tileStyle": "rate",
+            "title": "Energy"
+        },
+        {
+            "drill": {
+                "type": "value"
+            },
+            "entities": {
+                "cost_today": "sensor.gas_cost_today",
+                "daily": "sensor.gas_daily_usage",
+                "flow": "sensor.gas_flow",
+                "monthly": "sensor.gas_monthly_usage",
+                "monthly_cost": "sensor.gas_monthly_cost",
+                "stat_cost": "sensor.gas_meter_gas_meter_direct_cost",
+                "stat_usage": "sensor.gas_meter_gas_meter_direct",
+                "total": "sensor.gas_meter_total"
+            },
+            "feedKey": "gas",
+            "icon": "gas",
+            "id": "gas",
+            "kind": "gas",
+            "maxFlowM3h": 2,
+            "refreshMs": 30000,
+            "tile": {
+                "col": 1,
+                "h": 1,
+                "row": 2,
+                "type": "value",
+                "w": 1
+            },
+            "tileStyle": "rate",
+            "title": "Gas"
+        },
+        {
+            "drill": {
+                "card": "/api/card/weather_forecast.png",
+                "type": "chart"
+            },
+            "entities": {
+                "forecast": "weather.edmonton_forecast",
+                "indoor": "weather.my_ecobee",
+                "precip": "sensor.edmonton_weather_chance_of_precipitation",
+                "wind_chill": "sensor.edmonton_weather_wind_chill"
+            },
+            "feedKey": "weather",
+            "icon": "wx",
+            "id": "weather",
+            "kind": "weather",
+            "refreshMs": 30000,
+            "tile": {
+                "col": 0,
+                "h": 1,
+                "row": 3,
+                "type": "value",
+                "w": 1
+            },
+            "title": "Weather"
+        },
+        {
+            "drill": {
+                "type": "value"
+            },
+            "entities": {
+                "indoor_temp": "sensor.my_ecobee_temperature",
+                "outdoor_temp": "sensor.edmonton_weather_temperature",
+                "thermostat": "climate.my_ecobee"
+            },
+            "feedKey": "climate",
+            "icon": "temp",
+            "id": "climate",
+            "kind": "climate",
+            "refreshMs": 30000,
+            "tile": {
+                "col": 1,
+                "h": 1,
+                "row": 3,
+                "type": "value",
+                "w": 1
+            },
+            "title": "Thermostat"
         },
         {
             "drill": {
@@ -96,7 +233,7 @@
                 "h": 2,
                 "row": 0,
                 "type": "agenda",
-                "w": 1
+                "w": 2
             },
             "title": "Calendar"
         },
@@ -144,151 +281,14 @@
             "lookbackHours": 12,
             "refreshMs": 30000,
             "tile": {
-                "col": 3,
+                "col": 2,
                 "dropHeaders": true,
-                "h": 3,
-                "row": 0,
+                "h": 2,
+                "row": 2,
                 "type": "agenda",
-                "w": 1
+                "w": 2
             },
             "title": "Activity"
-        },
-        {
-            "drill": {
-                "type": "value"
-            },
-            "entities": {
-                "cost_today": "sensor.water_cost_today",
-                "daily": "sensor.water_daily_usage",
-                "flow": "sensor.water_flow_lpm",
-                "hourly": "sensor.water_hourly_usage",
-                "monthly": "sensor.water_monthly_usage",
-                "monthly_cost": "sensor.water_monthly_estimated_cost",
-                "stat_cost": "sensor.water_meter_total_cost",
-                "stat_usage": "sensor.water_meter_total",
-                "total": "sensor.water_meter_total"
-            },
-            "feedKey": "water",
-            "icon": "drop",
-            "id": "water",
-            "kind": "water",
-            "refreshMs": 30000,
-            "runningSeverity": "normal",
-            "tile": {
-                "col": 0,
-                "h": 1,
-                "row": 1,
-                "type": "value",
-                "w": 1
-            },
-            "tileStyle": "rate",
-            "title": "Water"
-        },
-        {
-            "drill": {
-                "type": "value"
-            },
-            "entities": {
-                "cost": "sensor.electricity_daily_cost",
-                "daily_energy": "sensor.emporia_total_daily_energy_kwh",
-                "monthly": "sensor.electricity_monthly_usage",
-                "monthly_cost": "sensor.electricity_monthly_estimated_cost",
-                "power": "sensor.emporia_total_power",
-                "stat_cost": "sensor.emporia_total_daily_energy_kwh_cost",
-                "stat_usage": "sensor.emporia_total_daily_energy_kwh"
-            },
-            "feedKey": "energy",
-            "icon": "bolt",
-            "id": "energy",
-            "kind": "energy",
-            "refreshMs": 30000,
-            "tile": {
-                "col": 1,
-                "h": 1,
-                "row": 1,
-                "type": "value",
-                "w": 1
-            },
-            "tileStyle": "rate",
-            "title": "Energy"
-        },
-        {
-            "drill": {
-                "card": "/api/card/weather_forecast.png",
-                "type": "chart"
-            },
-            "entities": {
-                "forecast": "weather.edmonton_forecast",
-                "indoor": "weather.my_ecobee",
-                "precip": "sensor.edmonton_weather_chance_of_precipitation",
-                "wind_chill": "sensor.edmonton_weather_wind_chill"
-            },
-            "feedKey": "weather",
-            "icon": "wx",
-            "id": "weather",
-            "kind": "weather",
-            "refreshMs": 30000,
-            "tile": {
-                "col": 0,
-                "h": 1,
-                "row": 2,
-                "type": "value",
-                "w": 1
-            },
-            "title": "Weather"
-        },
-        {
-            "drill": {
-                "type": "value"
-            },
-            "entities": {
-                "cost_today": "sensor.gas_cost_today",
-                "daily": "sensor.gas_daily_usage",
-                "flow": "sensor.gas_flow",
-                "monthly": "sensor.gas_monthly_usage",
-                "monthly_cost": "sensor.gas_monthly_cost",
-                "stat_cost": "sensor.gas_meter_gas_meter_direct_cost",
-                "stat_usage": "sensor.gas_meter_gas_meter_direct",
-                "total": "sensor.gas_meter_total"
-            },
-            "feedKey": "gas",
-            "icon": "gas",
-            "id": "gas",
-            "kind": "gas",
-            "maxFlowM3h": 2,
-            "refreshMs": 30000,
-            "tile": {
-                "col": 1,
-                "h": 1,
-                "row": 2,
-                "type": "value",
-                "w": 1
-            },
-            "tileStyle": "rate",
-            "title": "Gas"
-        },
-        {
-            "drill": {
-                "type": "value"
-            },
-            "entities": {
-                "indoor_temp": "sensor.my_ecobee_temperature",
-                "outdoor_temp": "sensor.edmonton_weather_temperature",
-                "thermostat": "climate.my_ecobee"
-            },
-            "feedKey": "climate",
-            "icon": "temp",
-            "id": "climate",
-            "kind": "climate",
-            "refreshMs": 30000,
-            "tile": {
-                "col": 2,
-                "h": 1,
-                "row": 2,
-                "type": "value",
-                "w": 1
-            },
-            "title": "Thermostat"
         },
         {
             "drill": {
@@ -314,13 +314,14 @@
                 "mosaic"
             ],
             "tile": {
+                "cam": "front",
                 "col": 4,
                 "h": 2,
                 "row": 0,
                 "type": "camera",
                 "w": 2
             },
-            "title": "Cameras"
+            "title": "Front"
         },
         {
             "drill": {
@@ -340,8 +341,9 @@
             "outlook": true,
             "refreshMs": 30000,
             "tile": {
+                "card": "/api/card/weather_chart.png",
                 "col": 4,
-                "h": 1,
+                "h": 2,
                 "row": 2,
                 "type": "forecast",
                 "w": 2

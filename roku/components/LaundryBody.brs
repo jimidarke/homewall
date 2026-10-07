@@ -4,6 +4,11 @@ function LINE_H() as integer : return 36 : end function
 function BAR_Y() as integer : return 46 : end function      ' line + 10
 function BAR_H() as integer : return 14 : end function
 function MACHINE_H() as integer : return 60 : end function
+' Compact machine for a short card (the 0.12 wall's 1x1 body is 124 px): the bar sits
+' 6 px under the line and thins to 10 px, so two stacked machines fit in 120 px.
+function BAR_Y_COMPACT() as integer : return 42 : end function
+function BAR_H_COMPACT() as integer : return 10 : end function
+function MACHINE_H_COMPACT() as integer : return 52 : end function
 function MACHINE_GAP() as integer : return 16 : end function
 function SEG_GAP() as integer : return 8 : end function
 function LABEL_MAX() as integer : return 132 : end function
@@ -43,8 +48,16 @@ sub paint()
     if bw >= SIDE_BY_SIDE() then perRow = 2
     colW = bw
     if perRow = 2 then colW = (bw - 20) \ 2
-    fitRows = (m.top.bodyH + MACHINE_GAP()) \ (MACHINE_H() + MACHINE_GAP())
     n = v.machines.count()
+    machineH = MACHINE_H()
+    m.barY = BAR_Y()
+    m.barH = BAR_H()
+    if machineRows(m.top.bodyH, MACHINE_H()) * perRow < n then
+        machineH = MACHINE_H_COMPACT()
+        m.barY = BAR_Y_COMPACT()
+        m.barH = BAR_H_COMPACT()
+    end if
+    fitRows = machineRows(m.top.bodyH, machineH)
     if n > fitRows * perRow then n = fitRows * perRow
     while m.slots.count() < n
         makeSlot(m.slots.count())
@@ -53,7 +66,7 @@ sub paint()
         s = m.slots[i]
         if i < n then
             s.group.visible = true
-            s.group.translation = [(i mod perRow) * (colW + 20), (i \ perRow) * (MACHINE_H() + MACHINE_GAP())]
+            s.group.translation = [(i mod perRow) * (colW + 20), (i \ perRow) * (machineH + MACHINE_GAP())]
             paintMachine(s, v.machines[i], f, colW)
         else
             s.group.visible = false
@@ -61,6 +74,11 @@ sub paint()
         end if
     end for
 end sub
+
+' Whole machines of height h that fit a body bh px tall.
+function machineRows(bh as integer, h as integer) as integer
+    return (bh + MACHINE_GAP()) \ (h + MACHINE_GAP())
+end function
 
 sub paintMachine(s as object, mc as object, f as object, colW as integer)
     glyph = hkGlyphFor(mc.glyph, "laundry")
@@ -97,8 +115,9 @@ sub paintMachine(s as object, mc as object, f as object, colW as integer)
 
     segW = (colW - 3 * SEG_GAP()) \ 4
     for k = 0 to 3
-        s.segs[k].translation = [k * (segW + SEG_GAP()), BAR_Y()]
+        s.segs[k].translation = [k * (segW + SEG_GAP()), m.barY]
         s.segs[k].width = segW
+        s.segs[k].height = m.barH
     end for
 
     mode = hkStrOr(mc.mode, "")

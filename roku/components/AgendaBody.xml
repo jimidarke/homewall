@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <!--
-  AgendaBody — a list that never scrolls (tablet AgendaCard): as many whole rows as fit. Activity (tile.dropHeaders) rows carry a glyph or dot mark, the title, and "sub · time"; the calendar shows sage day headers and one-line events with a coloured dot.
+  AgendaBody — a list that never scrolls (tablet AgendaCard): as many whole rows as fit. Activity (tile.dropHeaders) rows are one line: a glyph or dot mark, the title, "· sub" muted where it fits, and the time on the right; the calendar shows sage day headers and one-line events with a coloured dot.
   A ModuleTile body: drawn in the card under its header row, bodyW x bodyH px.
 -->
 <component name="AgendaBody" extends="Group">

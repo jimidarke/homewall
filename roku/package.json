@@ -1,6 +1,6 @@
 {
   "name": "haku-roku",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "private": true,
   "description": "HAku — sideloaded Roku channel for the homeController estate. LIVE + GRID modes over the nserver mosaic stream.",
   "scripts": {

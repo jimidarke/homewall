@@ -1,7 +1,6 @@
 ' DoorsBody — see DoorsBody.xml.
 
-function DOOR_ROW() as integer : return 64 : end function
-function DOOR_GAP() as integer : return 8 : end function
+function COL_GAP() as integer : return 20 : end function
 
 sub init()
     m.rows = []
@@ -25,20 +24,26 @@ sub paint()
     f = m.top.fonts
     v = m.top.values
     if f = invalid or v = invalid or type(v.doors) <> "roArray" then return
-    bw = m.top.bodyW
-    fit = (m.top.bodyH + DOOR_GAP()) \ (DOOR_ROW() + DOOR_GAP())
-    shown = hkDoorsShown(v.doors, fit)
+    lay = hkDoorLayout(m.top.bodyW, m.top.bodyH)
+    colW = m.top.bodyW
+    if lay.cols = 2 then colW = (m.top.bodyW - COL_GAP()) \ 2
+    shown = hkDoorsShown(v.doors, lay.cols * lay.rows)
     while m.rows.count() < shown.count()
         makeRow()
     end while
     for i = 0 to m.rows.count() - 1
         r = m.rows[i]
         r.group.visible = (i < shown.count())
-        if i < shown.count() then paintRow(r, shown[i], f, bw, i * (DOOR_ROW() + DOOR_GAP()))
+        if i < shown.count() then
+            ' Across, then down: in a 2-wide card the first two doors sit side by side.
+            x = (i mod lay.cols) * (colW + COL_GAP())
+            y = (i \ lay.cols) * (HK_DOOR_ROW() + HK_DOOR_GAP())
+            paintRow(r, shown[i], f, colW, x, y)
+        end if
     end for
 end sub
 
-sub paintRow(r as object, door as object, f as object, bw as integer, y as integer)
+sub paintRow(r as object, door as object, f as object, bw as integer, x as integer, y as integer)
     st = hkStrOr(door.state, "")
     if st = "open" then
         word = "Open"
@@ -51,7 +56,7 @@ sub paintRow(r as object, door as object, f as object, bw as integer, y as integ
         word = "Unknown"
         color = HK_OFFLINE()
     end if
-    r.group.translation = [0, y]
+    r.group.translation = [x, y]
 
     r.glyph.uri = hkGlyphUri(hkGlyphFor(door.glyph, "doors"), 40)
     r.glyph.translation = [0, 12]

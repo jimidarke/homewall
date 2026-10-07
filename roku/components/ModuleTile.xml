@@ -5,8 +5,8 @@
 
   Layers, back to front: the night-tinted rounded fill (9-patch), the lit glow, the
   content (title, glyph chip, and a body component picked by hkCardKind: ValueBody,
-  DoorsBody, LaundryBody, AgendaBody or ForecastBody; a camera card is the shell
-  alone, a placeholder for the video feed), the lit rim, and the resting edge with
+  DoorsBody, LaundryBody, AgendaBody or ForecastBody; or CameraBody, the live feed
+  under the rim), the lit rim, and the resting edge with
   its top highlight. Lit (active or alert) colours the chip, glyph, rim and glow in
   the glyph's accent, or coral on alert; stale or offline cards stay quiet.
 -->
@@ -21,6 +21,11 @@
         <field id="offline" type="boolean" value="false" onChange="applyState" />
         <!-- in: an HA focusModule= takeover asked to point at this card -->
         <field id="attention" type="boolean" value="false" alwaysNotify="true" onChange="onAttention" />
+        <!-- in, passed to the body: the sidecar base, discovery's streams, and whether a
+             camera body may hold the decoder -->
+        <field id="hubBase" type="string" value="" onChange="passDown" />
+        <field id="streams" type="assocarray" onChange="passDown" />
+        <field id="camActive" type="boolean" value="false" onChange="passDown" />
         <!-- out: this card shows no current reading (the header's "degraded") -->
         <field id="stale" type="boolean" value="true" />
     </interface>

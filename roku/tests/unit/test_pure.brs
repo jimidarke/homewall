@@ -38,6 +38,10 @@ sub Main()
     test_hkDayLabel()
     test_hkWithLayout()
     test_hkSlimConfig()
+    test_hkStreamUrl()
+    test_hkTileCam()
+    test_hkVideoFit()
+    test_hkDoorLayout()
     test_hkBgNextIndex()
     test_hkBgRotateMs()
     test_hkAgeLabel()
@@ -266,17 +270,17 @@ sub assertFrame(label as string, got as object, want as object)
 end sub
 
 sub test_hkTileRect_roku()
-    print "== hkTileRect (layouts.roku) =="
-    grid = { cols: 6, rows: 3, cellW: 286, cellH: 292, originX: 52, originY: 124, gap: 20 }
-    assertEq("col5 x", hkTileRect(5, 0, 1, 1, grid).x, 1582)
-    assertEq("row2 y", hkTileRect(0, 2, 1, 1, grid).y, 748)
+    print "== hkTileRect (layouts.roku 6x4) =="
+    grid = { cols: 6, rows: 4, cellW: 289, cellH: 220, originX: 52, originY: 116, gap: 16 }
+    assertEq("col5 x", hkTileRect(5, 0, 1, 1, grid).x, 1577)
+    assertEq("row3 y", hkTileRect(0, 3, 1, 1, grid).y, 824)
     cam = hkTileRect(4, 0, 2, 2, grid)
-    assertEq("2x2 w", cam.w, 592)
-    assertEq("2x2 h", cam.h, 604)
-    assertEq("1x3 h", hkTileRect(3, 0, 1, 3, grid).h, 916)
-    last = hkTileRect(4, 2, 2, 1, grid)
-    assertEq("right edge", last.x + last.w, 1868)
-    assertEq("bottom edge", last.y + last.h, 1040)
+    assertEq("2x2 w", cam.w, 594)
+    assertEq("2x2 h", cam.h, 456)
+    assertEq("2x1 h", hkTileRect(0, 0, 2, 1, grid).h, 220)
+    last = hkTileRect(4, 2, 2, 2, grid)
+    assertEq("right edge", last.x + last.w, 1866)
+    assertEq("bottom edge", last.y + last.h, 1044)
 end sub
 
 sub test_hkFreshness()
@@ -512,4 +516,47 @@ sub test_hkSlimConfig()
     assertEq("drops refreshMs", md.refreshMs, invalid)
     assertEq("keeps grid", slim.grid.cols, 6)
     assertEq("source untouched", cfg.modules[0].entities.flow, "x")
+end sub
+
+sub test_hkStreamUrl()
+    print "== hkStreamUrl =="
+    streams = { front: { hls: "http://h/front.m3u8" }, mosaic: { hls: "http://h/mosaic.m3u8" }, side: {} }
+    assertEq("own stream", hkStreamUrl(streams, "front"), "http://h/front.m3u8")
+    assertEq("missing -> mosaic", hkStreamUrl(streams, "yard"), "http://h/mosaic.m3u8")
+    assertEq("no hls -> mosaic", hkStreamUrl(streams, "side"), "http://h/mosaic.m3u8")
+    assertEq("no mosaic", hkStreamUrl({ front: {} }, "front"), "")
+    assertEq("no streams", hkStreamUrl(invalid, "front"), "")
+end sub
+
+sub test_hkVideoFit()
+    print "== hkVideoFit =="
+    sq = hkVideoFit(554, 360)
+    assertEq("2x2 body w", sq.w, 554)
+    assertEq("2x2 body h", sq.h, 311)
+    assertEq("2x2 body x", sq.x, 0)
+    assertEq("2x2 body y", sq.y, 24)
+    wide = hkVideoFit(400, 90)
+    assertEq("letterbox h", wide.h, 90)
+    assertEq("pillarbox w", wide.w, 160)
+    assertEq("pillarbox x", wide.x, 120)
+end sub
+
+sub test_hkDoorLayout()
+    print "== hkDoorLayout =="
+    two = hkDoorLayout(554, 124)
+    assertEq("2x1 cols", two.cols, 2)
+    assertEq("2x1 rows", two.rows, 1)
+    old = hkDoorLayout(246, 188)
+    assertEq("0.11 1x1 cols", old.cols, 1)
+    assertEq("0.11 1x1 rows", old.rows, 2)
+    assertEq("short 1x1 rows", hkDoorLayout(249, 124).rows, 1)
+    assertEq("no room", hkDoorLayout(249, 40).rows, 0)
+end sub
+
+sub test_hkTileCam()
+    print "== hkTileCam =="
+    assertEq("cam", hkTileCam({ type: "camera", cam: "front" }), "front")
+    assertEq("thumbCam", hkTileCam({ type: "camera", thumbCam: "yard" }), "yard")
+    assertEq("neither", hkTileCam({ type: "camera" }), "mosaic")
+    assertEq("no tile", hkTileCam(invalid), "mosaic")
 end sub

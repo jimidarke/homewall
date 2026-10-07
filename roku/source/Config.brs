@@ -51,8 +51,9 @@ function HK_OFFLINE_OPACITY()    as float : return 0.45 : end function
 ' The display layout this channel asks the sidecar for (`?layout=`).
 function HK_LAYOUT() as string : return "roku" : end function
 
-' Agenda row heights (px): the tablet's 48 / 22 / 26 dp at the Roku's type scale.
-function HK_ROW_ACTIVITY() as integer : return 66 : end function
+' Agenda row heights (px): the tablet's 22 / 26 dp at the Roku's type scale. Activity
+' rows are one line on the 0.12 wall (2x2 card): glyph, title, sub, time.
+function HK_ROW_ACTIVITY() as integer : return 40 : end function
 function HK_ROW_DAY()      as integer : return 32 : end function
 function HK_ROW_EVENT()    as integer : return 38 : end function
 
@@ -212,6 +213,24 @@ function hkNextBackoffSeconds(attempt as integer) as integer
     return 30
 end function
 
+' The HLS URL discovery gives `cam`, else the mosaic's (a partial payload), else "".
+function hkStreamUrl(streams as dynamic, cam as string) as string
+    if streams = invalid or type(streams) <> "roAssociativeArray" then return ""
+    s = streams[cam]
+    if s <> invalid and s.hls <> invalid then return s.hls
+    if streams.mosaic <> invalid and streams.mosaic.hls <> invalid then return streams.mosaic.hls
+    return ""
+end function
+
+' The camera a camera tile shows: tile.cam (0.12), else the 0.10 thumbnail's thumbCam,
+' else the mosaic.
+function hkTileCam(tile as dynamic) as string
+    if tile = invalid or type(tile) <> "roAssociativeArray" then return "mosaic"
+    if tile.cam <> invalid and tile.cam <> "" then return tile.cam.toStr()
+    if tile.thumbCam <> invalid and tile.thumbCam <> "" then return tile.thumbCam.toStr()
+    return "mosaic"
+end function
+
 ' Index of `cam` in roster; returns 0 if not found (safe default for carousel).
 function hkCamIndex(cam as string, roster as object) as integer
     for i = 0 to roster.count() - 1
@@ -254,6 +273,17 @@ function hkTileRect(col as integer, row as integer, wspan as integer, hspan as i
         w: wspan * cellW + (wspan - 1) * gap
         h: hspan * cellH + (hspan - 1) * gap
     }
+end function
+
+' The largest 16:9 frame inside a bw x bh body, centred: { x, y, w, h }.
+function hkVideoFit(bw as integer, bh as integer) as object
+    w = bw
+    h = Int(bw * 9 / 16)
+    if h > bh then
+        h = bh
+        w = Int(bh * 16 / 9)
+    end if
+    return { x: (bw - w) \ 2, y: (bh - h) \ 2, w: w, h: h }
 end function
 
 ' Small assoc-array numeric accessor with a default (grids arrive from JSON).
@@ -471,6 +501,20 @@ end function
 function hkAgendaStale(values as dynamic) as boolean
     if values = invalid or type(values) <> "roAssociativeArray" then return false
     return (values.stale = true)
+end function
+
+' Door rows (px): a 64 px row (label and state over the age) and an 8 px gap.
+function HK_DOOR_ROW() as integer : return 64 : end function
+function HK_DOOR_GAP() as integer : return 8 : end function
+
+' How a doors body lays its rows out: two columns side by side once it is a 2-wide
+' card (as LaundryBody does), and as many rows as fit the height.
+function hkDoorLayout(bw as integer, bh as integer) as object
+    cols = 1
+    if bw >= 540 then cols = 2
+    rows = (bh + HK_DOOR_GAP()) \ (HK_DOOR_ROW() + HK_DOOR_GAP())
+    if rows < 0 then rows = 0
+    return { cols: cols, rows: rows }
 end function
 
 ' The doors a card with room for `fit` rows shows: open and unknown before closed (stable,

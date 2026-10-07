@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <!--
-  LaundryBody — one block per machine (tablet LaundryCard): glyph in the machine's colour, label and status, and under them the 4-segment LED bar (hkLedFrame). Machines stack on a 1-wide card and sit side by side from 540 px wide. Animated bars step on a Timer, and only while the card isn't quiet.
+  LaundryBody — one block per machine (tablet LaundryCard): glyph in the machine's colour, label and status, and under them the 4-segment LED bar (hkLedFrame). Machines stack on a 1-wide card (compact, with a thinner bar, when two full-size ones don't fit the height) and sit side by side from 540 px wide. Animated bars step on a Timer, and only while the card isn't quiet.
   A ModuleTile body: drawn in the card under its header row, bodyW x bodyH px.
 -->
 <component name="LaundryBody" extends="Group">

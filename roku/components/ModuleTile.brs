@@ -3,8 +3,8 @@
 ' Card geometry (px): the tablet's 14 dp padding and 48 dp header row at TV scale.
 function TILE_PAD() as integer : return 20 : end function
 function TILE_HEADER() as integer : return 60 : end function     ' title row = the chip's height
-function TILE_BODY_Y() as integer : return 88 : end function     ' body top, under the header row
-function TILE_PAD_BOTTOM() as integer : return 16 : end function
+function TILE_BODY_Y() as integer : return 84 : end function     ' body top, under the header row
+function TILE_PAD_BOTTOM() as integer : return 12 : end function
 
 sub init()
     m.fill = m.top.findNode("fill")
@@ -73,7 +73,7 @@ sub onValues()
     if kind = "agenda" then
         m.isStale = hkAgendaStale(v)
     else if kind = "camera" then
-        m.isStale = false       ' the placeholder has no reading to lose
+        m.isStale = false       ' the feed shows its own offline state
     else
         m.isStale = hkTileStale(v)
     end if
@@ -86,7 +86,7 @@ sub buildBody(kind as string)
     if m.bodyNode <> invalid then m.body.removeChild(m.bodyNode)
     m.bodyNode = invalid
     m.kind = kind
-    comps = { value: "ValueBody", doors: "DoorsBody", laundry: "LaundryBody", agenda: "AgendaBody", forecast: "ForecastBody" }
+    comps = { value: "ValueBody", doors: "DoorsBody", laundry: "LaundryBody", agenda: "AgendaBody", forecast: "ForecastBody", camera: "CameraBody" }
     if not comps.doesExist(kind) then return
     b = CreateObject("roSGNode", comps[kind])
     b.fonts = m.top.fonts
@@ -95,6 +95,17 @@ sub buildBody(kind as string)
     b.bodyH = m.top.tileH - TILE_BODY_Y() - TILE_PAD_BOTTOM()
     m.body.appendChild(b)
     m.bodyNode = b
+    passDown()
+end sub
+
+' The wall-wide inputs a body may take: the sidecar base (the forecast chart), and
+' discovery's streams and the decoder grant (the camera feed).
+sub passDown()
+    b = m.bodyNode
+    if b = invalid then return
+    if b.hasField("hubBase") then b.hubBase = m.top.hubBase
+    if b.hasField("streams") and m.top.streams <> invalid then b.streams = m.top.streams
+    if b.hasField("active") then b.active = m.top.camActive
 end sub
 
 ' Colour the card for its current state (tablet GlassCard + CardTone).
