@@ -18,7 +18,16 @@ gives the Roku channel everything that isn't a camera stream:
   Pillow). Roku has no chart primitives and no webview, so charts are drawn here and
   shown as Posters. Cards render as dark, translucent "glass" panels with light text on
   a **transparent** PNG so they composite over the rotating photo background. `v=` is a
-  Roku-side cache-buster; the render cache ignores it.
+  Roku-side cache-buster; the render cache ignores it. Cards (each owned by the first
+  module of its kind in the requested layout, rendered in the configured timezone):
+  - `weather_forecast`: the default view's weather drill, a 6-day high/low band on a
+    glass panel.
+  - `weather_chart`: the wall Rokus' Forecast card (`?layout=roku&w=554&h=208`), the
+    weather detail panel's 48 h outdoor temperature chart (24 h observed in ink, 24 h
+    forecast in cool blue, joined at "Now") in Barlow on a fully transparent background,
+    since the channel draws the glass itself. It makes the same HA reads as
+    `/api/detail/weather`, so the two share HA's statistics and forecast caches, and it
+    re-renders only when the chart's data changes.
 - **`GET /api/icon/<module_id>.png?w=&h=&v=`** — a small (default 96×96) home-tile accent
   icon (Pillow only — no matplotlib): a Font Awesome glyph for weather's condition, and
   hand-drawn gauge shapes for energy's/water's live fill level. 404s for a module with no
@@ -158,8 +167,8 @@ blocks in `dashboard.json.example`.
   here replaces the whole object.
 - **Qualified `ref`s.** `{"ref": "<layout>:<id>", …}` is the entry with that id in
   another layout, resolved first, again with this entry's keys laid over it. The Roku
-  layout is built this way from `tablet:` refs, so moving a tablet tile moves the Roku's
-  too. Only one hop: the other layout's own entries can't be qualified refs.
+  layout is built this way from `tablet:` refs. Only one hop: the other layout's own
+  entries can't be qualified refs.
 - **Layout-only modules.** An entry without `ref` is a module that only this layout shows.
 - **What `?layout=` returns.** The response carries `version`, `site` and `timezone`
   from the top level, plus:
@@ -184,15 +193,31 @@ blocks in `dashboard.json.example`.
 
 ### The Roku layout (`layouts.roku`)
 
-The wall Rokus show a read-only 6×3 grid at 1920×1080: the tablet's 4×3 tiles in the left
-four columns (bare `tablet:` refs), a 2×2 `cameras` square on the right, and a 2×1
-`forecast` strip under it. The grid carries the Roku's pixel geometry (`cellW`, `cellH`,
-`originX`, `originY`, `gap`). The forecast tile is a second weather entry
-(`"ref": "tablet:weather", "id": "forecast", "feedKey": "forecast"`) with
-`"outlook": true`, which adds `outlook` to its values: the next 3 days after today, as
-`[{"label": "Fri", "glyph", "cond"?, "hi"?, "lo"?, "sub"?}]` (the weather detail panel's
-compact forecast, from the daily forecast the tile already reads). Without `outlook` the
-weather values are unchanged. Its `tile.type` is `forecast`.
+The wall Rokus (0.12+) show a read-only 6×4 grid at 1920×1080. The grid carries the
+Roku's pixel geometry (`cellW` 289, `cellH` 220, `originX` 52, `originY` 116, `gap` 16).
+
+```
+      c0         c1       c2   c3        c4   c5
+r0   [ Doors (2×1)  ]    [ Calendar ]   [ Front    ]
+r1   Laundry    Water    [          ]   [ (live)   ]
+r2   Energy     Gas      [ Activity ]   [ Forecast ]
+r3   Weather    Thermo   [          ]   [ 3-day +  ]
+                                        [ 48 h     ]
+```
+
+- **The tablet's modules come through `tablet:` refs, each with its own `tile`.** The
+  merge is shallow, so the Roku's tiles don't follow tablet moves; everything else
+  (kind, feedKey, entities) is the tablet's.
+- **Camera:** `{"ref": "cameras", "title": "Front", "tile": {"type": "camera", …, "cam": "front"}}`,
+  the live front camera in the 2×2 square.
+- **Forecast:** a second weather entry (`"ref": "tablet:weather", "id": "forecast",
+  "feedKey": "forecast"`) with `"outlook": true`, which adds `outlook` to its values: the
+  next 3 days after today, as `[{"label": "Fri", "glyph", "cond"?, "hi"?, "lo"?, "sub"?}]`
+  (the weather detail panel's compact forecast, from the daily forecast the tile already
+  reads). Without `outlook` the weather values are unchanged. Its `tile.type` is
+  `forecast`, and `tile.card` (`/api/card/weather_chart.png`) is the chart the 2×2 card
+  shows under the 3-day strip. It lives in `tile` because the channel's slimmed registry
+  cache keeps `tile` but drops `drill`.
 
 ### Doors and laundry (tablet layout)
 

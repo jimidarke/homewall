@@ -240,22 +240,22 @@
       ]
     },
     "roku": {
-      "grid": { "cols": 6, "rows": 3, "cellW": 286, "cellH": 292, "originX": 52, "originY": 124, "gap": 20 },
+      "grid": { "cols": 6, "rows": 4, "cellW": 289, "cellH": 220, "originX": 52, "originY": 116, "gap": 16 },
       "background": { "enabled": true, "intervalMs": 60000 },
       "modules": [
-        { "ref": "tablet:doors" },
-        { "ref": "tablet:laundry" },
-        { "ref": "tablet:calendar" },
-        { "ref": "tablet:timeline" },
-        { "ref": "tablet:water" },
-        { "ref": "tablet:energy" },
-        { "ref": "tablet:weather" },
-        { "ref": "tablet:gas" },
-        { "ref": "tablet:climate" },
-        { "ref": "cameras", "tile": { "type": "camera", "col": 4, "row": 0, "w": 2, "h": 2 } },
+        { "ref": "tablet:doors", "tile": { "type": "value", "col": 0, "row": 0, "w": 2, "h": 1 } },
+        { "ref": "tablet:laundry", "tile": { "type": "value", "col": 0, "row": 1, "w": 1, "h": 1 } },
+        { "ref": "tablet:water", "tile": { "type": "value", "col": 1, "row": 1, "w": 1, "h": 1 } },
+        { "ref": "tablet:energy", "tile": { "type": "value", "col": 0, "row": 2, "w": 1, "h": 1 } },
+        { "ref": "tablet:gas", "tile": { "type": "value", "col": 1, "row": 2, "w": 1, "h": 1 } },
+        { "ref": "tablet:weather", "tile": { "type": "value", "col": 0, "row": 3, "w": 1, "h": 1 } },
+        { "ref": "tablet:climate", "tile": { "type": "value", "col": 1, "row": 3, "w": 1, "h": 1 } },
+        { "ref": "tablet:calendar", "tile": { "type": "agenda", "col": 2, "row": 0, "w": 2, "h": 2, "dropHeaders": false } },
+        { "ref": "tablet:timeline", "tile": { "type": "agenda", "col": 2, "row": 2, "w": 2, "h": 2, "dropHeaders": true } },
+        { "ref": "cameras", "title": "Front", "tile": { "type": "camera", "col": 4, "row": 0, "w": 2, "h": 2, "cam": "front" } },
         {
           "ref": "tablet:weather", "id": "forecast", "feedKey": "forecast", "title": "Forecast", "outlook": true,
-          "tile": { "type": "forecast", "col": 4, "row": 2, "w": 2, "h": 1 }
+          "tile": { "type": "forecast", "col": 4, "row": 2, "w": 2, "h": 2, "card": "/api/card/weather_chart.png" }
         }
       ]
     }

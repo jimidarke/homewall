@@ -86,12 +86,16 @@ def compose_state(ha, config):
 
 
 def render_card(ha, name, config, w, h):
-    """Render the PNG card `name` by finding the config module that owns it."""
+    """Render the PNG card `name` by finding the config module that owns it.
+
+    The card gets the configured timezone like values and detail do: nserver runs on
+    UTC, and a chart's hour labels must read the house's clock.
+    """
     for m in config.get("modules", []):
         mod = MODULES.get(m.get("kind"))
         cards = getattr(mod, "CARDS", {}) if mod else {}
         if name in cards:
-            return cards[name](ha, m, w, h)
+            return cards[name](ha, _with_timezone(m), w, h)
     return None
 
 

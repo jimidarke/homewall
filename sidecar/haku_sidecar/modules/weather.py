@@ -1,9 +1,11 @@
 """Weather module: current conditions + today's high/low + a forecast card.
 
-Values feed the native SceneGraph value tile; the forecast card is a server-rendered
-PNG (charts.render_weather_forecast). Entities are read from the descriptor so the
-module is portable — `entities.forecast` (a weather.* entity) and optional
-`entities.indoor` (a second weather/climate entity for the inside temperature).
+Values feed the native SceneGraph value tile; the cards are server-rendered PNGs:
+`weather_forecast` (charts.render_weather_forecast, the default view's drill) and
+`weather_chart` (charts.render_temp_chart, the Roku wall's Forecast card: the detail
+panel's temperature chart below, off the same HA reads). Entities are read from the
+descriptor so the module is portable — `entities.forecast` (a weather.* entity) and
+optional `entities.indoor` (a second weather/climate entity for the inside temperature).
 
 `detail()` serves the tablet's detail panel (GET /api/detail/weather) as two columns:
   left   `now` (glyph, temperature, condition, today's high/low, "Updated 2:05 PM"),
@@ -150,25 +152,12 @@ def detail(ha, descriptor, now):
     """The detail panel's blocks (tablet contract §1 + the weather panel spec)."""
     ents = descriptor.get("entities", {}) or {}
     tz = cfg.resolve_zone(descriptor.get("timezone"))
-    fc_entity = ents.get("forecast", _FC_ENTITY)
-    outdoor = ents.get("outdoor_temp", _OUTDOOR)
-    st = ha.get_state(fc_entity)
+    src = _chart_inputs(ha, descriptor, now, daily=True)
+    st, outdoor, temp = src["state"], src["outdoor"], src["temp"]
+    daily, hourly, stats = src["daily"], src["hourly"], src["stats"]
     dead = st is None or st.get("state") in (None, "unavailable", "unknown")
     a = (st or {}).get("attributes", {}) or {}
     condition = None if dead else st.get("state")
-
-    # The three slow reads run side by side. A dead entity gets no forecast calls.
-    now_hour = hist.floor_hour(now)
-    daily = None if dead else _POOL.submit(_isolated, ha.get_forecast, fc_entity, "daily")
-    hourly = None if dead else _POOL.submit(_isolated, ha.get_forecast, fc_entity, "hourly")
-    stats = _POOL.submit(_isolated, ha.get_statistics, [outdoor], now_hour - _BACK * hist.HOUR,
-                         now_hour, "hour", ["mean"], units={"temperature": "°C"}, ttl=300)
-    daily, hourly, stats = (f.result() if f else None for f in (daily, hourly, stats))
-    daily, hourly = daily or [], hourly or []
-
-    temp = blocks.num(a.get("temperature"))
-    if temp is None:
-        temp = blocks.state_num(ha, outdoor)[0]
     updated = iso_epoch((st or {}).get("last_updated") or (st or {}).get("last_changed"))
     left = [
         _isolated(_now_block, condition, temp, _today(daily, now, tz), updated, tz),
@@ -183,6 +172,36 @@ def detail(ha, descriptor, now):
     return {"note": attribution if isinstance(attribution, str) and attribution else None,
             "blocks": [b for b in [*(blocks.col(x, 0) for x in left),
                                    *(blocks.col(x, 1) for x in right)] if b]}
+
+
+def _chart_inputs(ha, descriptor, now, daily=False):
+    """The reads behind the temperature chart, shared by the detail panel and the card.
+
+    {"state" (the weather entity), "outdoor" (the statistic id), "stats", "hourly",
+    "daily", "temp" (the live reading)}. The slow reads run side by side, and `daily` is
+    fetched only when asked for (the panel's outlook; the card has no use for it). A dead
+    weather entity gets no forecast calls. The panel and the Roku card pass HA the same
+    arguments, so they share its statistics and forecast caches.
+    """
+    ents = descriptor.get("entities", {}) or {}
+    fc_entity = ents.get("forecast", _FC_ENTITY)
+    outdoor = ents.get("outdoor_temp", _OUTDOOR)
+    st = ha.get_state(fc_entity)
+    dead = st is None or st.get("state") in (None, "unavailable", "unknown")
+    a = (st or {}).get("attributes", {}) or {}
+
+    now_hour = hist.floor_hour(now)
+    days = None if dead or not daily else _POOL.submit(_isolated, ha.get_forecast, fc_entity, "daily")
+    hourly = None if dead else _POOL.submit(_isolated, ha.get_forecast, fc_entity, "hourly")
+    stats = _POOL.submit(_isolated, ha.get_statistics, [outdoor], now_hour - _BACK * hist.HOUR,
+                         now_hour, "hour", ["mean"], units={"temperature": "°C"}, ttl=300)
+    days, hourly, stats = (f.result() if f else None for f in (days, hourly, stats))
+
+    temp = blocks.num(a.get("temperature"))
+    if temp is None:
+        temp = blocks.state_num(ha, outdoor)[0]
+    return {"state": st, "outdoor": outdoor, "stats": stats, "hourly": hourly or [],
+            "daily": days or [], "temp": temp}
 
 
 def _isolated(fn, *args, **kw):
@@ -394,7 +413,16 @@ def _render_forecast(ha, descriptor, w, h):
     return charts.render_weather_forecast(current, forecast, w, h)
 
 
-CARDS = {"weather_forecast": _render_forecast}
+def _render_chart(ha, descriptor, w, h):
+    """The Roku wall's 48 h outdoor temperature chart: the detail panel's chart block, drawn."""
+    now = now_s()
+    tz = cfg.resolve_zone(descriptor.get("timezone"))
+    src = _chart_inputs(ha, descriptor, now)
+    chart = _chart_block(src["stats"], src["outdoor"], src["hourly"], src["temp"], now, tz)
+    return charts.render_temp_chart(chart, w, h)
+
+
+CARDS = {"weather_forecast": _render_forecast, "weather_chart": _render_chart}
 
 
 def render_icon(ha, descriptor, w=96, h=96):
