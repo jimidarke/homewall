@@ -12,7 +12,7 @@ It's a Roku channel because Rokus are the box that's already in every room. Home
 
 > **Paths in this document (checked 2026-10-14).** Paths are in the `homewall` monorepo layout (`roku/`, `sidecar/`, `stream/`, `fire-tablet/`, `docs/`). The live HA config is on mserver at `/root/docker/homeassistantV3/config/ha/` (HA runs in Docker). HAku's push side is the package `packages/housewall.yaml` there (it predates the HAku name, so its entities are `housewall_*`); the sidecar-side helper packages are `electricity_cost.yaml`, `gas_cost.yaml`, `water_cost.yaml` and `haku_water.yaml`. There is no `packages/haku.yaml` or `rest_commands.yaml`. Status notes below are dated snapshots; the current state of each part is in its own folder's README/CLAUDE.md.
 
-> **Status (1.0.0, 2026-10-14).** The Roku channel boots to the read-only 6×4 glass wall (spec `docs/superpowers/specs/2026-10-07-roku-wall-6x4-design.md`, baseline `docs/roku/screens/v0.12-home.png`), served by the sidecar's `?layout=roku`; backgrounds are the shared drone photos (spec `docs/superpowers/specs/2026-10-07-shared-backgrounds-design.md`). HA takeovers still reach the full-screen live camera and the grid. The fleet doesn't auto-update: on 2026-10-07 the living (.51), kids (.52) and den (.54) Rokus were off and still on 0.11 (the first glass wall), while master (.53) and the dev Roku (.55) run the latest build. The tablet runs its v3 touch UI.
+> **Status (1.0.0, 2026-10-14).** The Roku channel boots to the read-only 6×4 glass wall (spec `docs/superpowers/specs/2026-10-07-roku-wall-6x4-design.md`, baseline `docs/roku/screens/v0.12-home.png`), served by the sidecar's `?layout=roku`; backgrounds are the shared drone photos (spec `docs/superpowers/specs/2026-10-07-shared-backgrounds-design.md`). HA takeovers still reach the full-screen live camera and the grid. All five Rokus (the four fleet Rokus and the dev Roku) were sideloaded with 1.0 on 2026-10-14 and verified playing the front camera on the wall. The fleet doesn't auto-update, so each Roku runs whatever was last sideloaded. The tablet runs its v3 touch UI.
 
 ---
 
@@ -187,7 +187,7 @@ r3   Weather    Thermo   [          ]   [ 3-day +  ]
 - **Forecast.** A 3-day strip (`outlook`) over the sidecar's `weather_chart` PNG (48 h outdoor temperature: 24 h observed, 24 h forecast), re-fetched every 5 min.
 - **Backgrounds.** Shared drone photos served by the sidecar from `HAKU_BG_DIR`, which `haku-bg-sync.timer` mirrors from the NAS every 15 min. The Roku asks `w=1920&h=1080&fit=cover`, rotates every 20 s by default (`background.intervalMs`) and re-reads the list every 10 min.
 - **Read-only.** Home takes no remote input except `*` (diag) and Back (exit). An HA `focusModule=<id>` naming a non-camera card lights that card for 8 s instead of navigating.
-- **Compatibility.** Rokus still on 0.11 draw the same `layouts.roku` with 0.11's card bodies (the camera square is a placeholder) and ask for letterboxed (`contain`) photos. Channels before 0.11 use the sidecar's default view (no `?layout=`), which the sidecar keeps byte-for-byte stable.
+- **Compatibility.** A Roku on 0.11 draws the same `layouts.roku` with 0.11's card bodies (the camera square is a placeholder), and channels before 0.13 ask for letterboxed (`contain`) photos. Channels before 0.11 use the sidecar's default view (no `?layout=`), which the sidecar keeps byte-for-byte stable.
 
 ---
 
@@ -668,7 +668,6 @@ Checked 2026-10-14 against HA's `/api/states` and a port probe:
 - [ ] **ESPresense rooms** — only `office` reports, and `sensor.jimi_phone_room` is `not_home`/unmapped most of the time, so follow-me always lands on the living-room Roku.
 - [ ] **`person.alex`** — `unknown`; that phone's tracker isn't reporting.
 - [ ] **Gate, garage and backyard-corner sensors** — `binary_sensor.gate_doorcontact_contact`, `garage_doorcontact_contact` and `backyard_corner_motion_occupancy` no longer exist in HA, so yard and side have no event source.
-- [ ] **Fleet versions** — re-sideload .51, .52 and .54 the next time they're on (they were on 0.11 on 2026-10-07).
 - [ ] **Layout retry** — after a `layout_fallback` (sidecar answered 404 for `?layout=roku`) the channel stays on the default view until the next config fetch; retrying the layout on its own is parked.
 - [ ] **Reconnect curtain on a fast takeover** — LIVE shows "Waiting for discovery…" at once when it has no stream URL yet; a ~400 ms debounce was suggested and never done.
 - [ ] **HA token rotation** — the long-lived token seeded to the Rokus in May 2026 appeared in a chat transcript; rotate it in HA if that hasn't happened (nothing on the Roku reads it now).
