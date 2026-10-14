@@ -1,6 +1,6 @@
 # CLAUDE.md — stream/
 
-The camera pipeline on nserver (192.0.2.20) that feeds the Rokus: go2rtc (`:1984`, NVR HDMI-out mosaic via USB capture + Intel QSV, plus 4 per-camera streams: `yard`/`side`/`backyard` direct RTSP, `front` (Genbolt PTZ) transcoded HEVC→H.264 via QSV) → ffmpeg remux to a 3 × 2 s HLS window, ~5 s behind live on the Rokus (`haku-hls.service` for the mosaic, `haku-hls@<cam>` per camera, into tmpfs `/run/haku-hls`) → `haku-discovery.py` (`:1985`: SSDP responder, `discovery.json`, HLS file server). Endpoints, encode settings and the full deploy script: `README.md`.
+The camera pipeline on nserver (192.0.2.20) that feeds the Rokus: go2rtc (`:1984`, NVR HDMI-out mosaic via USB capture + Intel QSV, plus 5 per-camera streams: `yard`/`side`/`backyard` direct RTSP, and the Genbolt's two lenses transcoded HEVC→H.264 via QSV: `front` (PTZ, `/21`) and `front_steps` (fixed lens on the steps, `/11`, which the Rokus' home square switches to on front motion)) → ffmpeg remux to a 3 × 2 s HLS window, ~5 s behind live on the Rokus (`haku-hls.service` for the mosaic, `haku-hls@<cam>` per camera, into tmpfs `/run/haku-hls`) → `haku-discovery.py` (`:1985`: SSDP responder, `discovery.json`, HLS file server). Endpoints, encode settings and the full deploy script: `README.md`.
 
 Boot order: `go2rtc` → `haku-hls*` (`After=`/`Requires=go2rtc`) → `haku-discovery` (`After=go2rtc haku-hls`, `PartOf=go2rtc`). Units run as `media`.
 

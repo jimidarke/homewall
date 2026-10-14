@@ -35,6 +35,19 @@
       "mjpeg": "http://192.0.2.20:1984/api/stream.mjpeg?src=front",
       "snapshot": "http://192.0.2.20:1984/api/frame.jpeg?src=front"
     },
+    "front_steps": {
+      "displayName": "Front Steps",
+      "vendor": "Genbolt",
+      "ptz": false,
+      "codec": "h264",
+      "resolution": "1280x720",
+      "audio": false,
+      "note": "Fixed lens (/11) on the front steps, transcoded HEVC -> H.264 720p. Shown in the Rokus' home square on front motion (homeCam=front_steps).",
+      "rtsp": "rtsp://192.0.2.20:8554/front_steps",
+      "hls": "http://192.0.2.20:1985/hls/front_steps.m3u8",
+      "mjpeg": "http://192.0.2.20:1984/api/stream.mjpeg?src=front_steps",
+      "snapshot": "http://192.0.2.20:1984/api/frame.jpeg?src=front_steps"
+    },
     "mosaic": {
       "displayName": "NVR 4-up Mosaic",
       "codec": "h264",

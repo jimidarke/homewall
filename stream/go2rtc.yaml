@@ -95,6 +95,25 @@ streams:
       -b:v 2000k -maxrate 2500k -bufsize 4000k
       -an
       -f rtsp {output}
+  # front_steps: the Genbolt's fixed lens (/11, HEVC Main 1920x1080 @ 15 fps) looks down
+  # at the front steps, which the sideways PTZ can't see. Same transcode as `front`. The
+  # Rokus switch their home square to it on HA's `homeCam=front_steps` push (front motion),
+  # so haku-hls@front_steps keeps it running and a switch never waits for a cold start.
+  front_steps:
+    - >-
+      exec:ffmpeg
+      -hide_banner -loglevel warning
+      -rtsp_transport tcp
+      -hwaccel qsv -hwaccel_output_format qsv -c:v hevc_qsv
+      -i rtsp://${HAKU_FRONT_USER}:${HAKU_FRONT_PASSWORD}@192.0.2.31:554/11
+      -vf "vpp_qsv=w=1280:h=720"
+      -c:v h264_qsv
+      -preset veryfast
+      -profile:v main -level:v 4.0
+      -look_ahead 0 -bf 0 -g 30 -keyint_min 30
+      -b:v 2000k -maxrate 2500k -bufsize 4000k
+      -an
+      -f rtsp {output}
   yard:
     - rtsp://${HAKU_CAM_USER}:${HAKU_CAM_PASSWORD}@192.0.2.32:554/h264Preview_01_sub
   side:

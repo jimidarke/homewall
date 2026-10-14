@@ -26,6 +26,7 @@
         <field id="hubBase" type="string" value="" onChange="passDown" />
         <field id="streams" type="assocarray" onChange="passDown" />
         <field id="camActive" type="boolean" value="false" onChange="passDown" />
+        <field id="camOverride" type="string" value="" onChange="passDown" />
         <!-- out: this card shows no current reading (the header's "degraded") -->
         <field id="stale" type="boolean" value="true" />
     </interface>

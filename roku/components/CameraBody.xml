@@ -29,6 +29,8 @@
         <field id="streams" type="assocarray" onChange="sync" />
         <!-- in: this card may hold the decoder (home is showing) -->
         <field id="active" type="boolean" value="false" onChange="sync" />
+        <!-- in: HA's homeCam= override (a discovery stream name), "" for the tile's own cam -->
+        <field id="camOverride" type="string" value="" onChange="sync" />
     </interface>
     <script type="text/brightscript" uri="CameraBody.brs" />
     <script type="text/brightscript" uri="pkg:/source/Config.brs" />

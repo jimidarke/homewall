@@ -69,6 +69,7 @@ function HK_OVERLAY_SLIDE_MS() as integer : return 200 : end function
 function HK_STATE_POLL_MS()   as integer : return 10000  : end function  ' sidecar /api/state poll
 function HK_IDLE_TO_HOME_MS() as integer : return 300000 : end function  ' user idle -> glance home
 function HK_RETURN_HOME_MS()  as integer : return 60000  : end function  ' after an auto-takeover
+function HK_HOME_CAM_MAX_MS() as integer : return 900000 : end function  ' homeCam= override, if HA's revert never arrives
 
 ' Rotating background gallery. Interval is overridable per-install via
 ' /api/config's `background.intervalMs`; hkBgRotateMs() resolves it with a floor.
@@ -126,6 +127,7 @@ end function
 
 function HK_CAM_DISPLAY_NAME(cam as string) as string
     if cam = "front"    then return "Front Door"
+    if cam = "front_steps" then return "Front Steps"
     if cam = "yard"     then return "Yard"
     if cam = "side"     then return "Side"
     if cam = "backyard" then return "Backyard"
@@ -230,6 +232,17 @@ function hkTileCam(tile as dynamic) as string
     if tile.cam <> invalid and tile.cam <> "" then return tile.cam.toStr()
     if tile.thumbCam <> invalid and tile.thumbCam <> "" then return tile.thumbCam.toStr()
     return "mosaic"
+end function
+
+' The camera the home square plays: HA's homeCam= override when discovery has an HLS
+' stream for it, else the tile's own camera. Checking the stream here keeps hkStreamUrl's
+' mosaic fallback from turning an unknown override into the grid.
+function hkHomeCam(tile as dynamic, override as dynamic, streams as dynamic) as string
+    if override <> invalid and override <> "" and streams <> invalid and type(streams) = "roAssociativeArray" then
+        s = streams[override]
+        if s <> invalid and s.hls <> invalid then return override.toStr()
+    end if
+    return hkTileCam(tile)
 end function
 
 ' Index of `cam` in roster; returns 0 if not found (safe default for carousel).

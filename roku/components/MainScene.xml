@@ -58,6 +58,8 @@
         <Timer id="stateTimer" repeat="true" duration="10" />
         <Timer id="idleTimer" repeat="false" duration="300" />
         <Timer id="returnHomeTimer" repeat="false" duration="60" />
+        <!-- clears an HA homeCam= override whose revert never arrived -->
+        <Timer id="homeCamTimer" repeat="false" duration="900" />
         <!-- Re-reads the shared photo list, so photos added to the folder show up
              without a relaunch. -->
         <Timer id="bgListTimer" repeat="true" duration="600" />

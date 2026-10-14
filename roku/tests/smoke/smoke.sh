@@ -16,6 +16,9 @@
 #        - event=stream_start cam=...           live HLS actually started
 #        - >=2 event=cam_switch cam=...         carousel responds to Right
 #        - >=3 distinct event=overlay_show kind=...   overlay layer alive
+#        - event=home_cam_override cam=front_steps    HA's homeCam= push reached home
+#        - no BrightScript runtime error             HA's real payloads (replay=,
+#                                                    lastMotion=) don't crash the channel
 #
 # Requires the HAku server stack (haku-discovery schema 2 + go2rtc/HLS) reachable
 # so streams start; the sidecar is optional for this smoke because the camera
@@ -23,7 +26,8 @@
 #
 # Exit codes: 0 ok, 1 timeout/missing core event, 2 missing config, 3 gate/deploy
 #             failed, 4 discovery_failed without recovery, 5 carousel dead,
-#             6 overlay layer dead, 7 takeover routing dead (no route=live).
+#             6 overlay layer dead, 7 takeover routing dead (no route=live),
+#             8 channel crashed (runtime error), 9 homeCam= override dead.
 
 set -uo pipefail
 
@@ -73,6 +77,13 @@ sleep 2
     # focus-on-Group bug class).
     curl -sf -X POST -d '' "http://${ROKU_IP}:8060/keypress/Right" >/dev/null 2>&1 || true
     sleep 1
+    # HA's real payload shapes (packages/housewall.yaml): the door-open takeover with
+    # replay=, and the motion heartbeat. Until 1.1 both crashed the channel (.toInt()
+    # on an integer), unseen because no HA push had ever reached a Roku.
+    curl -sf -X POST -d '' "http://${ROKU_IP}:8060/input?cam=front&severity=normal&replay=15&reason=opened&banner=Smoke+door" >/dev/null 2>&1 || true
+    sleep 1
+    curl -sf -X POST -d '' "http://${ROKU_IP}:8060/input?lastMotion=front&lastMotionAt=$(date +%s)" >/dev/null 2>&1 || true
+    sleep 1
     # Overlay layer — 4 kinds that don't need backing infrastructure. PIP skipped
     # (needs the snapshot endpoint; see HAKU_DESIGN.md).
     curl -sf -X POST -d '' "http://${ROKU_IP}:8060/input?overlay=weather&temp=8&hi=14&cond=cloudy" >/dev/null 2>&1 || true
@@ -85,7 +96,12 @@ sleep 2
     sleep 0.4
     # Route back to the dashboard.
     curl -sf -X POST -d '' "http://${ROKU_IP}:8060/input?mode=home" >/dev/null 2>&1 || true
-    REMAINING=$((TIMEOUT > 16 ? TIMEOUT - 15 : 3))
+    sleep 2
+    # Front steps view: HA's homeCam= push, then its revert.
+    curl -sf -X POST -d '' "http://${ROKU_IP}:8060/input?homeCam=front_steps" >/dev/null 2>&1 || true
+    sleep 3
+    curl -sf -X POST -d '' "http://${ROKU_IP}:8060/input?homeCam=default" >/dev/null 2>&1 || true
+    REMAINING=$((TIMEOUT > 25 ? TIMEOUT - 22 : 3))
     sleep "$REMAINING"
     kill $TELNET_PID 2>/dev/null
     wait $TELNET_PID 2>/dev/null
@@ -137,5 +153,16 @@ if [ "$OVERLAY_KINDS" -lt 3 ]; then
     exit 6
 fi
 
-echo "✓ smoke pass: launch + home + takeover→live + stream_start + carousel (${SWITCHES}) + overlays (${OVERLAY_KINDS} kinds)"
+if grep -qE "runtime error|BrightScript Micro Debugger" "$LOG"; then
+    echo "!! smoke fail: the channel crashed into the debugger"
+    grep -A12 "runtime error" "$LOG" | head -20
+    exit 8
+fi
+
+if ! grep -q "event=home_cam_override cam=front_steps" "$LOG"; then
+    echo "!! smoke fail: homeCam=front_steps never reached the home camera card"
+    exit 9
+fi
+
+echo "✓ smoke pass: launch + home + takeover→live + stream_start + carousel (${SWITCHES}) + overlays (${OVERLAY_KINDS} kinds) + HA payloads + homeCam"
 exit 0

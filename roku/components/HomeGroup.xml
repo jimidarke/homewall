@@ -21,6 +21,8 @@
         <field id="streams" type="assocarray" onChange="onStreams" />
         <!-- in: the camera card may hold the decoder (MainScene, while home shows) -->
         <field id="camActive" type="boolean" value="false" onChange="onCamActive" />
+        <!-- in: HA's homeCam= override for the camera card ("" = the tile's own cam) -->
+        <field id="homeCam" type="string" value="" onChange="onHomeCam" />
         <!-- out: there is a camera card with a playable stream -->
         <field id="hasCam" type="boolean" value="false" />
         <!-- module id an HA focusModule= takeover points at -->

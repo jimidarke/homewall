@@ -12,7 +12,7 @@ It's a Roku channel because Rokus are the box that's already in every room. Home
 
 > **Paths in this document (checked 2026-10-14).** Paths are in the `homewall` monorepo layout (`roku/`, `sidecar/`, `stream/`, `fire-tablet/`, `docs/`). The live HA config is on mserver at `/root/docker/homeassistantV3/config/ha/` (HA runs in Docker). HAku's push side is the package `packages/housewall.yaml` there (it predates the HAku name, so its entities are `housewall_*`); the sidecar-side helper packages are `electricity_cost.yaml`, `gas_cost.yaml`, `water_cost.yaml` and `haku_water.yaml`. There is no `packages/haku.yaml` or `rest_commands.yaml`. Status notes below are dated snapshots; the current state of each part is in its own folder's README/CLAUDE.md.
 
-> **Status (1.0.0, 2026-10-14).** The Roku channel boots to the read-only 6×4 glass wall (spec `docs/superpowers/specs/2026-10-07-roku-wall-6x4-design.md`, baseline `docs/roku/screens/v0.12-home.png`), served by the sidecar's `?layout=roku`; backgrounds are the shared drone photos (spec `docs/superpowers/specs/2026-10-07-shared-backgrounds-design.md`). HA takeovers still reach the full-screen live camera and the grid. All five Rokus (the four fleet Rokus and the dev Roku) were sideloaded with 1.0 on 2026-10-14 and verified playing the front camera on the wall. The fleet doesn't auto-update, so each Roku runs whatever was last sideloaded. The tablet runs its v3 touch UI.
+> **Status (1.1, 2026-10-14).** The Roku channel boots to the read-only 6×4 glass wall (spec `docs/superpowers/specs/2026-10-07-roku-wall-6x4-design.md`, baseline `docs/roku/screens/v0.12-home.png`), served by the sidecar's `?layout=roku`; backgrounds are the shared drone photos (spec `docs/superpowers/specs/2026-10-07-shared-backgrounds-design.md`). HA takeovers still reach the full-screen live camera and the grid. All five Rokus (the four fleet Rokus and the dev Roku) run 1.1.2 since 2026-10-14, verified playing the front camera on the wall; front motion switches the square to the steps (spec `docs/superpowers/specs/2026-10-14-front-steps-view-design.md`). The fleet doesn't auto-update, so each Roku runs whatever was last sideloaded. The tablet runs its v3 touch UI.
 
 ---
 
@@ -158,14 +158,15 @@ The home wall uses the tablet's v3 **smoked glass** (Barlow, MDI glyphs, night-t
 | ID | Friendly | Vendor | RTSP source | HLS | Maps to event sources |
 |---|---|---|---|---|---|
 | `front`    | Front Door | Genbolt | `rtsp://USER:PW@192.0.2.31:554/21` (HEVC → QSV H.264 720p) | `:1985/hls/front.m3u8`    | `front_doorcontact_contact`, `front_motion_occupancy` |
+| `front_steps` | Front Steps | Genbolt | `rtsp://USER:PW@192.0.2.31:554/11` (fixed lens; HEVC → QSV H.264 720p) | `:1985/hls/front_steps.m3u8` | `front_motion_occupancy` (the home square switches to it, see [Home](#home--the-glass-wall)) |
 | `yard`     | Yard       | Reolink | `rtsp://USER:PW@192.0.2.32:554/h264Preview_01_sub` | `:1985/hls/yard.m3u8`     | *none — no yard sensor in HA* |
 | `side`     | Side Gate  | Amcrest | `rtsp://USER:PW@192.0.2.33:554/cam/realmonitor?channel=1&subtype=0` | `:1985/hls/side.m3u8`     | *none — no side sensor in HA* |
 | `backyard` | Backyard   | Reolink | `rtsp://USER:PW@192.0.2.34:554/h264Preview_01_main` (2048×1536)    | `:1985/hls/backyard.m3u8` | `back_doorcontact_contact`, `backyard_motion_occupancy` (camera offline, see [Open items](#open-items)) |
 | `mosaic`   | NVR 4-up   | (server) | NVR HDMI-out via USB capture → go2rtc QSV encode                     | `:1985/hls/mosaic.m3u8`   | (rendered, not a physical cam; GRID) |
 
-Three URL conventions: the **Genbolt** (front) uses `/21`, transcoded because the Express and Stick can't decode HEVC (see `stream/go2rtc.yaml`); the **Amcrest** (side) uses Dahua-style `cam/realmonitor?channel=N&subtype=0`; the **Reolinks** (yard, backyard) use `h264Preview_01_{main,sub}`. Every stream the Roku plays is H.264. Credentials come from `/etc/haku/cam-creds.env` on nserver (do **not** hard-code).
+Three URL conventions: the **Genbolt** uses `/21` for the PTZ lens (`front`, mounted sideways) and `/11` for the fixed lens on the steps (`front_steps`), both transcoded because the Express and Stick can't decode HEVC (see `stream/go2rtc.yaml`); the **Amcrest** (side) uses Dahua-style `cam/realmonitor?channel=N&subtype=0`; the **Reolinks** (yard, backyard) use `h264Preview_01_{main,sub}`. Every stream the Roku plays is H.264. Credentials come from `/etc/haku/cam-creds.env` on nserver (do **not** hard-code).
 
-Order in the carousel (`HK_CAMS()`): `front → yard → side → backyard` (front of house first, walking the perimeter clockwise — matches how the user thinks about the property). The same order is the GRID quadrant order.
+Order in the carousel (`HK_CAMS()`): `front → yard → side → backyard` (`front_steps` isn't in it; it only plays in the home square or on an explicit `cam=front_steps`) (front of house first, walking the perimeter clockwise — matches how the user thinks about the property). The same order is the GRID quadrant order.
 
 ---
 
@@ -184,6 +185,7 @@ r3   Weather    Thermo   [          ]   [ 3-day +  ]
 
 - **Glass, minus the frost.** Roku has no live backdrop-blur, so each card is a night-tinted 9-patch over a sharp photo, with the tablet's glyphs, accents, lit/alert states, stale and offline treatments. The whole wall shifts ±2 px every 10 min against burn-in. Details: `roku/CLAUDE.md` § Visual theme.
 - **Front camera, live.** The camera card (`tile.cam = "front"`) plays `streams.front.hls` muted in the 2×2 square and holds the Roku's one H.264 decoder while home is on screen. Every other route frees it first. After 4 errors in a row it shows "Camera offline" and rests for 5 min.
+- **Front steps on motion.** HA's `homeCam=front_steps` push (front motion on for 5 s) points the square at the Genbolt's fixed lens; `homeCam=default` (motion clears) points it back. The switch takes ~1 s on most Rokus (the Kids Express can take ~30 s). The override lives on `HomeGroup.homeCam`, so it survives takeovers, is ignored for a stream discovery doesn't list (`hkHomeCam`), and clears itself after 15 min (`HK_HOME_CAM_MAX_MS`) if the revert never arrives.
 - **Forecast.** A 3-day strip (`outlook`) over the sidecar's `weather_chart` PNG (48 h outdoor temperature: 24 h observed, 24 h forecast), re-fetched every 5 min.
 - **Backgrounds.** Shared drone photos served by the sidecar from `HAKU_BG_DIR`, which `haku-bg-sync.timer` mirrors from the NAS every 15 min. The Roku asks `w=1920&h=1080&fit=cover`, rotates every 20 s by default (`background.intervalMs`) and re-reads the list every 10 min.
 - **Read-only.** Home takes no remote input except `*` (diag) and Back (exit). An HA `focusModule=<id>` naming a non-camera card lights that card for 8 s instead of navigating.
@@ -421,7 +423,7 @@ T+5.1s    Toast dismisses
 T+60s     back to the home wall, unless someone pressed a key
 ```
 
-### Normal severity — "door opened", "front motion" — swap
+### Normal severity — "door opened" — swap
 
 ```
 T+0     POST /input?cam=front&severity=normal&replay=15&reason=opened&banner=Front+Door+opened
@@ -446,6 +448,7 @@ T+30s   PIP auto-dismisses
 | `overlay=<kind>&…` | [Overlay layer](#overlay-layer); a complete signal, no fall-through to a cam swap. |
 | `lastMotion=<cam>&lastMotionAt=<unix>` | Updates the HUD's and GRID's "motion N min ago". |
 | `mode=home` / `mode=grid` | Go home / enter GRID. `mode=briefing` shows a "coming soon" toast. |
+| `homeCam=<cam>` / `homeCam=default` | Points the home camera card at another discovery stream (`front_steps`) / back at its own `tile.cam`. No route change; can ride with any other key. |
 
 `reason=` is informational (HA-side readability); the channel ignores it.
 
@@ -486,9 +489,9 @@ HA talks to HAku two ways: the **sidecar pulls** everything the wall shows (one 
 
 ### Routing primitives
 
-- `rest_command.housewall_living` / `_kids` / `_bedroom` / `_den` — one form-encoded POST to `http://<roku>:8060/input` per dev-unlocked Roku, hardcoded LAN IP, `payload: "{{ payload }}"`.
+- `rest_command.housewall_living` / `_kids` / `_bedroom` / `_den` / `_office` — one POST to `http://<roku>:8060/input?{{ payload }}` per Roku, hardcoded LAN IP. **The payload goes in the URL:** ECP `/input` ignores a POST body. Until 2026-10-14 the package sent it as the body, so no HA push had ever reached a Roku. `_office` (the dev Roku `.55`) is broadcast-only.
 - `sensor.housewall_active_service` (template sensor) — resolves to the `rest_command.housewall_*` for `sensor.jimi_phone_room`: `bedroom` → bedroom, `den` → den, everything else (kitchen, living, unknown, `not_home`) → living. With most ESPresense rooms offline it nearly always says living.
-- `script.housewall_broadcast` — fires all 4 `rest_command.housewall_*` in parallel with the same payload (`continue_on_error`, so an off TV doesn't block the rest).
+- `script.housewall_broadcast` — fires all 5 `rest_command.housewall_*` in parallel with the same payload (`continue_on_error`, so an off TV doesn't block the rest). The script is `mode: queued`: two broadcasts in the same instant (the heartbeat and the front-steps revert both fire when motion clears) run back to back. `single` drops the second, and overlapping POSTs to one Roku can reach the channel as one request's params twice.
 
 ### Three targeting modes — pick per automation
 
@@ -502,7 +505,7 @@ HA talks to HAku two ways: the **sidecar pulls** everything the wall shows (one 
 
 | Automation | Trigger | Payload (to the active Roku unless noted) |
 |---|---|---|
-| `housewall_front_motion` | front motion on | `cam=front&severity=normal&banner=Front+motion` |
+| `housewall_front_steps_view` | front motion on for 5 s / clears, unavailable or HA start | `homeCam=front_steps` / `homeCam=default`, broadcast |
 | `housewall_front_door_opened` | front door opens | `cam=front&severity=normal&replay=15&reason=opened&banner=Front+Door+opened` |
 | `housewall_after_hours_back_motion` | backyard motion, 22:00–06:00 | `cam=backyard&severity=high&replay=15&…&banner=ATTN+Backyard` |
 | `housewall_after_hours_back_door` | back door opens, 22:00–06:00 | `cam=backyard&severity=high&replay=15&…&banner=ATTN+Back+Door` |
@@ -613,7 +616,7 @@ The home camera card has its own simpler loop: the same backoff, then after 4 er
 
 ---
 
-## Status at 1.0.0
+## Status at 1.1
 
 | Feature | Status |
 |---|---|
@@ -624,7 +627,8 @@ The home camera card has its own simpler loop: the same backoff, then after 4 er
 | Per-cam direct RTSP → deep HLS, discovery schema v2 | ✅ shipped (backyard camera offline) |
 | ECP severity routing + replay + `focusModule=` takeovers with return-home | ✅ shipped |
 | Overlay layer (door / text / weather / sensor / pip) | ✅ shipped in the channel; HA sends none today |
-| HA push package (`housewall.yaml`, 4 Rokus, active-Roku selector, broadcast) | ✅ live; follow-me effectively always "living" until ESPresense rooms return |
+| HA push package (`housewall.yaml`, 5 Rokus, active-Roku selector, broadcast) | ✅ live since 2026-10-14 (before that no push reached a Roku); follow-me effectively always "living" until ESPresense rooms return |
+| Front steps view on front motion (`front_steps`, `homeCam=`) | ✅ shipped (1.1) |
 | Dim mode | built (bound to the Info key); never tuned |
 | BRIEFING scene + morning automation | ❌ dropped (the home wall covers it) |
 | GLANCE screensaver | ❌ dropped (the channel keeps the screensaver away instead) |

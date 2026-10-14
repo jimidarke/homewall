@@ -40,6 +40,7 @@ sub Main()
     test_hkSlimConfig()
     test_hkStreamUrl()
     test_hkTileCam()
+    test_hkHomeCam()
     test_hkBgListUpdate()
     test_hkVideoFit()
     test_hkDoorLayout()
@@ -560,6 +561,20 @@ sub test_hkTileCam()
     assertEq("thumbCam", hkTileCam({ type: "camera", thumbCam: "yard" }), "yard")
     assertEq("neither", hkTileCam({ type: "camera" }), "mosaic")
     assertEq("no tile", hkTileCam(invalid), "mosaic")
+end sub
+
+sub test_hkHomeCam()
+    print "== hkHomeCam =="
+    tile = { type: "camera", cam: "front" }
+    streams = { front: { hls: "http://h/front.m3u8" }, front_steps: { hls: "http://h/front_steps.m3u8" }, side: {}, mosaic: { hls: "http://h/mosaic.m3u8" } }
+    assertEq("no override", hkHomeCam(tile, "", streams), "front")
+    assertEq("override", hkHomeCam(tile, "front_steps", streams), "front_steps")
+    assertEq("override not discovered", hkHomeCam(tile, "porch", streams), "front")
+    assertEq("override without hls", hkHomeCam(tile, "side", streams), "front")
+    assertEq("override, no streams", hkHomeCam(tile, "front_steps", invalid), "front")
+    assertEq("override, no tile", hkHomeCam(invalid, "front_steps", streams), "front_steps")
+    assertEq("no tile, no override", hkHomeCam(invalid, "", streams), "mosaic")
+    assertEq("invalid override", hkHomeCam(tile, invalid, streams), "front")
 end sub
 
 sub test_hkBgListUpdate()

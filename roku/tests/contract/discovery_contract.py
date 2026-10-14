@@ -28,7 +28,7 @@ FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "discovery.json"
 
 EXPECTED_SCHEMA_VERSION = 2
 EXPECTED_KEYS_PER_STREAM = ("hls", "rtsp", "displayName")
-EXPECTED_STREAMS = ("mosaic", "front", "yard", "side", "backyard")
+EXPECTED_STREAMS = ("mosaic", "front", "front_steps", "yard", "side", "backyard")
 # v2 adds the sidecar pointer (haku-sidecar: module JSON + rendered PNG cards).
 EXPECTED_SIDECAR_KEYS = ("base", "config", "state")
 
@@ -145,7 +145,7 @@ def main() -> int:
         r.fail_("streams.mosaic missing — channel cannot fall back to mosaic")
 
     # --- all expected streams must be present (Phase 2 deployed 2026-05-08) ---
-    print("== full stream roster (mosaic + 4 per-cam) ==")
+    print("== full stream roster (mosaic + per-cam) ==")
     for cam in EXPECTED_STREAMS:
         if cam in streams:
             r.ok(f"streams.{cam} present")

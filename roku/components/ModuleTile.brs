@@ -106,6 +106,7 @@ sub passDown()
     if b.hasField("hubBase") then b.hubBase = m.top.hubBase
     if b.hasField("streams") and m.top.streams <> invalid then b.streams = m.top.streams
     if b.hasField("active") then b.active = m.top.camActive
+    if b.hasField("camOverride") then b.camOverride = m.top.camOverride
 end sub
 
 ' Colour the card for its current state (tablet GlassCard + CardTone).

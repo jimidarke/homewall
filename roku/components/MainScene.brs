@@ -30,6 +30,7 @@ sub init()
     m.stateTimer     = m.top.findNode("stateTimer")
     m.idleTimer      = m.top.findNode("idleTimer")
     m.returnHomeTimer = m.top.findNode("returnHomeTimer")
+    m.homeCamTimer   = m.top.findNode("homeCamTimer")
     m.keepAwakeWatchdog = m.top.findNode("keepAwakeWatchdog")
     m.bgListTimer    = m.top.findNode("bgListTimer")
 
@@ -50,6 +51,7 @@ sub init()
     m.stateTimer.observeField("fire", "onStateTimer")
     m.idleTimer.observeField("fire", "onIdleTimer")
     m.returnHomeTimer.observeField("fire", "onReturnHomeTimer")
+    m.homeCamTimer.observeField("fire", "onHomeCamTimer")
     m.keepAwakeWatchdog.observeField("fire", "onKeepAwakeWatchdog")
     m.bgListTimer.observeField("fire", "runBgList")
 
@@ -77,6 +79,7 @@ sub init()
     m.stateTimer.duration = HK_STATE_POLL_MS() / 1000
     m.idleTimer.duration = HK_IDLE_TO_HOME_MS() / 1000
     m.returnHomeTimer.duration = HK_RETURN_HOME_MS() / 1000
+    m.homeCamTimer.duration = HK_HOME_CAM_MAX_MS() / 1000
     m.bgListTimer.duration = HK_BG_LIST_MS() / 1000
     m.bgListTimer.control = "start"
 
@@ -147,7 +150,7 @@ sub onArgs()
     end if
 
     ' Cold-launch routing / events.
-    if args.overlay <> invalid or args.cam <> invalid or args.severity <> invalid or args.mode <> invalid or args.focusModule <> invalid then
+    if args.overlay <> invalid or args.cam <> invalid or args.severity <> invalid or args.mode <> invalid or args.focusModule <> invalid or args.homeCam <> invalid then
         dispatchEcp(args)
     end if
 end sub
@@ -617,6 +620,19 @@ end sub
 
 ' ---------------------------------------------------------------------------
 ' ECP /input fan-out
+sub setHomeCam(cam as string)
+    if cam = "default" then cam = ""
+    m.home.homeCam = cam
+    m.homeCamTimer.control = "stop"
+    if cam <> "" then m.homeCamTimer.control = "start"
+    hkEvent("home_cam_override", { cam: cam })
+end sub
+
+' The revert push never came: give the card back its own camera.
+sub onHomeCamTimer()
+    if m.home.homeCam <> "" then setHomeCam("default")
+end sub
+
 ' ---------------------------------------------------------------------------
 sub onInputEvent()
     e = m.inputPump.event
@@ -625,6 +641,11 @@ sub onInputEvent()
 end sub
 
 sub dispatchEcp(e as object)
+    ' homeCam= points the home camera card at another stream (HA: front motion ->
+    ' front_steps); "default" goes back to the tile's own cam. No route change, and it
+    ' can ride along with any other key.
+    if e.homeCam <> invalid and e.homeCam <> "" then setHomeCam(e.homeCam)
+
     ' overlay= is a complete signal (transient chip); no fall-through.
     if e.overlay <> invalid and e.overlay <> "" then
         m.overlays.callFunc("show", e)

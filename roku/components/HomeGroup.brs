@@ -68,6 +68,7 @@ sub onConfig()
         tile.hubBase = m.top.hubBase
         if m.top.streams <> invalid then tile.streams = m.top.streams
         tile.camActive = m.top.camActive
+        tile.camOverride = m.top.homeCam
         tile.descriptor = md
         tile.addFields({ moduleId: hkStrOr(md.id, ""), feedKey: feedKeyOf(md) })
         m.tilesGroup.appendChild(tile)
@@ -100,6 +101,12 @@ end sub
 sub onCamActive()
     for each t in m.tiles
         t.camActive = m.top.camActive
+    end for
+end sub
+
+sub onHomeCam()
+    for each t in m.tiles
+        t.camOverride = m.top.homeCam
     end for
 end sub
 

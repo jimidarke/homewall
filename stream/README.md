@@ -36,10 +36,10 @@ hardcode IPs.
 
 | File | Deploys to (on `nserver`) | Purpose |
 |---|---|---|
-| `go2rtc.yaml` | `/etc/go2rtc/go2rtc.yaml` | Stream config — UVC source + Intel QSV encode + 4 per-cam streams (3 direct RTSP, `front` QSV-transcoded) |
+| `go2rtc.yaml` | `/etc/go2rtc/go2rtc.yaml` | Stream config — UVC source + Intel QSV encode + 5 per-cam streams (3 direct RTSP; `front` and `front_steps` QSV-transcoded) |
 | `go2rtc.service` | `/etc/systemd/system/go2rtc.service` | go2rtc systemd unit, runs as `media` user; loads cred env file |
 | `haku-hls.service` | `/etc/systemd/system/haku-hls.service` | ffmpeg remux mosaic RTSP→Roku HLS (legacy single-stream unit, kept for mosaic) |
-| `haku-hls@.service` | `/etc/systemd/system/haku-hls@.service` | **Templated** ffmpeg remux for per-cam streams — one instance per cam (`@front`, `@yard`, `@side`, `@backyard`) |
+| `haku-hls@.service` | `/etc/systemd/system/haku-hls@.service` | **Templated** ffmpeg remux for per-cam streams — one instance per cam (`@front`, `@front_steps`, `@yard`, `@side`, `@backyard`) |
 | `haku-discovery.py` | `/opt/stream/haku-discovery.py` | SSDP responder + JSON capability + HLS file server (stdlib-only Python) |
 | `haku-discovery.service` | `/etc/systemd/system/haku-discovery.service` | systemd unit for discovery |
 | `README.md` | (repo only) | This file |
@@ -69,6 +69,7 @@ per-cam streams are direct RTSP forwards from the cameras themselves, except
 |---|---|---|---|
 | `mosaic` | NVR HDMI → USB → QSV-encoded H.264 | H.264 Main 4.0, 1920×1080 @ 20 fps | `:1985/hls/mosaic.m3u8` |
 | `front` | Genbolt PTZ lens @ 192.0.2.31 `/21` (HEVC 1080p15) → QSV transcode | H.264 Main 3.2, 1280×720 @ 15 fps | `:1985/hls/front.m3u8` |
+| `front_steps` | Genbolt fixed lens @ 192.0.2.31 `/11` (HEVC 1080p15, the front steps) → QSV transcode | H.264 Main, 1280×720 @ 15 fps | `:1985/hls/front_steps.m3u8` |
 | `yard` | Reolink @ 192.0.2.32 (sub-stream — main is HEVC 4K) | H.264 High 5.1, 640×360 @ 10 fps | `:1985/hls/yard.m3u8` |
 | `side` | Amcrest @ 192.0.2.33 | H.264 High 4.1, 1920×1080 @ 30 fps | `:1985/hls/side.m3u8` |
 | `backyard` | Reolink-family @ 192.0.2.34 | H.264 Main 5.0, 2048×1536 @ 20 fps | `:1985/hls/backyard.m3u8` |
@@ -78,7 +79,7 @@ Every stream additionally exposes:
 | Endpoint | URL | Use |
 |---|---|---|
 | **SSDP discovery** | multicast `239.255.255.250:1900` ST=`urn:haku:service:dashboard:1` | Roku channel auto-discovery |
-| **Discovery JSON** | `http://192.0.2.20:1985/discovery.json` | `schemaVersion` 2: all 5 streams (HLS/RTSP/MJPEG/snapshot URLs + metadata) and the sidecar base (`:1986`) |
+| **Discovery JSON** | `http://192.0.2.20:1985/discovery.json` | `schemaVersion` 2: all 6 streams (HLS/RTSP/MJPEG/snapshot URLs + metadata) and the sidecar base (`:1986`) |
 | **RTSP** | `rtsp://192.0.2.20:8554/<name>` | VLC, ffmpeg, HA `generic`/`stream`, NVRs |
 | **HLS shallow** | `http://192.0.2.20:1984/api/stream.m3u8?src=<name>` | Browsers, debugging (~1 s buffer; Roku underflows) |
 
@@ -162,10 +163,10 @@ chown -R media:media /opt/stream
 systemctl stop sendHDMI.service || true
 systemctl disable sendHDMI.service || true
 
-# 6. Bring up the new pipeline (mosaic + 4 per-cam HLS sidecars)
+# 6. Bring up the new pipeline (mosaic + 5 per-cam HLS sidecars)
 systemctl daemon-reload
 systemctl enable --now go2rtc.service haku-hls.service haku-discovery.service
-systemctl enable --now haku-hls@front.service haku-hls@yard.service \
+systemctl enable --now haku-hls@front.service haku-hls@front_steps.service haku-hls@yard.service \
                        haku-hls@side.service  haku-hls@backyard.service
 
 # 7. Smoke test
@@ -201,7 +202,7 @@ gssdp-discover -t urn:haku:service:dashboard:1 --timeout=3
 ssh root@nserver
 systemctl stop go2rtc.service haku-hls.service haku-discovery.service 'haku-hls@*.service'
 systemctl disable go2rtc.service haku-hls.service haku-discovery.service \
-  haku-hls@front.service haku-hls@yard.service haku-hls@side.service haku-hls@backyard.service
+  haku-hls@front.service haku-hls@front_steps.service haku-hls@yard.service haku-hls@side.service haku-hls@backyard.service
 systemctl enable --now sendHDMI.service
 # HA's camera.camerafeed picks the old MJPEG up automatically again.
 ```

@@ -37,7 +37,7 @@ sub sync()
 
     tile = invalid
     if m.top.descriptor <> invalid then tile = m.top.descriptor.tile
-    m.cam = hkTileCam(tile)
+    m.cam = hkHomeCam(tile, m.top.camOverride, m.top.streams)
     url = hkStreamUrl(m.top.streams, m.cam)
     if not m.top.active or url = "" then
         stopAll()

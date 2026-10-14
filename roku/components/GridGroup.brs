@@ -48,7 +48,7 @@ sub refreshDots()
     now_ = hkNowSeconds()
     for each cam in m.dots
         ts = m.lastMotionByCam[cam]
-        if ts <> invalid and (now_ - ts.toInt()) < 300 then
+        if ts <> invalid and (now_ - hkParseInt(ts)) < 300 then
             m.dots[cam].color = HK_LIVE()
         else
             m.dots[cam].color = HK_OK()
