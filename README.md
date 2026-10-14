@@ -16,6 +16,4 @@ NVR / cameras ──► stream/ go2rtc + HLS + discovery (nserver) ──► rok
 | [`stream/`](stream/) | Camera stream units and config | [`stream/README.md`](stream/README.md) |
 | [`docs/`](docs/) | System design, tablet design, specs and plans, brand art | [`docs/HAKU_DESIGN.md`](docs/HAKU_DESIGN.md) |
 
-Versions: Roku channel 0.10.0 (`roku/VERSION.txt`), tablet 0.3.0 (`fire-tablet/app/build.gradle.kts`).
-
-This repo was created on 2026-10-03 by merging `roku-homewall` (at `7b6b9ef`) and `tablet-homewall` (at `0ea7f43`) without their history, plus drift found on nserver: the deployed `sidecar/haku_sidecar/modules/timeline.py` and the `haku-hls.service` runtime-dir drop-in.
+Release 1.0.0 (git tag `v1.0.0`) set every part to 1.0.0; they version independently from there. Each part's version lives in `roku/VERSION.txt` (with `roku/manifest` and `roku/package.json`), `fire-tablet/app/build.gradle.kts`, `sidecar/haku_sidecar/__init__.py` and `stream/haku-discovery.py` (`SERVICE_VERSION`). The devices run whatever was last deployed to them, so a display can lag the repo.

@@ -51,7 +51,7 @@ def values(ha, descriptor):
         "detail": f"${cost:.2f} so far" if cost is not None else "",
         "severity": "high" if spike else "normal",
         "icon": str(icons.fill_bucket_pct(power_kw, _SPIKE_KW)) if power_kw is not None else "",
-        # Tablet-only keys (the Roku ignores them). `level` is the icon's bucket, as an int.
+        # Layout keys (pre-0.11 Roku channels ignore them). `level` is the icon's bucket, as an int.
         "glyph": "flash",
         "active": False,
         "level": icons.fill_bucket_pct(power_kw, _SPIKE_KW) if power_kw is not None else None,

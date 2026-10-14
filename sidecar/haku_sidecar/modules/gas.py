@@ -64,7 +64,7 @@ def values(ha, descriptor):
         "detail": _fmt_total(total, total_u) or "",
         "severity": "normal",
         "icon": str(icons.fill_bucket_pct(flow, _max_flow(descriptor))) if flow is not None else "",
-        # Tablet-only keys (the Roku ignores them). `level` is the icon's bucket, as an int.
+        # Layout keys (pre-0.11 Roku channels ignore them). `level` is the icon's bucket, as an int.
         "glyph": "fire" if running else "meter-gas",
         "active": running,
         "level": icons.fill_bucket_pct(flow, _max_flow(descriptor)) if flow is not None else None,

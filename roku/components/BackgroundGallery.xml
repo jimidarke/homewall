@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <!--
-  BackgroundGallery — full-screen rotating photo backdrop (v0.7).
+  BackgroundGallery — full-screen rotating photo backdrop.
 
   Two stacked Posters cross-faded on a Timer. bgA is the visible "base"; bgB is
   the top overlay that preloads + fades the next image in, then the settled image

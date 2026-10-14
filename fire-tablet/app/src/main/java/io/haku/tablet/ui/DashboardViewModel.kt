@@ -108,7 +108,7 @@ class DashboardViewModel(
 
     private val backdrop = BackdropLoader(source, decoder, clock = clock, work = work)
 
-    /** The NAS photo behind the cards, or null for the plain gradient (no config yet, disabled, empty NAS). */
+    /** The photo behind the cards, or null for the plain gradient (no config yet, disabled, no photos). */
     val photo: StateFlow<Photo?> = backdrop.photo
 
     private val _peek = MutableStateFlow(false)
@@ -150,7 +150,7 @@ class DashboardViewModel(
             )
         }
         viewModelScope.launch {
-            // No photo (backgrounds off, an empty NAS): nothing left to peek at.
+            // No photo (backgrounds off, no photos): nothing left to peek at.
             photo.collect { if (it == null) endPeek() }
         }
     }

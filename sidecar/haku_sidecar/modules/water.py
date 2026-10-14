@@ -17,8 +17,8 @@ Optional descriptor field `maxFlowLpm` sets the "full bucket" scale for the
 home-tile icon's fill level (default 10 L/min if unset).
 
 Optional descriptor field `runningSeverity` (low|normal|high, default "high") is the
-severity reported while water is running. The Roku keeps the default; the tablet layout
-sets "normal" so a shower or a washing machine doesn't paint the water card as an alert.
+severity reported while water is running. The default view keeps "high"; the tablet layout
+(and the Roku layout, through its `tablet:` refs) sets "normal" so a shower or a washing machine doesn't paint the water card as an alert.
 
 Optional descriptor field `tileStyle: "rate"` (the tablet layout) re-words the tile as
 "now · today · cost": hero = the flow ("4.2 L/min", "0 L/min" idle), sub = "412 L today"
@@ -80,7 +80,7 @@ def values(ha, descriptor):
         "detail": _detail(daily, daily_u, monthly, monthly_u),
         "severity": _running_severity(descriptor) if running else "normal",
         "icon": str(icons.fill_bucket_pct(flow, _max_flow(descriptor))) if flow is not None else "",
-        # Tablet-only keys (the Roku ignores them). `level` is the icon's bucket, as an int.
+        # Layout keys (pre-0.11 Roku channels ignore them). `level` is the icon's bucket, as an int.
         "glyph": "water" if running else "water-outline",
         "active": running,
         "level": icons.fill_bucket_pct(flow, _max_flow(descriptor)) if flow is not None else None,

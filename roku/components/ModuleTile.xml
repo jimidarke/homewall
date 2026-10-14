@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <!--
-  ModuleTile — one glass card on the home wall (v0.11, the tablet's v3 GlassCard
+  ModuleTile — one glass card on the home wall (the tablet's v3 GlassCard
   without the frost). Read-only: no focus, no drill.
 
   Layers, back to front: the night-tinted rounded fill (9-patch), the lit glow, the

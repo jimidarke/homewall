@@ -1,4 +1,4 @@
-' HAku — the home screen's type (v0.11): Barlow, bundled in fonts/ (OFL, see
+' HAku — the home screen's type: Barlow, bundled in fonts/ (OFL, see
 ' fonts/OFL-Barlow.txt), the same two faces the tablet ships. Sizes are the
 ' tablet's dp x ~1.375 for a TV across the room (Font.size is in px).
 '

@@ -1,10 +1,7 @@
 # Kitchen Tablet Display: Design
 
 > Date: 2026-09-30
-> Status: **Approved and built.** The APK proof of concept was verified on the device on 2026-09-30 (now `~/code/homewall/fire-tablet`). The sidecar changes (§3, refined in §8.8) are deployed on nserver, and since 2026-10-01 the v2 UI (§8) runs on the wall as the R8 release build. The kiosk takeover in §4.5 is not built yet. Results: [KITCHEN-TABLET.md § Display App](../../../home-arr/docs/KITCHEN-TABLET.md#display-app-haku-tablet).
-> **v2 (the UI/UX build) was approved on 2026-09-30.** It is specified in [§8](#8-ui-v2-2026-09-30) and supersedes the lines marked "(superseded by §8)" below.
-> **v3 (touch) was built on 2026-10-01 (0.3.0).** Tap-to-expand detail panels and a photo peek are in [§8.10](#810-touch-detail-panels-and-photo-peek-v3-2026-10-01). v3 also lightens the glass (§8.3) and holds stale values (§8.5).
-> **0.4.0 (2026-10-05)** adds back and forward buttons to the photo peek, to browse the photos the wall has shown and deal new ones (§8.10, "Browsing the photos").
+> Status: **Built, release 1.0.0** (`~/code/homewall/fire-tablet`); the wall runs the R8 release build. **What ships is §8**: the v2 UI in §8.1 to §8.9 and the v3 touch layer in [§8.10](#810-touch-detail-panels-and-photo-peek-v3-2026-10-01) (detail panels, and a photo peek with ‹ › buttons to step through the photos). v3 also lightens the glass (§8.3) and holds stale values (§8.5). §1 to §7 are the original v1 design, which the proof of concept built and verified on the device on 2026-09-30. [§8](#8-ui-v2-2026-09-30) wins where they conflict, and the lines it replaced are marked "(superseded by §8)". The sidecar changes (§3, refined in §8.8) are deployed on nserver. The kiosk takeover in §4.5 is not built yet. Results: [KITCHEN-TABLET.md § Display App](../../../home-arr/docs/KITCHEN-TABLET.md#display-app-haku-tablet).
 > Device: Fire 7 `KFQUWI` at `192.0.2.60` (see [home-arr KITCHEN-TABLET.md](../../../home-arr/docs/KITCHEN-TABLET.md))
 > Data source: HAku sidecar on nserver, `http://192.0.2.20:1986` (`~/code/homewall/sidecar`)
 
@@ -12,7 +9,7 @@
 
 ## 1. Goal
 
-A wall-mounted kitchen display that shows the house's current activity at a glance. It has no controls that change house state; since v3 a tap opens a detail panel or peeks at the photo, and since 0.4.0 steps through the photos while peeking (§8.10). One screen shows:
+A wall-mounted kitchen display that shows the house's current activity at a glance. It has no controls that change house state: a tap opens a detail panel, peeks at the photo, or steps through the photos while peeking (§8.10). One screen shows:
 
 | Panel | Shows |
 |-------|-------|
@@ -112,7 +109,7 @@ haku-sidecar (nserver .20:1986)
 | Request | Response |
 |---------|----------|
 | `GET /api/config` (no param) | Same as today, minus the `layouts` key. **What the Roku receives is unchanged.** |
-| `GET /api/config?layout=tablet` | `version`, `site`, `timezone`, the `sidecar` block, plus the layout's `grid`, `header`, `nightDim` and its **resolved** modules. Each `ref` entry becomes the referenced module's full descriptor with `tile` (and any other keys given on the entry) overridden. (Superseded by §8: there is no `header`; the response also carries `background`, laid over the top-level block, without its server-side `dir`.) |
+| `GET /api/config?layout=tablet` | `version`, `site`, `timezone`, the `sidecar` block, plus the layout's `grid`, `header`, `nightDim` and its **resolved** modules. Each `ref` entry becomes the referenced module's full descriptor with `tile` (and any other keys given on the entry) overridden. (Superseded by §8: there is no `header`; the response also carries `background`, laid over the top-level block, without its server-side `dir`. No live layout sets a `dir`: every display reads `HAKU_BG_DIR`, §8.1.) |
 | `GET /api/state` (no param) | Unchanged. |
 | `GET /api/state?layout=tablet` | `compose_state` over the resolved modules only, keyed by `feedKey`. |
 | `GET /api/module/<id>` | Also finds modules defined only in a layout. (Superseded by §8: it looks in a layout only when the request carries an explicit `?layout=`.) |
@@ -269,7 +266,7 @@ Three approaches were considered:
 |------|----------------|-----------|
 | `SidecarClient` | GET `/api/config`, `/api/state`, `/api/backgrounds` and `/api/background/<name>`, each with `?layout=tablet`. Returns a parsed value or a typed error (`Fetch`), never throws | OkHttp, models |
 | `Models` | `@Serializable` mirrors of the config JSON; state is kept as raw JSON and read per module. Unknown keys are ignored so newer sidecars stay compatible | kotlinx.serialization |
-| `DashboardViewModel` | Owns the poll loop (`viewModelScope`): config at start and every 10 min, state every 5 s. Backs off to 30 s after 3 consecutive failures. Exposes `UiState {sidecar, config, cards, error, stateFetched}` plus `lastOkAt`, `freshness`, `night` and `photo` flows | `HubSource` (`SidecarClient`) |
+| `DashboardViewModel` | Owns the poll loop (`viewModelScope`): config at start and every 10 min, state every 5 s. Backs off to 30 s after 3 consecutive failures. Exposes `UiState {sidecar, config, cards, error, stateFetched, degraded}` plus `lastOkAt`, `freshness`, `night`, `photo`, `peek` and `detail` flows | `HubSource` (`SidecarClient`) |
 | `Dashboard` (Compose) | Header (clock, date, connection dot) plus a grid of cards placed from `tile.{col,row,w,h}` over `grid.{cols,rows}` | `UiState` |
 | `ValueCard` | Generic hero/sub/detail/severity card. Used for weather, energy, water, gas and the thermostat | — |
 | `DoorsCard` | One row per door: the state word plus the age | doors state |
@@ -332,7 +329,7 @@ The mapping from mode to segment frames is a **pure function** of `(mode, leds, 
 
 ### 4.5 Kiosk behaviour
 
-**Status (2026-10-01).** Built: keep-screen-on, immersive mode, the night-dim window brightness, the cleartext rule, the status screen and the offline banner. Not built yet: the HOME takeover, the crash-restart handler and the `--es sidecar` override. The device lockscreen is still enabled (`locksettings get-disabled` reads `false`).
+**Status (1.0.0).** Built: keep-screen-on, immersive mode, the night-dim window brightness, the cleartext rule, the status screen and the offline banner. Not built yet: the HOME takeover, the crash-restart handler and the `--es sidecar` override. The device lockscreen was still enabled when last checked, on 2026-10-01 (`locksettings get-disabled` read `false`).
 
 **Lockscreen (found in the proof of concept).** Fire OS 8 ignores `setShowWhenLocked`/`setTurnScreenOn`: after a screen sleep the swipe keyguard stays in front (`occluded=false`). The app keeps both calls, but the real fix is device-side: `adb shell locksettings set-disabled true` (the tablet has no PIN), applied together with the HOME takeover below.
 
@@ -354,10 +351,10 @@ The mapping from mode to segment frames is a **pure function** of `(mode, leds, 
 | State older than 30 s | Header dot turns amber |
 | Older than 2 min | Grey banner "No data since 8:42 PM"; tiles dimmed, last values kept |
 | Config error (404, unknown layout or ref) | Full-screen message naming the error and the sidecar URL |
-| Module returns `error` | That tile shows "—" and the error is logged. (As built: a module with no tile or a blank hero shows "—"; nothing is logged per module. Since v3 a value card holds its last good reading instead, §8.5.) |
+| Module returns `error` | That tile shows "—" and the error is logged. (As built: a module with no tile or a blank hero shows "—"; nothing is logged per module. A value card now holds its last good reading instead, §8.5.) |
 | App crash | It's the home activity, so Android relaunches it on the next home event. A `Thread.setDefaultUncaughtExceptionHandler` that restarts the activity via `AlarmManager` covers the case where nothing presses home. (Not built yet, see the status above.) |
 
-**Logging.** Structured `logcat` lines tagged `KitchenWall` for `adb logcat -s KitchenWall`, each `event=<name> k=v`: `event=source`, `config_loaded`, `config_fail`, `poll_ok`, `poll_fail` and `pulse`, plus `bg_list`, `bg_list_fail`, `bg_photo` and `bg_miss` from the photo backdrop, and (v3) `detail_open`, `detail_close` and `detail_fail` for the detail panels. A failure ends `err=<reason>`, the same reason the offline banner shows (`http 502`, `network: …`, `parse: …`).
+**Logging.** Structured `logcat` lines tagged `KitchenWall` for `adb logcat -s KitchenWall`, each `event=<name> k=v`: `event=source`, `config_loaded`, `config_fail`, `poll_ok`, `poll_fail` and `pulse`, plus `bg_list`, `bg_list_fail`, `bg_photo`, `bg_miss`, `bg_step` and `bg_step_miss` from the photo backdrop, and `detail_open`, `detail_close` and `detail_fail` for the detail panels. A failure ends `err=<reason>`, the same reason the offline banner shows (`http 502`, `network: …`, `parse: …`).
 
 ### 4.6 APK tests
 
@@ -395,13 +392,13 @@ The mapping from mode to segment frames is a **pure function** of `(mode, leds, 
 
 1. ~~**Gas rate is broken.**~~ Fixed 2026-10-01 (v3). `sensor.home_gas_usage` held the last burn's rate and was unknown after every HA restart. The gas tile now reads `sensor.gas_flow`, which falls to 0 when the furnace is idle, and `sensor.gas_meter_total`, which keeps the last meter reading across restarts; a daily utility meter gives "today's gas" (HA `packages/gas_cost.yaml`, repo copy `sidecar/ha-gas-cost.yaml`).
 2. **Mount orientation:** landscape is assumed. Portrait would be a second layout (2×4), configured in `dashboard.json` with no code change.
-3. **Alex is missing from the activity feed.** `person.alex` is `unknown`, so she never appears. This is an HA and phone issue, separate from this work.
+3. **Alex is missing from the activity feed.** `person.alex` is `unknown`, so that person never appears. This is an HA and phone issue, separate from this work.
 4. **HA Companion app:** it stays for now. It provides battery and charging sensors, which the charge-management plan will need, at a cost of about 96 MB of RAM. Revisit once charging is solved.
 5. **Laundry acknowledge on tap:** deferred. It would need a POST endpoint on the sidecar (it's read-only today) or an HA token on the tablet, and v1 is read-only.
 6. **Lockscreen:** `locksettings set-disabled true` is not yet applied or verified (see §4.5). If Fire OS overrides it, the fallback is device-owner mode, which needs a factory reset with no Amazon account.
 7. **Charger:** the PC USB port is a low-power charger (Fire OS warns it may not charge while in use). The mount needs a 2 A+ supply.
 8. **Faster recovery:** after WiFi returns, the app can take up to 30 s (the backoff) to go live again. A connectivity callback that polls right away would remove that delay. Minor.
-9. **Water `active` flaps at a trickle.** On 2026-10-01, from about 07:55 to 09:00, the water flow alternated between 0.0 and 0.4 L/min every 10 to 20 s. Each flip turns the Water card on or off, and each turn-on pulsed, so the wall was never still. Since 0.2.0 the tablet holds back the ring for 120 s after a card stops (§8.6), so a run of flips rings once, but the accent still fades in and out on every flip. A hold time or hysteresis on `running` in the sidecar's water module, like the displayed-rate rule for gas, would fix it at the source. Not built.
+9. **Water `active` flaps at a trickle.** On 2026-10-01, from about 07:55 to 09:00, the water flow alternated between 0.0 and 0.4 L/min every 10 to 20 s. Each flip turns the Water card on or off, and each turn-on pulsed, so the wall was never still. The tablet holds back the ring for 120 s after a card stops (§8.6), so a run of flips rings once, but the accent still fades in and out on every flip. A hold time or hysteresis on `running` in the sidecar's water module, like the displayed-rate rule for gas, would fix it at the source. Not built.
 10. **The ESP water meter keeps dropping off.** `esp-watermeter` (`192.0.2.41`) fails its ESPHome API handshake several times a day (12 outages in 7 days, 5 of them in one hour checked). v3 stops the wall from blanking (HA `always_available` on the water meters, held values, §8.5, §8.10), but the meter itself is not fixed. Stabilise its WiFi, its power or the ESPHome API keepalive.
 11. **Gas has no price.** The bill figures in `packages/gas_cost.yaml` are placeholders (0), so `sensor.gas_marginal_cost_per_m3` reads 0 and the gas cost lines are left out. Fill them in and set `sensor.gas_marginal_cost_per_m3` as the gas price in HA's Energy dashboard. The gas cost lines and per-day costs then appear with no code change. Gas history also only starts on 2026-10-01, so its graph fills in over a week.
 12. **The Emporia daily energy counter reset to 0 at 8:32 PM on 2026-10-01**, likely a device restart. Consider `restore: true` on its `total_daily_energy` in ESPHome.
@@ -420,9 +417,9 @@ The exact JSON shapes, glyph names, colours, sizes and timings are pinned in the
 | Priority | **House activity first.** Doors, laundry, water and power lead. |
 | Layout | **Even 4×3 grid.** Calendar spans 2 rows and Activity takes the full right column; every other card is one cell. Positions are fixed; cards **light up** when active instead of moving. |
 | Photos | Full-bleed behind translucent smoked-glass cards. |
-| Photo source | A new curated NAS folder, `/mnt/media/haku/kitchen` (NAS `192.0.2.5:/volume2/media`, already NFS-mounted on nserver), seeded from `/mnt/media/Drone`. The sidecar proxies the images, because the tablet can only reach `.20`. *Since 2026-10-07 nserver mirrors this folder into `HAKU_BG_DIR` every 15 min (`haku-bg-sync`), and the tablet and the wall Rokus both read the mirror; the folder is still where photos are curated.* |
+| Photo source | A curated NAS folder, `/mnt/media/haku/kitchen` (NAS `192.0.2.5:/volume2/media`, NFS-mounted on nserver), seeded from `/mnt/media/Drone`. nserver mirrors it into the sidecar's `HAKU_BG_DIR` every 15 min (`haku-bg-sync`), and the sidecar serves the mirror to every display, the tablet and the wall Rokus alike; the tablet has no background `dir` of its own. The sidecar proxies the images because the tablet can only reach `.20`. Photos are curated in the NAS folder. |
 | Modules | Doors, laundry, water, energy, thermostat, weather, gas, calendar and activity. **No cameras.** |
-| Touch | v2 was glance-only, with no interaction. **Since v3 (2026-10-01):** tap a card for its detail panel, tap the header to peek at the photo, and (0.4.0) tap ‹ or › during the peek to step through the photos. No controls that change house state (§8.10). |
+| Touch | Tap a card for its detail panel, tap the header to peek at the photo, and tap ‹ or › during the peek to step through the photos (v3; v2 was glance-only). No controls that change house state (§8.10). |
 | Identity | **HAku family, refined**: the Roku's smoked glass, sage, coral and warm ink. |
 | Typeface and icons | Barlow and a Material Design Icons subset, both bundled. Fire OS has no Play Services, so nothing is downloaded. |
 | Motion | Calm by default, one-shot on change (§8.6). |
@@ -473,7 +470,7 @@ The exact JSON shapes, glyph names, colours, sizes and timings are pinned in the
 
 | Token | Value | Use |
 |-------|-------|-----|
-| `ink` | `#FAF6EE` | Text. `inkMuted` is ink at 78% (72% until v3, see the glass notes below), `inkFaint` at 48% |
+| `ink` | `#FAF6EE` | Text. `inkMuted` is ink at 78% (see the glass notes below), `inkFaint` at 48% |
 | `night` | `#0C1211` | Scrim and glass base |
 | `sage` | `#5B8C7F` | Brand, live dot, default calendar dot, "arrived home" rows |
 | `coral` | `#D4673E` | **Alert only** (`severity: high` on value, doors and laundry cards) |
@@ -490,13 +487,13 @@ The exact JSON shapes, glyph names, colours, sizes and timings are pinned in the
 
 **Glass card**
 1. The frosted photo crop, aligned to the card's position in the root (§8.7).
-2. A `night` tint, tuned on the device for at least 4.5:1 contrast, or 7:1 for text of 32 sp or less. In v2 it was a fixed 55%. **Since v3** it follows the photo (below) and is 55% only when there is no photo.
+2. A `night` tint, tuned on the device for at least 4.5:1 contrast, or 7:1 for text of 32 sp or less. It follows the photo (below), and is 55% only when there is no photo.
 3. A 1 dp rim of ink at 8%, plus a top-edge highlight at 12%.
 4. Radius 20 dp. The glyph chip is 48 dp with a radius of 14 dp. Bars have a 3 dp radius.
 5. No elevation shadows, because they show through translucent glass.
 
 **Lighter glass (v3).** The frost already carries its slice of the scrim (§8.7), so the tint can be lighter than v2's.
-- `glassTint(luma)` (`ui/backdrop/Scrim.kt`) ramps the tint from 0.32 on a dark photo to 0.48 on a bright one, with the scrim's brightness: clamp((luma − 0.15) / 0.45). With no photo (an empty NAS) the glass sits on the plain `night` gradient and keeps 0.55.
+- `glassTint(luma)` (`ui/backdrop/Scrim.kt`) ramps the tint from 0.32 on a dark photo to 0.48 on a bright one, with the scrim's brightness: clamp((luma − 0.15) / 0.45). With no photo (backgrounds off, or an empty photo folder) the glass sits on the plain `night` gradient and keeps 0.55.
 - The tint cross-fades with the photo (`fadedGlassTint`), read in draw, so it lightens and darkens the way the scrim does.
 - `Modifier.glass` (`ui/cards/Glass.kt`) is the shared clip, frost, tint, rim and highlight. The cards and the detail panel (§8.10) both use it.
 - The frost is unchanged: the soft copy is still blurred at 8 (`SOFT_BLUR`).
@@ -517,7 +514,7 @@ The exact JSON shapes, glyph names, colours, sizes and timings are pinned in the
 | Detail, agenda meta | Medium 16 sp |
 | Card title | Medium 16 sp, sentence case |
 
-**Icons.** 37 single-path glyphs from Material Design Icons (the set HA uses, Apache-2.0), stored as path data in `ui/glyph/GlyphData.kt` and drawn by `ui/glyph/Glyphs.kt`. Each is parsed once into a cached `ImageVector`, with no icon library. Weather uses HA's condition-to-`weather-*` map, plus `clear-night` → `weather-night` and `exceptional` → `alert-circle-outline`. An unknown glyph falls back to a per-kind default, and with no default the card renders without one.
+**Icons.** 39 single-path glyphs from Material Design Icons (the set HA uses, Apache-2.0): 37 for the cards, rows and weather, plus the peek's `chevron-left` and `chevron-right`. They are stored as path data in `ui/glyph/GlyphData.kt` and drawn by `ui/glyph/Glyphs.kt`. Each is parsed once into a cached `ImageVector`, with no icon library. Weather uses HA's condition-to-`weather-*` map, plus `clear-night` → `weather-night` and `exceptional` → `alert-circle-outline`. An unknown glyph falls back to a per-kind default, and with no default the card renders without one.
 
 **Motion tokens.** Hand-written from the M3 springs: `effectsSlow = spring(1f, 800f)` for colour and alpha (never bounce), `spatialStandard = spring(0.9f, 700f)`, and tweens of 350 to 1,600 ms where exact timing matters.
 
@@ -565,12 +562,12 @@ Card content is drawn with `CompositingStrategy.ModulateAlpha`: the stale and of
 | Hero value changes | Only when the hero's shape changes: what is left once digits, `.` and `,` are removed ("Back open" → "All closed", "Washer 1m left" → "Washer done"). It then slides 12 dp and fades over 350 ms (`AnimatedContent`). A digit-only change ("1.1 kW" → "1.2 kW") swaps in place with no transition, so live readings that wobble between polls never move the wall |
 | New activity row | Enters at the top with an accent highlight (20%) that fades over 4 s |
 | Laundry LEDs | §4.4: breathing (stepped at 100 ms), bounce at 120 ms or 450 ms per step, violet sweep for a stale machine (150 ms per step). A pure `(mode, leds, t)` function. While the app is offline or the whole laundry card is stale, every bar holds its t = 0 frame (`ledAnimates`). A single machine with no data still sweeps on a live card, because there "no data" is news |
-| Photo rotation | The sharp and frosted layers cross-fade together over 1.6 s, every `background.intervalMs` (3 min live; never under 1 min). No Ken Burns and no zoom. Held while the peek shows (0.4.0) |
-| Night (`nightDim`) | Window brightness goes to the configured level, and the photos keep rotating (until v3 they faded out to plain `night` and rotation paused; v3 keeps them so the header peek works at any hour, 2026-10-01). Cards stay, so it is still glanceable. Schedule-based, because the tablet has no confirmed light sensor |
+| Photo rotation | The sharp and frosted layers cross-fade together over 1.6 s, every `background.intervalMs` (3 min live; never under 1 min). No Ken Burns and no zoom. Held while the peek shows |
+| Night (`nightDim`) | Window brightness goes to the configured level, and the photos keep rotating, so the header peek works at any hour. With no photo, the night fallback is plain `night`, without the daytime sage light. Cards stay, so it is still glanceable. Schedule-based, because the tablet has no confirmed light sensor |
 | Image retention | The whole UI layer (header and cards, not the backdrop) steps around a ±2 dp ring of 8 positions every 10 min through `Modifier.offset {}` (so `onPlaced` and the frost follow), with no animation |
 | Detail panel (v3) | Opens with a 250 ms clip reveal from the tapped card and closes the same way. One-shot, started by a tap (§8.10) |
 | Photo peek (v3) | The UI layer and the scrim fade out over 400 ms, and back in over 400 ms. One-shot, started by a tap (§8.10) |
-| Peek step (0.4.0) | A photo stepped to with ‹ or › cross-fades in 300 ms, not 1.6 s. One-shot, started by a tap (§8.10) |
+| Peek step | A photo stepped to with ‹ or › cross-fades in 300 ms, not 1.6 s. One-shot, started by a tap (§8.10) |
 
 **Pulse detection** is a pure function (`ui/model/Pulses.kt`), run by the ViewModel's poll loop through `PollTracker`.
 - `pulses(prev, next)` compares only **two consecutive successful polls**. `prev` is `null` after a failure or a cold start, which re-baselines.
@@ -583,15 +580,15 @@ Card content is drawn with `CompositingStrategy.ModulateAlpha`: the stale and of
 API 30 has no `RenderEffect`, so `Modifier.blur` and Haze can't blur here. The frost is faked from a pre-blurred copy of the photo, with no new dependencies.
 
 **Loader** (`ui/backdrop/BackdropLoader.kt`, in `viewModelScope`)
-- `combine(bgSettings, night)` feeds `collectLatest`.
+- The config's `background` settings feed `collectLatest`; a change restarts the rotation. The peek's `hold` keeps the timer from advancing (§8.10).
 - A `ShuffleBag` covers every image once per round with no immediate repeat. The list is refreshed every 10 min.
 - **Decode before swap.** Sharp is `1024×600 fit=cover`, decoded with `BitmapFactory` and `inPreferredConfig = HARDWARE` (falling back to ARGB_8888, never RGB_565). Soft is `256×150 fit=cover blur=8` as a software bitmap. The loader then emits `Photo(sharp, soft, luma)`.
 - `meanLuma` takes the larger of the whole frame and the header band.
-- **Failures:** a bad file keeps the current photo, and an empty NAS gives the gradient. Backoff is 1 to 5 min.
+- **Failures:** a bad file keeps the current photo, and an empty photo list gives the gradient. Backoff is 1 to 5 min.
 - No `recycle()`. Old pairs become unreachable and the GC frees their native memory. Add a delayed recycle only if the soak shows growth.
 
 **Backdrop** (`BackdropState.kt`, `Backdrop.kt`)
-- A `@Stable` holder with `front`, `back` and a single `fade: Animatable`, provided through `staticCompositionLocalOf`.
+- A `@Stable` holder with `front`, `back`, a single `fade: Animatable` and the peek's `veil`, provided through `staticCompositionLocalOf`.
 - One full-screen `drawWithCache` draws the fallback radial gradient, then `back`, then `front` at alpha p, then the scrim.
 - The scrim is a vertical `night` gradient whose alpha comes from a pure `scrimAlpha(luma)`: brighter photos get more. It runs from 0.40 to 0.75 at the top (behind the header) and from 0.25 to a ceiling of 0.40 at the bottom.
 - All animated reads happen in the **draw phase**, so cards never recompose during a cross-fade.
@@ -599,7 +596,7 @@ API 30 has no `RenderEffect`, so `Modifier.blur` and Haze can't blur here. The f
 **Frost** (`Modifier.frost(bd, origin, radius)`)
 - `onPlaced { positionInRoot }` feeds `drawWithCache`.
 - Clipped to the round rect, it draws the matching `srcOffset`/`srcSize` region of each soft bitmap (`FilterQuality.Low`), scaled to the card.
-- It then draws its own slice of the backdrop scrim over that, so the glass is as dark as the backdrop around it. Measured on the worst photo, this took ink-on-glass contrast from 3.9:1 to 7.8:1. The card's `night` tint goes on top (§8.3: 0.32 to 0.48 with a photo since v3, 0.55 in v2 and with no photo).
+- It then draws its own slice of the backdrop scrim over that, so the glass is as dark as the backdrop around it. Measured on the worst photo, this took ink-on-glass contrast from 3.9:1 to 7.8:1. The card's `night` tint goes on top (§8.3: 0.32 to 0.48 with a photo, 0.55 with none).
 - The source rect is in quarter-scale pixels, an error that is invisible under the blur.
 
 ### 8.8 Sidecar changes for v2
@@ -634,6 +631,7 @@ The work is additive and ships in three small deploys, each followed by a Roku c
 - `cover` centre-crops to the exact w×h. The Roku keeps `contain`. `blur` is a Gaussian radius clamped to 0 to 40, applied after resizing.
 - Decoding uses `Image.draft` so the 12 MP drone files decode quickly (about 0.13 s each), and `ImageOps.exif_transpose` fixes orientation.
 - The directory listing is cached against the directory's `st_mtime`. An empty or unmounted directory returns `images: []`, not an error.
+- The tablet's layout first read the NAS folder directly through a layout `background.dir`; since 2026-10-07 no layout sets one, and every display reads the `HAKU_BG_DIR` mirror (§8.1).
 - The NAS folder was seeded on 2026-09-30 with 42 images: one or two per day of Drone footage, re-encoded as 2560 px JPEGs (about 48 MB). The user prunes it later.
 
 ### 8.9 Budgets and checks
@@ -647,7 +645,7 @@ The work is additive and ships in three small deploys, each followed by a Roku c
   - With the house quiet, two 60 s windows rendered 8 and 9 frames (about 0.15 fps), within the quiet-frames budget above.
   - A photo cross-fade draws 94 to 99 frames over its 1.6 s. That is a frame on every vsync, but each takes two to three vsync periods to complete, so `gfxinfo` counts all of them janky (p90 30 to 46 ms).
   - The APK is 1.96 MB (debug: 24.7 MB).
-  - A water meter flapping between 0.0 and 0.4 L/min turns the Water card on and off two or three times a minute, at 254 to 808 frames per minute. Since 0.2.0 the re-pulse cooldown (§8.6) rings only the first start of such a run, but the accent still fades on every flip. Debouncing `active` in the sidecar would quiet it fully (§7).
+  - A water meter flapping between 0.0 and 0.4 L/min turns the Water card on and off two or three times a minute, at 254 to 808 frames per minute. The re-pulse cooldown (§8.6) rings only the first start of such a run, but the accent still fades on every flip. Debouncing `active` in the sidecar would quiet it fully (§7).
 - **Measured on 2026-10-01, v3 (0.3.0)** (release build on the wall; the full table is in the README):
   - PSS is 51.0 MB at rest, 63.7 MB after 20 panel opens and 62.0 MB after 10 peeks. After 40 more opens it read 72.2 MB, then 68.4 MB, and it settled at 64.8 MB after a minute idle (Java heap 11.7 MB, native 21.3 MB, graphics 14.4 MB). That is within the 95 MB budget and not climbing. A 24 h soak is still to do.
   - A panel left open while the house is quiet drew 3 frames in 30 s.
@@ -660,7 +658,7 @@ The work is additive and ships in three small deploys, each followed by a Roku c
 
 ### 8.10 Touch: detail panels and photo peek (v3, 2026-10-01)
 
-v3 adds touch. It supersedes the glance-only lines in §1 and §8.1. The wall still has no controls that change house state: a tap opens a panel, closes it, peeks at the photo, or (0.4.0) steps the peek's photo. The JSON shapes (`/api/detail`, rate tiles), the tone keys and the timings are in the [v3 contract](../superpowers/specs/2026-10-01-tablet-v3-details-contract.md); if this section and the contract disagree on a value, the contract wins. The build steps are in the [v3 plan](../superpowers/plans/2026-10-01-tablet-v3-details.md).
+v3 adds touch. It supersedes the glance-only lines in §1 and §8.1. The wall still has no controls that change house state: a tap opens a panel, closes it, peeks at the photo, or steps the peek's photo. The JSON shapes (`/api/detail`, rate tiles), the tone keys and the timings are in the [v3 contract](../superpowers/specs/2026-10-01-tablet-v3-details-contract.md); if this section and the contract disagree on a value, the contract wins. The build steps are in the [v3 plan](../superpowers/plans/2026-10-01-tablet-v3-details.md).
 
 **Rule: an overlay never hides an alert, and always closes by itself.** The panel closes after 90 s and the peek ends after 30 s, and any ALERT pulse closes both. The wall always goes back to the glance.
 
@@ -671,7 +669,7 @@ A tap on a card opens a full-width glass panel over the card grid. The panel cov
 | Part | Behaviour |
 |------|-----------|
 | Reveal | The panel grows from the tapped card's rect with a draw-phase clip reveal: 250 ms, `FastOutSlowIn`, the same on close. The panel is placed once, at its final rect, and only the clip animates, so nothing re-lays-out per frame and the frost (`positionInRoot`) stays aligned. |
-| Grid fade | The grid fades out underneath: alpha = 1 − reveal, through `graphicsLayer` with `CompositingStrategy.ModulateAlpha` (no offscreen buffer). With no photo (backgrounds off, an empty NAS) there is no frost, which would let the cards show through the panel; the fade means nothing does. |
+| Grid fade | The grid fades out underneath: alpha = 1 − reveal, through `graphicsLayer` with `CompositingStrategy.ModulateAlpha` (no offscreen buffer). With no photo (backgrounds off, an empty photo folder) there is no frost, which would let the cards show through the panel; the fade means nothing does. |
 | Content fade | The panel's content fades in over the last 60% of the reveal. |
 | Glass | `Modifier.glass` (§8.3), the same as a card. The panel sits inside the burn-in-shifted UI layer (§8.6), so it moves with the cards and the frost follows. |
 | Panel header | The module glyph and title, and "Tap to close". When the card is holding a stale value it also says "Live data unavailable · as of h:mm a" in amber. The live card (5 s polls) only fills the body: its hero, sub and detail show big while the detail loads, or for good when the module has no detail. |
@@ -714,11 +712,11 @@ A tap on the header (the clock and date bar) fades the UI layer and the backdrop
 | Part | Behaviour |
 |------|-----------|
 | Ends on | Any tap outside the ‹ › buttons, Back, 30 s after the peek started or was last stepped, the photo going away, or any ALERT pulse. The UI and the scrim fade back over 400 ms |
-| No photo | With backgrounds off or an empty NAS a header tap does nothing. Photos keep rotating through the night window, so the peek works at any hour |
+| No photo | With backgrounds off or an empty photo folder a header tap does nothing. Photos keep rotating through the night window, so the peek works at any hour |
 | Panel open | A header tap closes the panel instead of peeking. The rule is the pure `headerTapAction(detailOpen, peeking, hasPhoto)` |
 | Opening a panel | Ends any peek |
 
-**Browsing the photos (0.4.0, 2026-10-05).** While the peek shows, a ‹ button sits on the left edge and a › on the right, centred vertically. Each is a 56 dp smoked-glass disc (`night` at 45 %) with an `ink` MDI chevron, in a 72 dp touch target. They fade with the peek (`veil`, read in draw).
+**Browsing the photos.** While the peek shows, a ‹ button sits on the left edge and a › on the right, centred vertically. Each is a 56 dp smoked-glass disc (`night` at 45%) with a 36 dp `ink` MDI chevron, in a 72 dp touch target, inset by the 12 dp margin. They fade with the peek (`veil`, read in draw).
 
 | Part | Behaviour |
 |------|-----------|

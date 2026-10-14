@@ -12,7 +12,7 @@
 #        - event=launch                         channel booted
 #        - event=route to=home                  boots to the card grid (default route)
 #        - event=route ... to=live              ECP takeover routed to a camera
-#                                               (re-verifies the severity cam-swap path)
+#                                               (via focusModule=, not the cam=+severity= branch)
 #        - event=stream_start cam=...           live HLS actually started
 #        - >=2 event=cam_switch cam=...         carousel responds to Right
 #        - >=3 distinct event=overlay_show kind=...   overlay layer alive

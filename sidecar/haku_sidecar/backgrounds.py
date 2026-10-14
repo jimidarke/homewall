@@ -6,8 +6,8 @@ sorted list of image names (the Roku rotates through them on a config interval) 
 serves each one as an exact w x h JPEG so a client only ever fetches a correctly-sized
 image (no on-device scaling).
 
-Two fits: `contain` (the default, what the Roku uses) letterboxes onto black; `cover`
-(the kitchen tablet) fills w x h and centre-crops. `blur` softens the photo.
+Two fits: `contain` (the default; Roku channels before 0.13 use it) letterboxes onto
+black; `cover` (the tablet and current Roku channels) fills w x h and centre-crops. `blur` softens the photo.
 
 BG_DIR is resolved AT REQUEST TIME from HAKU_BG_DIR (default /etc/haku/backgrounds)
 so tests can monkeypatch the env var without re-importing the module. A display layout

@@ -13,8 +13,8 @@ android {
         applicationId = "io.haku.tablet"
         minSdk = 30          // Fire OS 8 (Fire 7 KFQUWI) is API 30
         targetSdk = 34
-        versionCode = 4
-        versionName = "0.4.0"
+        versionCode = 5
+        versionName = "1.0.0"
 
         // Sidecar base URL. The tablet is LAN-only (iot); nserver hosts haku-sidecar.
         buildConfigField("String", "SIDECAR_BASE", "\"http://192.0.2.20:1986\"")

@@ -1,4 +1,4 @@
-' OverlayLayer — info-overlay framework (v0.5).
+' OverlayLayer — info-overlay framework.
 '
 ' Public API:
 '   show(params)    — render an overlay; params is the parsed ECP /input map.

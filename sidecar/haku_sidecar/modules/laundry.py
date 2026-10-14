@@ -1,7 +1,7 @@
 """Laundry module: the kitchen laundry notifier (esp-laundry) as tablet data.
 
-Tablet-layout module only; no Roku layout has it and there is no `render_icon` (the
-tablet draws the LED bar itself). All the state logic lives in HA's laundry package;
+Layout-only module, defined in the tablet layout (the Roku layout reuses it through a
+`tablet:` ref); there is no `render_icon` (each client draws the LED bar itself). All the state logic lives in HA's laundry package;
 like the ESPs, this module MIRRORS those sensors and never re-derives them. Per machine
 `m` (descriptor `machines[]`: {id, label, color, glyph?, entities?}) it reads, by the
 package's naming convention:

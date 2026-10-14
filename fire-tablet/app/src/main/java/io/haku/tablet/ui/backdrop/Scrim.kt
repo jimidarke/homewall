@@ -33,7 +33,7 @@ private const val BOTTOM_MAX = 0.40f
 private const val GLASS_MIN = 0.32f
 private const val GLASS_MAX = 0.48f
 
-/** The tint with no photo behind the glass (backgrounds off, an empty NAS, no config yet): v2's smoked glass. */
+/** The tint with no photo behind the glass (backgrounds off, no photos, no config yet): v2's smoked glass. */
 private const val GLASS_NO_PHOTO = 0.55f
 
 /** Where [luma] sits between [DARK] (0) and [BRIGHT] (1), clamped. An unknown (NaN) luma counts as bright. */

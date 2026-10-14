@@ -19,7 +19,7 @@ from pathlib import Path
 MDI_VERSION = "7.4.47"
 CDN = f"https://cdn.jsdelivr.net/npm/@mdi/svg@{MDI_VERSION}"
 
-# Contract section 2.1, in table order, then the photo peek's chevrons (0.4.0, DESIGN section 8.10).
+# Contract section 2.1, in table order, then the photo peek's chevrons (DESIGN section 8.10).
 GLYPHS = [
     # Doors
     "door-open", "door-closed", "door",

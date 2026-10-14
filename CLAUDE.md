@@ -17,6 +17,7 @@ Home Assistant is on mserver (`192.0.2.10`). The sidecar pulls from it; HA pushe
 - **The sidecar has two clients.** Any change to its JSON must keep the Roku (`sidecar/tests/test_roku_golden.py` guards its default output byte for byte) and the tablet (its fixture tests in `fire-tablet/app/src/test/resources/`) working.
 - **Deployed code can drift ahead of the repo.** nserver gets manual per-file copies. Before deploying, diff what's on the server against the repo for every file you'll touch (`sidecar/CLAUDE.md` § Deploy).
 - **Secrets never land in the repo**: `/etc/haku/haku.env` (HA token) and `/etc/haku/cam-creds.env` (camera creds) live on nserver only, and `/etc/haku/dashboard.json` is the live config (`sidecar/dashboard.json.example` is the template).
+- **Versions:** each part carries its own version; all were 1.0.0 at the `v1.0.0` tag. Where each lives: `README.md`.
 - Docs under `docs/superpowers/` are historical records of finished work and keep the paths they were written with (see its `README.md`).
 - Machine-local setup per part: `sidecar/.venv` (see `sidecar/CLAUDE.md`), `roku/node_modules` (`npm ci`), `fire-tablet/local.properties`. None are committed.
 

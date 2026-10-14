@@ -1,4 +1,4 @@
-' HAku — render-thread helpers for the glass home (v0.11). They touch SceneGraph
+' HAku — render-thread helpers for the glass home. They touch SceneGraph
 ' nodes, so they live apart from Config.brs's pure, unit-tested helpers.
 
 ' Tint a white Poster: blendColor carries the RGB, opacity the colour's alpha byte

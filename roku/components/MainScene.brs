@@ -679,7 +679,7 @@ end sub
 
 ' Auto-takeover: a camera module (or cam=) takes the screen live, then returns home
 ' after a TTL (unless the user is already on a self-chosen route). Any other module
-' only lights its card on the read-only home wall (v0.11): no drill-down.
+' only lights its card on the read-only home wall: no drill-down.
 sub takeoverModule(id as string, e as object)
     md = moduleById(id)
     cam = e.cam

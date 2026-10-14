@@ -23,9 +23,9 @@ import kotlin.random.Random
 data class BgSettings(val enabled: Boolean, val intervalMs: Long)
 
 /**
- * Rotates the NAS photos behind the cards. [photo] is the current one, or null for the plain gradient
- * (no config yet, backgrounds disabled, or an empty NAS folder). Photos keep rotating through the night
- * window (v3: the window only dims the screen), so the header's photo peek works at any hour.
+ * Rotates the sidecar's photos behind the cards. [photo] is the current one, or null for the plain gradient
+ * (no config yet, backgrounds disabled, or no photos). Photos keep rotating through the night
+ * window (the window only dims the screen), so the header's photo peek works at any hour.
  *
  * The photos shown make a reel: the last [HISTORY_MAX] names, with a cursor on the current one. [step] moves
  * the cursor (the peek's back and forward buttons): back retraces the reel, and forward past its end deals

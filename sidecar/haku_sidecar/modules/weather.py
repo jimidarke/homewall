@@ -102,7 +102,7 @@ def values(ha, descriptor):
         "detail": _tile_detail(out),
         "severity": "normal",
         "icon": condition or "",
-        "glyph": glyphs.weather_glyph(condition),    # tablet-only; the Roku ignores it
+        "glyph": glyphs.weather_glyph(condition),    # pre-0.11 Roku channels ignore it
         "active": False,
     }
     # The Roku's 3-day forecast strip (opt-in per layout entry): the detail panel's

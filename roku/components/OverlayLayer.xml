@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <!--
-  OverlayLayer — v0.5 info-overlay framework.
+  OverlayLayer — info-overlay framework.
 
   Five overlay kinds, four on-screen zones:
     door / text   → topBanner zone (720×120 scrim card, top-centre below toast)

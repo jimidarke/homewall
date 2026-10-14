@@ -2,7 +2,7 @@
 
 The data + rendering half of HAku's server side. Runs on **nserver (192.0.2.20)**
 alongside the existing stream stack (`go2rtc` + `haku-hls@` + `haku-discovery`), and
-gives the Roku channel everything that isn't a camera stream:
+gives the Roku channel and the tablet everything that isn't a camera stream:
 
 - **`GET /api/config`** — the portable module descriptors from `dashboard.json`. This is
   the one place a HAku install is bound to its Home Assistant entities; edit it to add,
@@ -30,10 +30,10 @@ gives the Roku channel everything that isn't a camera stream:
     re-renders only when the chart's data changes.
 - **`GET /api/icon/<module_id>.png?w=&h=&v=`** — a small (default 96×96) home-tile accent
   icon (Pillow only — no matplotlib): a Font Awesome glyph for weather's condition, and
-  hand-drawn gauge shapes for energy's/water's live fill level. 404s for a module with no
-  icon (calendar/timeline/cameras) or with no data yet. Unlike chart cards, `v=` here is a
-  **bucketed** value computed by the module (condition string, or a 5%-stepped fill
-  percentage) — it only changes when the icon would actually look different, so a Roku
+  hand-drawn gauge shapes for energy's, water's and gas's live fill level. 404s for a module
+  with no icon (climate, calendar, timeline, cameras, doors, laundry) or with no data yet.
+  Unlike chart cards, `v=` here is a **bucketed** value computed by the module (condition
+  string, or a 5%-stepped fill percentage) — it only changes when the icon would actually look different, so a Roku
   polling every 10-30s doesn't re-fetch an unchanged icon every time.
 - **`GET /api/backgrounds`** — the rotating background roster: `{"images":[{"name","url"}]}`,
   sorted deterministically (= rotation order). Each `url` is absolute (same base the
@@ -46,11 +46,12 @@ gives the Roku channel everything that isn't a camera stream:
 - **`GET /api/health`** — liveness + HA connection status (`ha.url`, `ha.token_present` —
   never the token value).
 - **`?layout=<name>`** on config/state/module/detail/card/icon serves another display's own module
-  set from the `layouts` map (see [Layouts](#layouts)); without it the Roku view is unchanged.
-  On backgrounds/background it selects that layout's own image directory.
+  set from the `layouts` map (see [Layouts](#layouts)); without it they serve the default view.
+  On backgrounds/background it reads that layout's own image directory, if it sets one
+  (see [Backgrounds](#backgrounds)).
 
 A single background poller (`ha.HAClient`) refreshes HA state on an interval (default
-10 s), so N Rokos polling the sidecar cost Home Assistant **one** `/api/states` call per
+10 s), so N displays polling the sidecar cost Home Assistant **one** `/api/states` call per
 interval regardless of fleet size. Forecast data (which HA no longer exposes as a
 `forecast` attribute) is fetched on demand via the `weather.get_forecasts` service and
 cached per entity and forecast type. The detail panels' history (REST
@@ -73,14 +74,15 @@ HA entities. A module descriptor:
 }
 ```
 
-`tile.type` ∈ `value | chart | image | camera | agenda` selects the Roku renderer;
+`tile.type` ∈ `value | chart | image | camera | agenda | forecast` selects the Roku renderer;
 `entities` is the HA binding. Unknown kinds/types render a neutral tile (forward-compat).
 
 ### Tile keys
 
 Every value module's `/api/state` entry carries a `tile` object, and the sidecar owns all
-of its formatting. The Roku reads `hero`, `sub`, `detail`, `severity` and `icon`; the
-kitchen tablet also reads the three keys below. They are additive, so the Roku ignores them.
+of its formatting. Every client reads `hero`, `sub`, `detail`, `severity` and `icon`; the
+tablet and the wall Rokus (`?layout=roku`) also read the three keys below. They are additive,
+so Roku channels before 0.11 (the default view) ignore them.
 
 | key | type | meaning |
 |---|---|---|
@@ -100,13 +102,15 @@ kitchen tablet also reads the three keys below. They are additive, so the Roku i
 | doors | `door-open` if any door is open, else `door-closed` | any door open | none |
 | laundry | `washing-machine` | any machine running, in overtime or done | none |
 
-`climate` still has no `icon`.
+`climate` has no `icon`.
 
 **`stale`.** A value module (weather, energy, water, gas, climate) reports `stale: true`
 whenever its tile hero is a placeholder (starts with `--`, such as `-- L` or `--°`), so the
-tablet can grey the card and hold its last good value. The Roku never reads `stale`.
+tablet and the wall Rokus can grey the card and hold its last good value. Roku channels
+before 0.11 ignore it.
 
-**`tileStyle: "rate"`** (water, energy and gas; the tablet layout sets it) words the tile as
+**`tileStyle: "rate"`** (water, energy and gas; the tablet layout sets it, and the Roku layout
+inherits it through its `tablet:` refs) words the tile as
 "now · today · cost". Without it the tile is unchanged.
 
 | module | hero | sub | detail |
@@ -122,11 +126,12 @@ exactly when the hero's source (flow or power) is missing. `glyph`, `active`, `l
 
 **Water `runningSeverity`.** The descriptor key `runningSeverity` (`low`, `normal` or `high`;
 default `high`) is the `severity` reported while water is running. Idle is always `normal`.
-The default is the Roku's behaviour. The tablet layout sets `"normal"`, so a running tap
-doesn't read as an alert.
+The default view keeps `high`. The tablet layout sets `"normal"` (the Roku layout inherits it
+through `tablet:water`), so a running tap doesn't read as an alert.
 
 **Timeline item `glyph`.** An event item in `/api/state` may carry an MDI `glyph`, derived from
 the same device class and state as the item's `sub`. An event with no mapping has no `glyph` key.
+The timeline descriptor's `entities.glyphs` (`{entity_id: glyph}`) overrides it per entity.
 
 | event | `glyph` |
 |---|---|
@@ -140,7 +145,7 @@ the same device class and state as the item's `sub`. An event with no mapping ha
 The top-level `modules` list is the default view (what Roku channels before 0.11 read).
 An optional top-level `layouts` map gives each display its own module set. A client
 selects one by adding `?layout=<name>` to `/api/config`, `/api/state`,
-`/api/module/<id>`, `/api/card/<name>.png` or `/api/icon/<id>.png`. The kitchen tablet
+`/api/module/<id>`, `/api/detail/<id>`, `/api/card/<name>.png` or `/api/icon/<id>.png`. The kitchen tablet
 uses `?layout=tablet` and the wall Rokus (0.11+) use `?layout=roku`; see the `layouts`
 blocks in `dashboard.json.example`.
 
@@ -187,9 +192,8 @@ blocks in `dashboard.json.example`.
   - An unknown layout returns `404 {"error": "unknown layout", "layout": …}`.
   - A `ref` that names no module (or a qualified ref naming no layout or entry, or one
     that chains) returns `404 {"error": "unknown ref", "ref": …}` for that layout only.
-- **Without `?layout=`, nothing changes.** `/api/config` serves the file minus
-  `layouts`, so the Roku's ~16 KB config cache never sees it. No discovery schema bump
-  is needed.
+- **Without `?layout=`, the default view.** `/api/config` serves the file minus
+  `layouts`, so a pre-0.11 channel's ~16 KB config cache never sees it.
 
 ### The Roku layout (`layouts.roku`)
 
@@ -221,7 +225,8 @@ r3   Weather    Thermo   [          ]   [ 3-day +  ]
 
 ### Doors and laundry (tablet layout)
 
-Two kinds exist only for the kitchen tablet's layout. Neither has an `icon` PNG or a card.
+Two layout-only kinds, defined in the tablet's layout and reused by the Roku layout through
+`tablet:` refs. Neither has an `icon` PNG or a card.
 
 **`doors`.** Descriptor: `entities.doors[]` of `{id, entity, label}` (binary_sensor
 contacts), `openAlertSec` (default 300) and `lookbackHours` (default 12, the timeline's,
@@ -275,8 +280,8 @@ id, and `entities` overrides any of them by key:
 
 `GET /api/detail/<id>?layout=tablet` answers for the kinds with a `detail()`: `water`,
 `energy`, `gas`, `climate`, `weather`, `laundry` and `doors`. The JSON shape, block types,
-caps and tones are the shared contract in the tablet repo,
-`docs/superpowers/specs/2026-10-01-tablet-v3-details-contract.md`
+caps and tones are the shared contract,
+`../docs/superpowers/specs/2026-10-01-tablet-v3-details-contract.md`
 (§1); this sidecar is its source of truth for the data.
 
 ```json
@@ -323,7 +328,7 @@ out). A `ref`'s `entities` replaces the top-level map, so each entry repeats it 
 | energy | `power`, `daily_energy`, `cost`, `monthly`, `monthly_cost`, `stat_usage` (`sensor.emporia_total_daily_energy_kwh`), `stat_cost` (its `_cost`) |
 | gas | `flow`, `daily`, `cost_today`, `monthly`, `monthly_cost`, `stat_usage` (`sensor.gas_meter_gas_meter_direct`), `stat_cost` (its `_cost`) |
 | climate | `thermostat`, `indoor_temp` (`sensor.my_ecobee_temperature`), `outdoor_temp` (`sensor.edmonton_weather_temperature`) |
-| weather | `forecast` (`weather.edmonton_forecast`), `outdoor_temp` (`sensor.edmonton_weather_temperature`), `sun` (`sun.sun`), `wind_chill` (`sensor.edmonton_weather_wind_chill`; leave it out and the Feels like row goes). `wind_speed` (`sensor.edmonton_weather_wind_speed`) fills in when the weather entity has no speed: EnvCan leaves it empty when calm, and a 0 shows as "Calm". `forecast`, `outdoor_temp`, `sun` and `wind_speed` default to those entities when missing. `precip` is no longer read (EnvCan's chance-of-precipitation sensor is usually `unknown`; the forecast rows carry the chance) |
+| weather | `forecast` (`weather.edmonton_forecast`), `outdoor_temp` (`sensor.edmonton_weather_temperature`), `sun` (`sun.sun`), `wind_chill` (`sensor.edmonton_weather_wind_chill`; leave it out and the Feels like row goes). `wind_speed` (`sensor.edmonton_weather_wind_speed`) fills in when the weather entity has no speed: EnvCan leaves it empty when calm, and a 0 shows as "Calm". `forecast`, `outdoor_temp`, `sun` and `wind_speed` default to those entities when missing. `precip` is not read (EnvCan's chance-of-precipitation sensor is usually `unknown`; the forecast rows carry the chance) |
 | laundry, doors | their existing keys |
 
 `dashboard.json.example`'s `layouts.tablet` has the full entries. Statistics are read with
@@ -339,8 +344,8 @@ admin rights (the `recorder.get_statistics` service does).
    and/or an optional `detail(ha, descriptor, now)` returning `{"blocks": [...], "note"?}`
    (built with `haku_sidecar/blocks.py` and the pure helpers in `haku_sidecar/history.py`);
    register it in `modules/__init__.MODULES`.
-3. Add the kind to the Roku's `HK_MODULE_KINDS()` (and a tile sub-renderer only if it's a
-   novel `tile.type`). A kind that only a non-Roku layout uses, like `laundry`, skips this.
+3. Add the kind to the Roku's `HK_MODULE_KINDS()` (`../roku/source/Config.brs`), and a tile
+   sub-renderer only if it's a novel `tile.type`. A kind that only the tablet shows skips this.
 
 ## Backgrounds
 
@@ -367,11 +372,11 @@ sudo systemctl daemon-reload && sudo systemctl start haku-bg-sync.service   # fi
 sudo systemctl enable --now haku-bg-sync.timer
 ```
 
-**Per-layout directories** (supported, unused since the mirror). A layout can read its
+**Per-layout directories** (supported, unused). A layout can read its
 photos from its own directory with `layouts.<name>.background.dir`, for example an NFS
 mount. `/api/backgrounds?layout=tablet` then lists that directory, and each listed `url`
 carries `?layout=tablet` so it is served from there too. Without `?layout=`, or when the
-layout has no `dir`, `HAKU_BG_DIR` applies as before. An unknown layout is a 404. The
+layout has no `dir`, `HAKU_BG_DIR` applies. An unknown layout is a 404. The
 `dir` itself is never serialized into `/api/config`.
 
 A layout `dir` can be a `hard` NFS mount, where a dropped NAS blocks `stat()` and `open()`
@@ -404,13 +409,13 @@ Sources are decoded with Pillow's JPEG draft mode (a 12 MP photo is decoded at a
 scale) and an EXIF orientation is applied before resizing, so a sideways
 photo comes out upright. JPEGs in MPO form (some drone cameras write them) are read as
 their main frame. Rendered images are cached in memory, keyed by directory, file, mtime,
-size, fit and blur. It is least-recently-used with room for 160 renders, enough for the
+output size (`w`×`h`), fit and blur. It is least-recently-used with room for 160 renders, enough for the
 whole photo set at every client size (42 photos × 3 sizes, about 25 MB), so past the cap
 only the oldest render goes. A directory's listing is cached against the directory's mtime, so a call costs one
 `stat` until a photo is added or removed.
 
 `sidecar/backgrounds/*` in the repo is the **seed set** for a fresh install without the
-NAS mirror (the live wall no longer uses it) — copy it into `HAKU_BG_DIR`:
+NAS mirror (the live displays read the mirror instead) — copy it into `HAKU_BG_DIR`:
 
 ```bash
 sudo install -d -o media -g media /etc/haku/backgrounds
@@ -431,7 +436,7 @@ sudo install -d -o media -g media /opt/haku/sidecar
 sudo cp -r haku_sidecar /opt/haku/sidecar/
 python3 -m venv /opt/haku/sidecar/venv
 /opt/haku/sidecar/venv/bin/pip install -r requirements.txt   # includes websocket-client
-sudo install -D -m600 dashboard.json.example /etc/haku/dashboard.json   # then edit
+sudo install -D -m644 dashboard.json.example /etc/haku/dashboard.json   # then edit (must be readable by media)
 sudo install -D -m640 -o root -g media /dev/stdin /etc/haku/haku.env <<'ENV'
 HAKU_HA_URL=http://192.0.2.10:8123
 HAKU_HA_TOKEN=<rokuapp long-lived token>
@@ -444,10 +449,14 @@ sudo systemctl daemon-reload && sudo systemctl enable --now haku-sidecar
 ```
 
 ### Docker (portable escape hatch)
+
+Not used on nserver, which runs the systemd unit above.
+
 ```bash
 docker build -t haku-sidecar .
 docker run -d --restart=always --network host --env-file /etc/haku/haku.env \
-  -v /etc/haku/dashboard.json:/etc/haku/dashboard.json:ro --name haku-sidecar haku-sidecar
+  -v /etc/haku/dashboard.json:/etc/haku/dashboard.json:ro \
+  -v /etc/haku/backgrounds:/etc/haku/backgrounds:ro --name haku-sidecar haku-sidecar
 ```
 
 ## Environment
@@ -458,7 +467,7 @@ docker run -d --restart=always --network host --env-file /etc/haku/haku.env \
 | `HAKU_HA_TOKEN` | — | long-lived token (`rokuapp`); never logged, never in the repo |
 | `HAKU_POLL_INTERVAL` | `10` | seconds between HA `/api/states` refreshes |
 | `HAKU_SIDECAR_HTTP_PORT` | `1986` | HTTP listen port |
-| `HAKU_SIDECAR_BASE` | derived LAN IP | base URL advertised to the Roku in `/api/config` |
+| `HAKU_SIDECAR_BASE` | derived LAN IP | base URL advertised to clients in `/api/config`'s `sidecar` block and the `/api/backgrounds` urls |
 | `HAKU_CONFIG` | `/etc/haku/dashboard.json` | dashboard config path |
 | `HAKU_BG_DIR` | `/etc/haku/backgrounds` | directory of rotating background images, mirrored from the NAS by `haku-bg-sync` (a layout's `background.dir` overrides it for `?layout=`) |
 
@@ -472,10 +481,10 @@ every detail chart reads "History unavailable".
 ## Tests
 
 ```bash
-python -m pytest tests -q          # no HA/network needed (FakeHA fixtures)
+.venv/bin/python -m pytest tests -q          # no HA/network needed (FakeHA fixtures)
 ```
 
 `tests/test_roku_golden.py` pins the default (Roku) `/api/config` and `/api/state` byte for
 byte against `tests/golden/`, built from `dashboard.json.example` with a frozen clock.
 Regenerate them only for a change the Rokus should see:
-`HAKU_UPDATE_GOLDEN=1 python -m pytest tests/test_roku_golden.py`.
+`HAKU_UPDATE_GOLDEN=1 .venv/bin/python -m pytest tests/test_roku_golden.py`.

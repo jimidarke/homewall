@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <!--
-  HomeGroup — the HAku home wall (v0.11): a read-only pane of glass ModuleTile cards
+  HomeGroup — the HAku home wall: a read-only pane of glass ModuleTile cards
   built from /api/config?layout=roku, fed values from /api/state. No focus and no
   key handling: keys bubble to MainScene (options opens diag, Back exits).
 

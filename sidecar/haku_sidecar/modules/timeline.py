@@ -211,7 +211,7 @@ def _to_item(r, now, glyphs=None):
     }
     glyph = ((glyphs or {}).get(r["eid"]) or r.get("glyph")
              or _glyph(r["state"], r["dclass"], r["eid"]))
-    if glyph:                                       # tablet-only; no mapping => key omitted
+    if glyph:                                       # no mapping => key omitted
         item["glyph"] = glyph
     return item
 

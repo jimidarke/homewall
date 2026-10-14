@@ -255,7 +255,7 @@ sub test_hkUptimeLabel()
     assertEq("days+hours",   hkUptimeLabel(90061000), "1d 1h")       ' 1d 1h 1m -> 1d 1h
 end sub
 
-' --- v0.11 glass home --------------------------------------------------------
+' --- glass home --------------------------------------------------------------
 
 sub assertFrame(label as string, got as object, want as object)
     ' Brightnesses compared at 2 dp (BrightScript floats print with noise).

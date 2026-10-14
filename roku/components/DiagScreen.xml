@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <!--
-  DiagScreen — the `*` (options) diagnostic / status page (v0.7). Shown over the
+  DiagScreen — the `*` (options) diagnostic / status page. Shown over the
   rotating background from the home route; future home for settings / profiles.
   Three sections: Device (roDeviceInfo), Discovery (MainScene state), Home
   Assistant (sidecar /api/health). Back or `*` dismisses.

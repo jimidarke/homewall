@@ -1,8 +1,8 @@
 """Material Design Icons (MDI) glyph names for the tablet's tile `glyph` keys.
 
 The sidecar only names the glyph; the tablet draws it (it ships the path data for the
-set listed in the tablet contract). The Roku ignores `glyph`, so none of this touches
-its output. Per-module glyph rules live in each module next to the tile they describe;
+set listed in the tablet contract; the Roku channel draws the same set). Only layout views
+carry `glyph`, so none of this touches the default view's output. Per-module glyph rules live in each module next to the tile they describe;
 what is shared lives here: the HA weather-condition map and the fallback.
 """
 

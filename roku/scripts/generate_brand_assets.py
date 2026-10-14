@@ -232,7 +232,7 @@ def make_top_fade(w: int = 1920, h: int = 220) -> Image.Image:
 
 
 def emit_overlay_assets(logo: Image.Image) -> list[tuple[str, str]]:
-    """Bake the v0.5 overlay surfaces. Returns (name, size-bytes) for each."""
+    """Bake the overlay surfaces. Returns (name, size-bytes) for each."""
     out: list[tuple[str, str]] = []
 
     # Scrim card — door banner + text banner. 80% alpha matches HW_BG_SCRIM.

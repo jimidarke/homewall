@@ -1,7 +1,7 @@
 """Doors module: open/closed per door contact, with how long it has been that way.
 
-Tablet-layout module (the Roku's HK_MODULE_KINDS reserves `doors` but no Roku layout
-uses it yet). Descriptor:
+Layout-only module, defined in the tablet layout; the Roku layout reuses it through a
+`tablet:` ref. Descriptor:
   entities.doors[]  {id, entity, label}: one binary_sensor contact per door
   openAlertSec      a door open longer than this is `high` (300)
   lookbackHours     logbook window for "since" (12, the timeline's, so the

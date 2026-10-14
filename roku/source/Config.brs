@@ -15,7 +15,7 @@ function HK_LIVE()        as string : return "0xD4673EFF" : end function
 function HK_WARN()        as string : return "0xD9A441FF" : end function
 function HK_OK()          as string : return "0x6B9080FF" : end function
 
-' --- Glass palette (v0.11, the tablet's v3 tokens; 0xRRGGBBAA) ------------
+' --- Glass palette (the tablet's v3 tokens; 0xRRGGBBAA) ------------------
 ' The home screen is the tablet's smoked glass without the frost: rounded 9-patch
 ' cards (images/glass/, scripts/gen_glass_assets.py) tinted night over the photo.
 ' HK_GLASS_PANEL / HK_TEXT_LIGHT_MUTED stay for the diag and drill screens.
@@ -70,7 +70,7 @@ function HK_STATE_POLL_MS()   as integer : return 10000  : end function  ' sidec
 function HK_IDLE_TO_HOME_MS() as integer : return 300000 : end function  ' user idle -> glance home
 function HK_RETURN_HOME_MS()  as integer : return 60000  : end function  ' after an auto-takeover
 
-' Rotating background gallery (v0.7). Interval is overridable per-install via
+' Rotating background gallery. Interval is overridable per-install via
 ' /api/config's `background.intervalMs`; hkBgRotateMs() resolves it with a floor.
 function HK_BG_ROTATE_MS()    as integer : return 20000 : end function  ' default dwell per image
 function HK_BG_ROTATE_MIN_MS() as integer : return 5000 : end function  ' floor (avoid decode thrash)
@@ -382,7 +382,7 @@ function hkUptimeLabel(ms as longinteger) as string
     return mins.toStr() + "m"
 end function
 
-' --- Glass home helpers (v0.11; ports of the tablet's pure functions) --------
+' --- Glass home helpers (ports of the tablet's pure functions) ---------------
 
 ' How fresh the last good /api/state is: "live" (<= 30 s), "lagging" (<= 2 min) or
 ' "offline". Never fetched (lastOkSec 0) is offline. Tablet: ui/Layout.kt freshness.

@@ -10,7 +10,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class GlyphsTest {
-    /** Contract section 2.1 (37), plus the photo peek's two chevrons (0.4.0, DESIGN §8.10). */
+    /** Contract section 2.1 (37), plus the photo peek's two chevrons (DESIGN §8.10). */
     private val contractGlyphs = listOf(
         "door-open", "door-closed", "door",
         "washing-machine", "tumble-dryer",

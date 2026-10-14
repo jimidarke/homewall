@@ -69,6 +69,6 @@ val LocalBackdrop: ProvidableCompositionLocal<BackdropState?> = staticCompositio
 
 /**
  * Alpha for [BackdropState.back] at fade [p]. Photos are opaque, so the back one stays at 1 and the front
- * fades in over it. Fading out to no photo (backgrounds off, an empty NAS) fades the back one out over the gradient.
+ * fades in over it. Fading out to no photo (backgrounds off, no photos) fades the back one out over the gradient.
  */
 internal fun backAlpha(front: Photo?, p: Float): Float = if (front == null) 1f - p else 1f
