@@ -1,5 +1,5 @@
 [Unit]
-Description=HAku HLS sidecar — deep 12s playlist for Roku
+Description=HAku HLS sidecar — mosaic, 3 × 2s window
 Documentation=man:ffmpeg(1) https://github.com/AlexxIT/go2rtc/issues/1699
 After=go2rtc.service network-online.target
 Requires=go2rtc.service
@@ -20,8 +20,14 @@ RuntimeDirectoryPreserve=yes
 # Why this exists: go2rtc's built-in HLS publishes only ~2 segments × 0.5s
 # = ~1s of buffer, which underflows the Roku player on any 500ms+ network
 # blip (AlexxIT/go2rtc#1699). This sidecar pulls the already-encoded H.264
-# stream from go2rtc's RTSP output and remuxes it as proper HLS with
-# 6 × 2s segments = 12s buffer. No re-encode (CPU≈0).
+# stream from go2rtc's RTSP output and remuxes it as proper HLS. No re-encode (CPU≈0).
+#
+# Window = latency: a Roku plays from the oldest segment in the playlist, so
+# 3 × 2s segments puts it ~5s behind live (6 × 2s was ~12s). Measured on all five
+# Rokus 2026-10-14: 3 × 2s holds with no stalls; 3 × 1s made the Express restart
+# its player and drift back. Segments only cut on keyframes, so a camera with a
+# longer GOP gets longer segments (yard: ~4s). hls_delete_threshold keeps 4
+# segments on disk after they leave the playlist, for a Roku that slips behind.
 ExecStart=/usr/bin/ffmpeg \
   -hide_banner -loglevel warning \
   -fflags +genpts -avoid_negative_ts make_zero \
@@ -29,7 +35,8 @@ ExecStart=/usr/bin/ffmpeg \
   -c copy -an \
   -f hls \
     -hls_time 2 \
-    -hls_list_size 6 \
+    -hls_list_size 3 \
+    -hls_delete_threshold 4 \
     -hls_flags delete_segments+omit_endlist+independent_segments \
     -hls_segment_type mpegts \
     -hls_segment_filename /run/haku-hls/seg_%%05d.ts \

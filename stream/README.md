@@ -17,7 +17,7 @@ hardcode IPs.
                                                                   ▼
                                                      ffmpeg remux (no re-encode) →
                                                      /run/haku-hls/mosaic.m3u8 + .ts
-                                                     (deep 12s rolling buffer; absorbs blips)
+                                                     (3 × 2s window, ~5s behind live)
                                                                   │
                                                                   ▼
                                        haku-discovery.service ── HTTP :1985 ──┐
@@ -38,7 +38,7 @@ hardcode IPs.
 |---|---|---|
 | `go2rtc.yaml` | `/etc/go2rtc/go2rtc.yaml` | Stream config — UVC source + Intel QSV encode + 4 per-cam streams (3 direct RTSP, `front` QSV-transcoded) |
 | `go2rtc.service` | `/etc/systemd/system/go2rtc.service` | go2rtc systemd unit, runs as `media` user; loads cred env file |
-| `haku-hls.service` | `/etc/systemd/system/haku-hls.service` | ffmpeg remux mosaic RTSP→deep HLS (legacy single-stream unit, kept for mosaic) |
+| `haku-hls.service` | `/etc/systemd/system/haku-hls.service` | ffmpeg remux mosaic RTSP→Roku HLS (legacy single-stream unit, kept for mosaic) |
 | `haku-hls@.service` | `/etc/systemd/system/haku-hls@.service` | **Templated** ffmpeg remux for per-cam streams — one instance per cam (`@front`, `@yard`, `@side`, `@backyard`) |
 | `haku-discovery.py` | `/opt/stream/haku-discovery.py` | SSDP responder + JSON capability + HLS file server (stdlib-only Python) |
 | `haku-discovery.service` | `/etc/systemd/system/haku-discovery.service` | systemd unit for discovery |
@@ -65,7 +65,7 @@ go2rtc publishes one stream per source. The mosaic is encoded locally; the
 per-cam streams are direct RTSP forwards from the cameras themselves, except
 `front`, whose HEVC PTZ lens is transcoded to H.264 the same way.
 
-| Stream | Origin | Codec/dims | Roku-deep HLS endpoint |
+| Stream | Origin | Codec/dims | Roku HLS endpoint |
 |---|---|---|---|
 | `mosaic` | NVR HDMI → USB → QSV-encoded H.264 | H.264 Main 4.0, 1920×1080 @ 20 fps | `:1985/hls/mosaic.m3u8` |
 | `front` | Genbolt PTZ lens @ 192.0.2.31 `/21` (HEVC 1080p15) → QSV transcode | H.264 Main 3.2, 1280×720 @ 15 fps | `:1985/hls/front.m3u8` |
@@ -81,6 +81,8 @@ Every stream additionally exposes:
 | **Discovery JSON** | `http://192.0.2.20:1985/discovery.json` | `schemaVersion` 2: all 5 streams (HLS/RTSP/MJPEG/snapshot URLs + metadata) and the sidecar base (`:1986`) |
 | **RTSP** | `rtsp://192.0.2.20:8554/<name>` | VLC, ffmpeg, HA `generic`/`stream`, NVRs |
 | **HLS shallow** | `http://192.0.2.20:1984/api/stream.m3u8?src=<name>` | Browsers, debugging (~1 s buffer; Roku underflows) |
+
+**Latency.** A Roku plays from the oldest segment in the playlist, so the window is the delay. The `haku-hls` units keep 3 segments of 2 s (cut on keyframes, so `yard`'s ~4 s GOP gives ~4 s segments) plus 4 more on disk for a Roku that slips behind. Measured 2026-10-14: `front`, `side` and `mosaic` play ~5 s behind live, `yard` ~11 s; the camera-to-nserver leg is under 1 s. 6 × 2 s was ~12 s. 3 × 1 s segments (`front` at GOP 15) gained only ~1 s and made the Kids Express restart its player and drift ~30 s behind, so 2 s stays.
 | **MJPEG** | `http://192.0.2.20:1984/api/stream.mjpeg?src=<name>` | HA legacy compat |
 | **WebRTC** | `http://192.0.2.20:1984/stream.html?src=<name>` | Sub-second-latency browser viewing |
 | **JPEG snapshot** | `http://192.0.2.20:1984/api/frame.jpeg?src=<name>` | HAku PIP, single-frame thumbnails |

@@ -36,7 +36,7 @@ Physical placement (confirmed 2026-05-08): .32 (HA's "Back Yard") is the Reolink
 **Camera pipeline on nserver (source of truth in `stream/`)**:
 - NVR HDMI-out → USB3.0 capture card on `/dev/v4l/by-id/usb-MACROSILICON_USB3.0_Video_67807015-video-index0` on nserver (Macrosilicon `345f:2131`, USB 3.0 SuperSpeed).
 - `go2rtc.service` runs go2rtc 1.9.x as the `media` user. The mosaic pulls 1920×1080 MJPEG @ 20 fps from the capture device and encodes via Intel Quick Sync (`h264_qsv`, Iris Plus G1) at H.264 Main L4.0 / `yuv420p` / GOP=40 (= 2 s) / no B-frames / 2.5 Mbps CBR. The four cameras are direct RTSP streams (front transcoded, see [Camera pipeline](#camera-pipeline-server-side-nserver)).
-- `haku-hls.service` (mosaic) and `haku-hls@<cam>.service` (one per camera) are `ffmpeg -c copy` remuxes of go2rtc's RTSP into a 6×2 s = **12 s** rolling HLS in `/run/haku-hls/` (tmpfs). Addresses go2rtc's known shallow-HLS underflow ([AlexxIT/go2rtc#1699](https://github.com/AlexxIT/go2rtc/issues/1699)) — the Roku consumes this, not the built-in HLS.
+- `haku-hls.service` (mosaic) and `haku-hls@<cam>.service` (one per camera) are `ffmpeg -c copy` remuxes of go2rtc's RTSP into a 3 × 2 s rolling HLS window in `/run/haku-hls/` (tmpfs). The Roku plays from the oldest listed segment, so the window is the latency: ~5 s behind live (`yard`, with a ~4 s camera GOP, ~11 s); measured 2026-10-14, see `stream/README.md`. Addresses go2rtc's known shallow-HLS underflow ([AlexxIT/go2rtc#1699](https://github.com/AlexxIT/go2rtc/issues/1699)) — the Roku consumes this, not the built-in HLS.
 - `haku-discovery.service` (Python, stdlib-only) runs an SSDP responder on UDP `239.255.255.250:1900` with ST=`urn:haku:service:dashboard:1`, plus an HTTP server on `192.0.2.20:1985` that serves both the capability JSON (schema v2, with a `sidecar` block pointing at `:1986`) and the deep-HLS files.
 - All endpoints below are served on `enp1s0` IP `192.0.2.20` (`<cam>` ∈ `mosaic`, `front`, `yard`, `side`, `backyard`):
 
@@ -44,7 +44,7 @@ Physical placement (confirmed 2026-05-08): .32 (HA's "Back Yard") is the Reolink
 |---|---|---|
 | SSDP discovery | multicast `239.255.255.250:1900` ST=`urn:haku:service:dashboard:1` | Roku auto-discovers — no hard-coded IP |
 | Capability JSON | `http://192.0.2.20:1985/discovery.json` | Versioned payload: per-stream RTSP/HLS/MJPEG/snapshot URLs + the sidecar base |
-| **Roku channel uses** | `http://192.0.2.20:1985/hls/<cam>.m3u8` | Deep 12 s HLS, Roku's hardware H.264 decode path (per-cam for the camera card and LIVE, `mosaic` for GRID) |
+| **Roku channel uses** | `http://192.0.2.20:1985/hls/<cam>.m3u8` | 3 × 2 s HLS (~5 s behind live), Roku's hardware H.264 decode path (per-cam for the camera card and LIVE, `mosaic` for GRID) |
 | HLS shallow | `http://192.0.2.20:1984/api/stream.m3u8?src=<cam>` | Browsers, debugging — go2rtc native (~1 s buffer) |
 | RTSP | `rtsp://192.0.2.20:8554/<cam>` | HA `Stream` integration, VLC, ffmpeg |
 | MJPEG | `http://192.0.2.20:1984/api/stream.mjpeg?src=<cam>` | HA `mjpeg:` legacy compat |
@@ -416,7 +416,7 @@ T+50 ms   MainScene.onInputEvent → dispatchEcp
 T+60 ms   severity=high → takeover (return-home timer armed if we were on home)
 T+80 ms   Toast slide-in: "● ATTN Back Door"  (coral border, 5s instead of 3)
 T+100 ms  home camera card releases the decoder; LiveGroup content rebuilt with url=backyard.m3u8, playStart=-15
-T+~1 s    replay rolling (the deep HLS window holds ~12 s, so that is as far back as it can reach)
+T+~1 s    playing, ~5 s behind live: the HLS window holds ~6 s, and the Roku starts at its oldest segment whatever playStart asks, so replay=15 gives no more pre-roll than a plain takeover
 T+5.1s    Toast dismisses
 T+60s     back to the home wall, unless someone pressed a key
 ```
@@ -528,7 +528,7 @@ Python/Flask on nserver `:1986`, the data and rendering half of the server side;
 
 ## Camera pipeline (server side, nserver)
 
-**Source of truth lives in this repo at `stream/`** — `go2rtc.yaml`, three systemd units plus the `haku-hls@` template, and the Python discovery service, with a `README.md` holding the deploy script. Encoding uses Intel Quick Sync (`h264_qsv`) since nserver has an Iris Plus G1 iGPU rather than NVIDIA. Lessons-learned baked in from the start: deep HLS sidecar (12 s buffer, addresses [go2rtc#1699](https://github.com/AlexxIT/go2rtc/issues/1699)), SSDP discovery so clients don't hard-code IPs, dedicated `media` user with `video,render` supplementary groups for QSV access. Boot order: `go2rtc` → `haku-hls*` → `haku-discovery`.
+**Source of truth lives in this repo at `stream/`** — `go2rtc.yaml`, three systemd units plus the `haku-hls@` template, and the Python discovery service, with a `README.md` holding the deploy script. Encoding uses Intel Quick Sync (`h264_qsv`) since nserver has an Iris Plus G1 iGPU rather than NVIDIA. Lessons-learned baked in from the start: HLS remux sidecar (a 3 × 2 s window, addresses [go2rtc#1699](https://github.com/AlexxIT/go2rtc/issues/1699)), SSDP discovery so clients don't hard-code IPs, dedicated `media` user with `video,render` supplementary groups for QSV access. Boot order: `go2rtc` → `haku-hls*` → `haku-discovery`.
 
 `go2rtc.yaml` runs five streams:
 
