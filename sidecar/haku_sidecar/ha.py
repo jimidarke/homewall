@@ -24,8 +24,11 @@ import urllib.parse
 import urllib.request
 from datetime import datetime, timedelta, timezone
 
+from .store import iso_epoch
+
 _WS_PATH = "/api/websocket"
 _WINDOW_CACHE_MAX_AGE = 6 * 3600   # drop history/statistics windows not fetched for this long
+_FAIL_BACKOFF_S = 15               # a failed on-demand fetch isn't retried for this long
 
 
 def _q(s):
@@ -66,7 +69,7 @@ class HAClient:
     def __init__(self, base_url, token, poll_interval=10, timeout=10):
         self.base_url = (base_url or "").rstrip("/")
         self._token = token or ""
-        self.poll_interval = max(2, int(poll_interval))
+        self.poll_interval = max(1, int(poll_interval))
         self.timeout = timeout
 
         self._lock = threading.Lock()
@@ -85,6 +88,8 @@ class HAClient:
         self._stats_cache = {}      # (ids, start, end, period, types, units) -> (ts, {id: rows})
         self._cache_locks = {}      # namespaced key -> Lock
         self._cache_locks_guard = threading.Lock()
+        self._failed_at = {}        # namespaced cache key -> epoch of its last failed fetch
+        self._last_on = {}          # entity_id -> epoch of its last off->on edge (see _poll_once)
         self._stop = threading.Event()
         self._thread = None
 
@@ -99,10 +104,12 @@ class HAClient:
         self._stop.set()
 
     def _run(self):
-        # Prime immediately, then on the interval.
+        # Prime immediately, then on a fixed cadence: the fetch's own time counts toward
+        # the interval, so 1 s means about one poll a second, not one every 1 s + fetch.
         while not self._stop.is_set():
+            started = time.monotonic()
             self._poll_once()
-            self._stop.wait(self.poll_interval)
+            self._stop.wait(max(0.0, self.poll_interval - (time.monotonic() - started)))
 
     def _poll_once(self):
         data = self._get("/api/states")
@@ -112,10 +119,34 @@ class HAClient:
             return
         by_id = {e["entity_id"]: e for e in data if isinstance(e, dict) and "entity_id" in e}
         with self._lock:
+            self._note_rising_edges(self._states, by_id)
             self._states = by_id
             self._connected = True
             self._last_ok_ts = int(time.time())
             self._last_error = None
+
+    def _note_rising_edges(self, before, after):
+        """Remember when each entity last went to `on` (a door opening, say).
+
+        Only a change seen between two snapshots counts, so the first poll after a start
+        records nothing. HA's `last_changed` dates the edge; the time of the poll stands
+        in when it is missing or unparseable. A door that opens and closes between two
+        polls is missed, so the interval must stay short (1 s on nserver).
+        """
+        if not before:
+            return
+        for eid, st in after.items():
+            if st.get("state") != "on":
+                continue
+            prev = before.get(eid)
+            if prev is not None and prev.get("state") != "on":
+                when = iso_epoch(st.get("last_changed"))
+                self._last_on[eid] = when if when is not None else int(time.time())
+
+    def last_on(self, entity_id):
+        """Epoch of the entity's last off->on edge since the sidecar started, or None."""
+        with self._lock:
+            return self._last_on.get(entity_id)
 
     # ---- low-level HTTP ---------------------------------------------------
     def _request(self, method, endpoint, body=None):
@@ -198,10 +229,16 @@ class HAClient:
             hit = cache.get(key)  # re-check: another thread may have just filled it
             if hit and (time.time() - hit[0]) < ttl:
                 return hit[1]
+            fk = (id(cache), key)
+            failed = self._failed_at.get(fk)
+            if failed is not None and time.time() - failed < _FAIL_BACKOFF_S:
+                return hit[1] if hit else None     # failed just now: don't hammer HA
             val = fetch()
             if val is not None:
                 cache[key] = (time.time(), val)
+                self._failed_at.pop(fk, None)
                 return val
+            self._failed_at[fk] = time.time()
             return hit[1] if hit else None
 
     def get_calendars(self, ttl=600):

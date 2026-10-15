@@ -9,6 +9,12 @@
     },
     "modules": [
         {
+            "camera": {
+                "cam": "front_steps",
+                "door": "front",
+                "label": "Front Steps",
+                "sec": 60
+            },
             "entities": {
                 "doors": [
                     {

@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.haku.tablet.BuildConfig
+import io.haku.tablet.data.DoorTakeover
 import io.haku.tablet.data.Fetch
 import io.haku.tablet.data.HubConfig
 import io.haku.tablet.data.HubSource
@@ -14,6 +15,7 @@ import io.haku.tablet.ui.backdrop.BackdropLoader
 import io.haku.tablet.ui.backdrop.BgSettings
 import io.haku.tablet.ui.backdrop.Photo
 import io.haku.tablet.ui.backdrop.PhotoDecoder
+import io.haku.tablet.ui.cam.CamUi
 import io.haku.tablet.ui.detail.DETAIL_AUTO_CLOSE_MS
 import io.haku.tablet.ui.detail.DETAIL_REFRESH_MS
 import io.haku.tablet.ui.detail.DetailContent
@@ -62,7 +64,9 @@ internal fun logEvent(name: String, detail: String) {
     Log.i(TAG, "event=$name $detail")
 }
 
-private const val STATE_EVERY_MS = 5_000L
+private const val STATE_EVERY_MS = 1_000L
+/** poll_ok goes to logcat at most this often (and on recovery): at a 1 s poll every one would flood it. */
+private const val POLL_LOG_EVERY_MS = 60_000L
 private const val BACKOFF_MS = 30_000L
 private const val BACKOFF_AFTER_FAILURES = 3
 private const val CONFIG_EVERY_MS = 10 * 60_000L
@@ -71,7 +75,7 @@ private const val CONFIG_EVERY_MS = 10 * 60_000L
 const val PEEK_RETURN_MS = 30_000L
 
 /**
- * Polls the sidecar: config at start + every 10 min, state every 5 s (30 s after 3 straight failures).
+ * Polls the sidecar: config at start + every 10 min, state every 1 s (30 s after 3 straight failures).
  * [clock] is the wall clock everything here reads, and [work] runs the per-poll projection off the main
  * thread; tests pass virtual time and their own context, and a [decoder] that needs no Android.
  */
@@ -133,6 +137,19 @@ class DashboardViewModel(
 
     /** The open panel's fetch, refresh and auto-close. Main thread only, like [openDetail] and [closeDetail]. */
     private var detailJob: Job? = null
+
+    private val _cam = MutableStateFlow<CamUi?>(null)
+
+    /**
+     * The door camera takeover on screen, or null. It opens when a poll carries a doors `takeover` this wall
+     * hasn't shown yet, and closes at its `until` (on the sidecar's clock), on a tap or Back ([closeCam]), on a
+     * stream error ([camFailed]) and on an alert. An opening that was closed early never comes back.
+     */
+    val cam: StateFlow<CamUi?> = _cam.asStateFlow()
+
+    /** The `until` of the last takeover shown, so a closed one stays closed. Main thread only. */
+    private var camShown: Long? = null
+    private var camJob: Job? = null
 
     /** Pulse and highlight baselines. Used only by the poll coroutine. */
     private val tracker = PollTracker { fired ->
@@ -227,15 +244,50 @@ class DashboardViewModel(
         detailJob = null
     }
 
-    /** Ends whatever hides the cards: the detail panel and the peek. */
+    /** Shows [t] for its remaining `until - ts` seconds, unless it has ended or this wall has shown it already. */
+    private fun maybeOpenCam(t: DoorTakeover, ts: Long?) {
+        if (t.until == camShown) return
+        val remainingMs = (t.until - (ts ?: return)) * 1_000L
+        if (remainingMs <= 0) return
+        camShown = t.until
+        closeDetail()
+        endPeek()
+        camJob?.cancel()
+        _cam.value = CamUi(t.hls, t.label.ifEmpty { t.cam })
+        logEvent("cam_open", "cam=${t.cam} sec=${remainingMs / 1_000}")
+        camJob = viewModelScope.launch {
+            delay(remainingMs)
+            closeCam()
+        }
+    }
+
+    /** Closes the camera takeover, if one is on (its time is up, a tap, Back or an alert). */
+    fun closeCam() {
+        if (_cam.value == null) return
+        logEvent("cam_close", "")
+        _cam.value = null
+        camJob?.cancel()
+        camJob = null
+    }
+
+    /** The player gave up on the stream: close rather than show a black screen. */
+    fun camFailed() {
+        if (_cam.value == null) return
+        logEvent("cam_fail", "")
+        closeCam()
+    }
+
+    /** Ends whatever hides the cards: the detail panel, the peek and the camera. */
     private fun closeOverlays() {
         closeDetail()
         endPeek()
+        closeCam()
     }
 
     private suspend fun pollLoop() {
         var configAt = 0L
         var failures = 0
+        var loggedAt = 0L
         while (viewModelScope.isActive) {
             val now = clock()
             if (_ui.value.config == null || now - configAt > CONFIG_EVERY_MS) {
@@ -265,13 +317,20 @@ class DashboardViewModel(
                         )
                     }
                     _lastOkAt.value = clock()
-                    logEvent("poll_ok", "ts=${r.value.ts}")
+                    config?.modules?.firstOrNull { it.kind == "doors" }
+                        ?.let { r.value.takeover(it.key) }
+                        ?.let { maybeOpenCam(it, r.value.ts) }
+                    if (loggedAt == 0L || clock() - loggedAt >= POLL_LOG_EVERY_MS) {
+                        logEvent("poll_ok", "ts=${r.value.ts}")
+                        loggedAt = clock()
+                    }
                 }
                 else -> {
                     failures++
                     tracker.onFail()
                     _ui.update { it.copy(error = r.describe(), stateFetched = true) }
                     logEvent("poll_fail", "n=$failures err=${r.describe()}")
+                    loggedAt = 0L                     // log the recovery
                 }
             }
             delay(if (failures >= BACKOFF_AFTER_FAILURES) BACKOFF_MS else STATE_EVERY_MS)

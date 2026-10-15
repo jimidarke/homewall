@@ -14,6 +14,9 @@ import java.io.IOException
  * `degraded` is the quiet state for 5 s too, then the same house with the water meter out (`degraded.json`:
  * water `stale` with a `-- L/min` hero), so the water card holds its quiet reading, greyed "as of" the last
  * quiet poll, and the header reads "degraded · Water".
+ *
+ * `door` is the quiet state for 5 s too, then the front door open with the doors module's camera `takeover`
+ * (`door.json`), so the door camera opens full screen on the real `front_steps` stream for about a minute.
  */
 class DemoSource(
     private val read: (String) -> String,
@@ -64,6 +67,7 @@ class DemoSource(
         "cycle" -> CYCLE[((clock() / CYCLE_MS) % CYCLE.size).toInt()]
         "offline" -> "quiet"
         "degraded" -> if (clock() - startedAt >= OFFLINE_AFTER_MS) "degraded" else "quiet"
+        "door" -> if (clock() - startedAt >= OFFLINE_AFTER_MS) "door" else "quiet"
         else -> scenario
     }
 

@@ -129,9 +129,9 @@ class DashboardViewModelTest {
         assertNull(vm.lastOkAt.value)
         assertEquals(Freshness.OFFLINE, vm.freshness.value)
 
-        advance(70_000)
-        // Every 5 s until the third straight failure, then every 30 s.
-        assertEquals(listOf(0L, 5_000L, 10_000L, 40_000L, 70_000L), src.stateCalls)
+        advance(62_000)
+        // Every 1 s until the third straight failure, then every 30 s.
+        assertEquals(listOf(0L, 1_000L, 2_000L, 32_000L, 62_000L), src.stateCalls)
         // With no config yet, every poll asks for it first.
         assertEquals(src.stateCalls, src.configCalls)
         assertEquals("network: refused", vm.ui.value.error)
@@ -141,12 +141,12 @@ class DashboardViewModelTest {
     fun recovery_from_cold_start_outage_shows_cards_without_pulses() {
         val src = FakeSource()
         val vm = viewModel(src)
-        advance(40_000)   // fails at 0, 5, 10 and 40 s: backed off
-        assertEquals(listOf(0L, 5_000L, 10_000L, 40_000L), src.stateCalls)
+        advance(32_000)   // fails at 0, 1, 2 and 32 s: backed off
+        assertEquals(listOf(0L, 1_000L, 2_000L, 32_000L), src.stateCalls)
 
         src.config = Fetch.Ok(config)
         src.state = Fetch.Ok(demo("busy"))
-        advance(30_000)   // the 70 s poll comes back
+        advance(30_000)   // the 62 s poll comes back
         with(vm.ui.value) {
             assertSame(this@DashboardViewModelTest.config, config)
             assertNull(error)
@@ -154,11 +154,11 @@ class DashboardViewModelTest {
             assertEquals(config!!.modules.map { it.id }.toSet(), cards.keys)
             assertNoPulses(cards)   // a busy house at the first good poll is the baseline, not a change
         }
-        assertEquals(70_000L, vm.lastOkAt.value)
+        assertEquals(62_000L, vm.lastOkAt.value)
         assertEquals(Freshness.LIVE, vm.freshness.value)
 
-        advance(5_000)    // back on the 5 s cadence
-        assertEquals(75_000L, src.stateCalls.last())
+        advance(1_000)    // back on the 1 s cadence
+        assertEquals(63_000L, src.stateCalls.last())
         assertNoPulses(vm.ui.value.cards)
     }
 
@@ -174,7 +174,7 @@ class DashboardViewModelTest {
         assertTrue(quiet.isNotEmpty())
 
         src.state = Fetch.HttpError(502)
-        advance(5_000)
+        advance(1_000)
         with(vm.ui.value) {
             assertEquals("http 502", error)
             assertSame("the last good cards stay up through a failure", quiet, cards)
@@ -182,7 +182,7 @@ class DashboardViewModelTest {
 
         // The house got busy during the gap. The gap re-baselines, so nothing rings for it.
         src.state = Fetch.Ok(demo("busy"))
-        advance(5_000)
+        advance(1_000)
         with(vm.ui.value) {
             assertNull(error)
             assertTrue(cards.values.any { base(it)?.active == true })
@@ -214,11 +214,11 @@ class DashboardViewModelTest {
         }
 
         src.state = Fetch.HttpError(502)
-        advance(5_000)
+        advance(1_000)
         assertEquals("a failed poll leaves it as it was", listOf("Water"), vm.ui.value.degraded)
 
         src.state = Fetch.Ok(demo("quiet"))
-        advance(5_000)
+        advance(1_000)
         assertEquals(emptyList<String>(), vm.ui.value.degraded)
         assertNull((vm.ui.value.cards["water"] as ValueModel).asOf)
     }
@@ -238,8 +238,8 @@ class DashboardViewModelTest {
 
         src.config = Fetch.HttpError(502)
         src.stateLatencyMs = 100
-        advance(5_000)     // 605 s: the reload fails, and the state fetch is still in flight
-        assertEquals(listOf(0L, 605_000L), src.configCalls)
+        advance(1_000)     // 601 s: the reload fails, and the state fetch is still in flight
+        assertEquals(listOf(0L, 601_000L), src.configCalls)
         with(vm.ui.value) {
             assertSame("the old config stays", this@DashboardViewModelTest.config, config)
             assertEquals("http 502", error)
@@ -252,16 +252,16 @@ class DashboardViewModelTest {
             assertNull(error)
             assertTrue(cards.isNotEmpty())
         }
-        assertEquals(605_100L, vm.lastOkAt.value)
+        assertEquals(601_100L, vm.lastOkAt.value)
 
         // A failed reload is retried on the next poll, not 10 min later. Once it succeeds, the next is 10 min on.
         src.config = Fetch.Ok(config)
         src.stateLatencyMs = 0
-        advance(5_000)
-        assertEquals(listOf(0L, 605_000L, 610_100L), src.configCalls)
+        advance(1_000)
+        assertEquals(listOf(0L, 601_000L, 602_100L), src.configCalls)
         advance(600_000)
-        assertEquals(listOf(0L, 605_000L, 610_100L), src.configCalls)
-        advance(5_000)
-        assertEquals(listOf(0L, 605_000L, 610_100L, 1_215_100L), src.configCalls)
+        assertEquals(listOf(0L, 601_000L, 602_100L), src.configCalls)
+        advance(1_000)
+        assertEquals(listOf(0L, 601_000L, 602_100L, 1_203_100L), src.configCalls)
     }
 }

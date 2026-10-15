@@ -12,7 +12,7 @@ It's a Roku channel because Rokus are the box that's already in every room. Home
 
 > **Paths in this document (checked 2026-10-14).** Paths are in the `homewall` monorepo layout (`roku/`, `sidecar/`, `stream/`, `fire-tablet/`, `docs/`). The live HA config is on mserver at `/root/docker/homeassistantV3/config/ha/` (HA runs in Docker). HAku's push side is the package `packages/housewall.yaml` there (it predates the HAku name, so its entities are `housewall_*`); the sidecar-side helper packages are `electricity_cost.yaml`, `gas_cost.yaml`, `water_cost.yaml` and `haku_water.yaml`. There is no `packages/haku.yaml` or `rest_commands.yaml`. Status notes below are dated snapshots; the current state of each part is in its own folder's README/CLAUDE.md.
 
-> **Status (1.1, 2026-10-14).** The Roku channel boots to the read-only 6×4 glass wall (spec `docs/superpowers/specs/2026-10-07-roku-wall-6x4-design.md`, baseline `docs/roku/screens/v0.12-home.png`), served by the sidecar's `?layout=roku`; backgrounds are the shared drone photos (spec `docs/superpowers/specs/2026-10-07-shared-backgrounds-design.md`). HA takeovers still reach the full-screen live camera and the grid. All five Rokus (the four fleet Rokus and the dev Roku) run 1.1.2 since 2026-10-14, verified playing the front camera on the wall; front motion switches the square to the steps (spec `docs/superpowers/specs/2026-10-14-front-steps-view-design.md`). The fleet doesn't auto-update, so each Roku runs whatever was last sideloaded. The tablet runs its v3 touch UI.
+> **Status (1.2, 2026-10-14).** The Roku channel boots to the read-only 6×4 glass wall (spec `docs/superpowers/specs/2026-10-07-roku-wall-6x4-design.md`, baseline `docs/roku/screens/v0.12-home.png`), served by the sidecar's `?layout=roku`; backgrounds are the shared drone photos (spec `docs/superpowers/specs/2026-10-07-shared-backgrounds-design.md`). HA takeovers still reach the full-screen live camera and the grid. All five Rokus (the four fleet Rokus and the dev Roku) run 1.2.1 since 2026-10-14, verified playing the front camera on the wall; front motion switches the square to the steps (spec `docs/superpowers/specs/2026-10-14-front-steps-view-design.md`), the front door takes the office Roku and the kitchen tablet to the steps for a minute, and everything polls every second (spec `docs/superpowers/specs/2026-10-14-door-camera-and-1s-polling-design.md`). The fleet doesn't auto-update, so each Roku runs whatever was last sideloaded. The tablet runs its v3 touch UI.
 
 ---
 
@@ -485,7 +485,7 @@ roku boot
 
 ## Home Assistant integration shape
 
-HA talks to HAku two ways: the **sidecar pulls** everything the wall shows (one REST poll of `/api/states` every 10 s for the whole fleet, plus on-demand forecast, history and statistics reads), and HA **pushes events** to the Rokus over ECP `/input`. The push side is one package on mserver, `packages/housewall.yaml`; everything below summarizes it.
+HA talks to HAku two ways: the **sidecar pulls** everything the wall shows (one REST poll of `/api/states` every 1 s for the whole fleet, which the Rokus read every 1 s (2 s on the Express) and the tablet every 1 s, plus on-demand forecast, history and statistics reads), and HA **pushes events** to the Rokus over ECP `/input`. The push side is one package on mserver, `packages/housewall.yaml`; everything below summarizes it.
 
 ### Routing primitives
 
@@ -506,7 +506,7 @@ HA talks to HAku two ways: the **sidecar pulls** everything the wall shows (one 
 | Automation | Trigger | Payload (to the active Roku unless noted) |
 |---|---|---|
 | `housewall_front_steps_view` | front motion on for 5 s / clears, unavailable or HA start | `homeCam=front_steps` / `homeCam=default`, broadcast |
-| `housewall_front_door_opened` | front door opens | `cam=front&severity=normal&replay=15&reason=opened&banner=Front+Door+opened` |
+| `housewall_front_door_opened` | front door opens | `cam=front_steps&severity=normal&reason=opened&banner=Front+Door+opened`, to the **office Roku** only (`rest_command.housewall_office`). The tablet shows the same camera for the same minute through the sidecar's doors `takeover`, not a push |
 | `housewall_after_hours_back_motion` | backyard motion, 22:00–06:00 | `cam=backyard&severity=high&replay=15&…&banner=ATTN+Backyard` |
 | `housewall_after_hours_back_door` | back door opens, 22:00–06:00 | `cam=backyard&severity=high&replay=15&…&banner=ATTN+Back+Door` |
 | `housewall_push_motion_timestamps` | front/backyard motion clears | `lastMotion=<cam>&lastMotionAt=<unix>`, broadcast |
@@ -616,7 +616,7 @@ The home camera card has its own simpler loop: the same backoff, then after 4 er
 
 ---
 
-## Status at 1.1
+## Status at 1.2
 
 | Feature | Status |
 |---|---|
@@ -629,6 +629,7 @@ The home camera card has its own simpler loop: the same backoff, then after 4 er
 | Overlay layer (door / text / weather / sensor / pip) | ✅ shipped in the channel; HA sends none today |
 | HA push package (`housewall.yaml`, 5 Rokus, active-Roku selector, broadcast) | ✅ live since 2026-10-14 (before that no push reached a Roku); follow-me effectively always "living" until ESPresense rooms return |
 | Front steps view on front motion (`front_steps`, `homeCam=`) | ✅ shipped (1.1) |
+| Door open → steps full screen on the office Roku and the kitchen tablet; 1 s polling end to end | ✅ shipped (1.2) |
 | Dim mode | built (bound to the Info key); never tuned |
 | BRIEFING scene + morning automation | ❌ dropped (the home wall covers it) |
 | GLANCE screensaver | ❌ dropped (the channel keeps the screensaver away instead) |
@@ -657,7 +658,7 @@ Deliberate non-goals, called out so they don't bleed into scope:
 
 ## Tablet client (kitchen Fire 7)
 
-HAku's second kind of display client is a native Android app (`io.haku.tablet`) on the kitchen wall Fire 7 (`192.0.2.60`), in **`fire-tablet/`**. It is a pure sidecar consumer: it polls `/api/config` + `/api/state` (and `/api/detail/<id>` for its panels) with `?layout=tablet` over plain HTTP, gets no ECP pushes and holds no HA token.
+HAku's second kind of display client is a native Android app (`io.haku.tablet`) on the kitchen wall Fire 7 (`192.0.2.60`), in **`fire-tablet/`**. It is a pure sidecar consumer: it polls `/api/config` + `/api/state` every 1 s (and `/api/detail/<id>` for its panels) with `?layout=tablet` over plain HTTP, gets no ECP pushes and holds no HA token. Its one video is the door camera: when the doors module carries a `takeover` (60 s after the front door opens), it plays `front_steps` full screen with a framework `VideoView` (`docs/fire-tablet/DESIGN.md` §8.11).
 
 - **What it shows:** nine smoked-glass cards on a 4×3 grid over the shared drone photos, with fake frosted glass cut from a blurred copy (API 30 can't blur live): doors, laundry, calendar, activity, water, energy, weather, gas and thermostat. Taps open detail panels and a photo peek; nothing changes house state. Design: `docs/fire-tablet/DESIGN.md` (§8 v2 UI, §8.10 v3 touch); exact JSON shapes and visual values: `docs/superpowers/plans/2026-09-30-tablet-ui-v2-contract.md` and `docs/superpowers/specs/2026-10-01-tablet-v3-details-contract.md`.
 - **Layout-only modules.** `doors` (open or closed per contact, with "since" taken from the logbook, because HA re-stamps `last_changed` on restart) and `laundry` (mirrors HA's `packages/laundry.yaml` sensors; the tablet draws the LED bar natively). The Roku wall reuses both through `tablet:` refs.

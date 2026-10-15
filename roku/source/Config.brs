@@ -66,7 +66,9 @@ function HK_TOAST_OUT_MS()    as integer : return 150 : end function
 function HK_OVERLAY_SLIDE_MS() as integer : return 200 : end function
 
 ' Dashboard/home timings.
-function HK_STATE_POLL_MS()   as integer : return 10000  : end function  ' sidecar /api/state poll
+function HK_STATE_POLL_MS()   as integer : return 1000   : end function  ' sidecar /api/state poll (see hkStatePollMsFor)
+function HK_STATE_TIMEOUT_MS() as integer : return 3000   : end function  ' one state fetch, at most
+function HK_POLL_LOG_S()      as integer : return 60     : end function  ' poll_ok at most this often
 function HK_IDLE_TO_HOME_MS() as integer : return 300000 : end function  ' user idle -> glance home
 function HK_RETURN_HOME_MS()  as integer : return 60000  : end function  ' after an auto-takeover
 function HK_HOME_CAM_MAX_MS() as integer : return 900000 : end function  ' homeCam= override, if HA's revert never arrives
@@ -237,6 +239,21 @@ end function
 ' The camera the home square plays: HA's homeCam= override when discovery has an HLS
 ' stream for it, else the tile's own camera. Checking the stream here keeps hkStreamUrl's
 ' mosaic fallback from turning an unknown override into the grid.
+' The state poll interval for this Roku model: HK_STATE_POLL_MS, except 2 s on the Roku
+' Express (3930), which at 1 s rebuffered its camera square and drifted up to 30 s behind
+' live (measured 2026-10-14; at 2 s it held ~6.6 s). The Express 4K (3940) is fine at 1 s.
+function hkStatePollMsFor(model as string) as integer
+    if left(model, 4) = "3930" then return 2000
+    return HK_STATE_POLL_MS()
+end function
+
+' poll_ok is logged on the first good poll, on recovery from a failure, and then at most
+' once a minute: at a 1 s poll, logging every one floods the console.
+function hkPollLogDue(lastLogS as integer, nowS as integer, failedBefore as boolean) as boolean
+    if failedBefore or lastLogS = 0 then return true
+    return nowS - lastLogS >= HK_POLL_LOG_S()
+end function
+
 function hkHomeCam(tile as dynamic, override as dynamic, streams as dynamic) as string
     if override <> invalid and override <> "" and streams <> invalid and type(streams) = "roAssociativeArray" then
         s = streams[override]

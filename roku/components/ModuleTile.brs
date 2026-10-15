@@ -24,6 +24,7 @@ sub init()
     m.attentionTimer.observeField("fire", "onAttentionEnd")
 
     m.kind = ""
+    m.valuesKey = ""
     m.bodyNode = invalid
     m.isStale = true
     m.attn = false
@@ -40,6 +41,7 @@ sub onDescriptor()
     layout()
     m.title.text = hkStrOr(d.title, "")
     m.kind = ""                 ' a new descriptor rebuilds its body
+    m.valuesKey = ""
     onValues()
 end sub
 
@@ -68,6 +70,12 @@ sub onValues()
     if d = invalid then return
     v = m.top.values
     kind = hkCardKind(d, v)
+    ' At a 1 s poll most updates repeat the last one: skip the repaint (label measuring
+    ' is real CPU on an Express) unless the values or the card kind changed.
+    key = ""
+    if v <> invalid then key = FormatJson(v)
+    if kind = m.kind and key = m.valuesKey and m.bodyNode <> invalid then return
+    m.valuesKey = key
     if kind <> m.kind then buildBody(kind)
 
     if kind = "agenda" then

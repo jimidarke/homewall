@@ -45,6 +45,8 @@ import io.haku.tablet.ui.backdrop.Backdrop
 import io.haku.tablet.ui.backdrop.BackdropState
 import io.haku.tablet.ui.backdrop.LocalBackdrop
 import io.haku.tablet.ui.backdrop.Photo
+import io.haku.tablet.ui.cam.CamLayer
+import io.haku.tablet.ui.cam.CamUi
 import io.haku.tablet.ui.cards.CardFor
 import io.haku.tablet.ui.cards.LocalContentDim
 import io.haku.tablet.ui.cards.LocalOffline
@@ -102,10 +104,14 @@ fun Dashboard(
     detail: StateFlow<DetailUi?>,
     onOpenDetail: (String) -> Unit,
     onCloseDetail: () -> Unit,
+    cam: StateFlow<CamUi?>,
+    onCloseCam: () -> Unit,
+    onCamFailed: () -> Unit,
 ) {
     LockFontScale {
         val fresh by freshness.collectAsStateWithLifecycle()
         val peeking by peek.collectAsStateWithLifecycle()
+        val camOn by cam.collectAsStateWithLifecycle()
         val offline = offlineShown(fresh, ui.stateFetched)
         val config = ui.config
         val backdrop = remember { BackdropState() }
@@ -168,9 +174,13 @@ fun Dashboard(
                     TapCatcher(onEndPeek)
                     PeekControls(backdrop, onStepPhoto)
                 }
+                // The door camera, over everything (DESIGN §8.11). It takes every tap, so nothing under it is
+                // reachable while it shows.
+                camOn?.let { CamLayer(it, onCloseCam, onCamFailed) }
             }
         }
-        BackHandler(enabled = peeking || detailOpen) {
+        BackHandler(enabled = camOn != null) { onCloseCam() }
+        BackHandler(enabled = camOn == null && (peeking || detailOpen)) {
             act(headerTapAction(detailOpen, peek.value, hasPhoto = false))
         }
     }
@@ -268,7 +278,7 @@ internal fun bannerText(lastOk: Long?, error: String?): String {
 /**
  * The offline banner ([bannerText]). It keeps its offline text while it slides out on recovery, since the
  * poll that ended the outage has already replaced the time and cleared the error. [lastOkAt] is read here,
- * not in [Dashboard], so the 5 s poll heartbeat never recomposes the whole screen.
+ * not in [Dashboard], so the 1 s poll heartbeat never recomposes the whole screen.
  */
 @Composable
 private fun AnimatedVisibilityScope.OfflineBanner(lastOkAt: StateFlow<Long?>, error: String?) {

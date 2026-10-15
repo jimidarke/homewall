@@ -13,7 +13,7 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements.txt pytest   # on
 HAKU_UPDATE_GOLDEN=1 .venv/bin/python -m pytest tests/test_roku_golden.py   # only when a Roku-visible change is intended
 ```
 
-Use the venv: system matplotlib is ABI-broken. Runtime config is `/etc/haku/dashboard.json` (module→entity map, mtime hot-reloaded) + `/etc/haku/haku.env` (`HAKU_HA_TOKEN`). Locally, point `HAKU_CONFIG` at `dashboard.json.example`.
+Use the venv: system matplotlib is ABI-broken. Runtime config is `/etc/haku/dashboard.json` (module→entity map, mtime hot-reloaded) + `/etc/haku/haku.env` (`HAKU_HA_TOKEN`, and `HAKU_POLL_INTERVAL=1`: HA's `/api/states` is polled every second, on a fixed cadence; measured 2026-10-14 at ~3% of one core with every client at 1 s). A failed on-demand HA read (logbook, calendar, forecast, history) is retried after 15 s, not on every request. The poller also records off→on edges (`HAClient.last_on`), which the doors module's camera `takeover` reads. Locally, point `HAKU_CONFIG` at `dashboard.json.example`.
 
 ## Layouts (`?layout=`)
 

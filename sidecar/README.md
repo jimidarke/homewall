@@ -250,6 +250,14 @@ plus `open_count` and `stale` (every door unknown).
 - `severity` is `high` for a door open longer than `openAlertSec`, or open with an inexact
   "since". It is `low` for unknown, otherwise `normal`.
 - Tile hero: `All closed`, `Back open`, `2 open`, `Back unknown`, or `No data` when stale.
+- **Door camera takeover** (the tablet's): an optional `camera` key,
+  `{door, cam, sec: 60, label}`. For `sec` after that door opens, the values carry
+  `takeover: {cam, hls, label, until}`, and no key at all otherwise. `until` is the opening
+  epoch + `sec`, and `hls` is `$HAKU_HLS_BASE/<cam>.m3u8`. The opening time is the HA
+  client's `last_on`: an off→on edge between two of its snapshots, dated by HA's
+  `last_changed`. It survives the door closing again, but a door that opens and closes
+  inside one poll interval is missed, which is one reason the poll runs every second. The
+  Roku layout inherits the key through its `tablet:` ref and ignores it.
 
 **`laundry`.** Descriptor: `machines[]` of `{id, label, color, glyph?, entities?}`. It
 mirrors HA's laundry package and never re-derives it. Entity ids follow from the machine
@@ -465,10 +473,11 @@ docker run -d --restart=always --network host --env-file /etc/haku/haku.env \
 |---|---|---|
 | `HAKU_HA_URL` | `http://192.0.2.10:8123` | Home Assistant base URL |
 | `HAKU_HA_TOKEN` | — | long-lived token (`rokuapp`); never logged, never in the repo |
-| `HAKU_POLL_INTERVAL` | `10` | seconds between HA `/api/states` refreshes |
+| `HAKU_POLL_INTERVAL` | `10` (nserver runs `1`) | seconds between HA `/api/states` refreshes (minimum 1; the fetch counts toward it). A failed on-demand read (logbook, calendar, forecast, history) isn't retried for 15 s |
 | `HAKU_SIDECAR_HTTP_PORT` | `1986` | HTTP listen port |
 | `HAKU_SIDECAR_BASE` | derived LAN IP | base URL advertised to clients in `/api/config`'s `sidecar` block and the `/api/backgrounds` urls |
 | `HAKU_CONFIG` | `/etc/haku/dashboard.json` | dashboard config path |
+| `HAKU_HLS_BASE` | `http://192.0.2.20:1985/hls` | where the doors `takeover` points its `hls` (the stream server's HLS) |
 | `HAKU_BG_DIR` | `/etc/haku/backgrounds` | directory of rotating background images, mirrored from the NAS by `haku-bg-sync` (a layout's `background.dir` overrides it for `?layout=`) |
 
 ## Dependencies

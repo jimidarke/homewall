@@ -41,11 +41,11 @@ sub runPoll()
         end if
     end if
 
-    snap = hkHttpGetJson(hkWithLayout(hkHubStateUrl(base), m.top.activeLayout))
+    snap = hkHttpGetJsonTimeout(hkWithLayout(hkHubStateUrl(base), m.top.activeLayout), HK_STATE_TIMEOUT_MS())
     failed = (snap = invalid)
     if not failed then failed = (snap.error <> invalid)
     if failed and m.top.activeLayout <> "" then
-        plain = hkHttpGetJson(hkHubStateUrl(base))
+        plain = hkHttpGetJsonTimeout(hkHubStateUrl(base), HK_STATE_TIMEOUT_MS())
         if plain <> invalid and plain.error = invalid then
             m.top.ok = false
             m.top.snapshot = { err: "unknown_layout" }   ' MainScene re-fetches config

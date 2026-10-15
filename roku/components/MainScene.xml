@@ -55,7 +55,7 @@
         <DiagHealthTask id="diagHealth" />
 
         <Timer id="rediscoverTimer" repeat="false" duration="5" />
-        <Timer id="stateTimer" repeat="true" duration="10" />
+        <Timer id="stateTimer" repeat="true" duration="1" />
         <Timer id="idleTimer" repeat="false" duration="300" />
         <Timer id="returnHomeTimer" repeat="false" duration="60" />
         <!-- clears an HA homeCam= override whose revert never arrived -->

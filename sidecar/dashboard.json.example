@@ -154,6 +154,7 @@
           "refreshMs": 5000,
           "openAlertSec": 300,
           "lookbackHours": 12,
+          "camera": { "door": "front", "cam": "front_steps", "sec": 60, "label": "Front Steps" },
           "entities": {
             "doors": [
               { "id": "front", "entity": "binary_sensor.front_doorcontact_contact", "label": "Front" },

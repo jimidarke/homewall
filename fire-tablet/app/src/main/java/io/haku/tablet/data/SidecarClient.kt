@@ -58,7 +58,7 @@ class SidecarClient(
         return get(url) { it }
     }
 
-    /** A cold detail call (HA statistics) can take a few seconds, so it gets longer timeouts than the 5 s polls. */
+    /** A cold detail call (HA statistics) can take a few seconds, so it gets longer timeouts than the 1 s polls. */
     private val detailHttp: OkHttpClient by lazy {
         http.newBuilder().readTimeout(15, TimeUnit.SECONDS).callTimeout(20, TimeUnit.SECONDS).build()
     }

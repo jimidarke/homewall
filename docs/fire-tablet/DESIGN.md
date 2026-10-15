@@ -30,7 +30,7 @@ The structure and content follow HAku, the Roku home wall (`~/code/homewall/roku
 - The tablet runs for weeks unattended without freezing or dropping back to the Fire launcher.
 - The Roku fleet sees no change.
 
-**Out of scope for v1:** controls (toggles, acknowledging laundry), cameras, the calendar, push or voice alerts, charge management (planned separately as a smart plug), and HA notifications (the HA Companion app keeps doing those). (Superseded by §8: the calendar is now in scope; cameras stay out.)
+**Out of scope for v1:** controls (toggles, acknowledging laundry), cameras, the calendar, push or voice alerts, charge management (planned separately as a smart plug), and HA notifications (the HA Companion app keeps doing those). (Superseded by §8: the calendar is now in scope, and since 1.1 one camera shows, full screen for a minute after the front door opens, §8.11.)
 
 ## 2. Architecture
 
@@ -266,7 +266,7 @@ Three approaches were considered:
 |------|----------------|-----------|
 | `SidecarClient` | GET `/api/config`, `/api/state`, `/api/backgrounds` and `/api/background/<name>`, each with `?layout=tablet`. Returns a parsed value or a typed error (`Fetch`), never throws | OkHttp, models |
 | `Models` | `@Serializable` mirrors of the config JSON; state is kept as raw JSON and read per module. Unknown keys are ignored so newer sidecars stay compatible | kotlinx.serialization |
-| `DashboardViewModel` | Owns the poll loop (`viewModelScope`): config at start and every 10 min, state every 5 s. Backs off to 30 s after 3 consecutive failures. Exposes `UiState {sidecar, config, cards, error, stateFetched, degraded}` plus `lastOkAt`, `freshness`, `night`, `photo`, `peek` and `detail` flows | `HubSource` (`SidecarClient`) |
+| `DashboardViewModel` | Owns the poll loop (`viewModelScope`): config at start and every 10 min, state every 1 s (5 s before 1.1). Backs off to 30 s after 3 consecutive failures. Exposes `UiState {sidecar, config, cards, error, stateFetched, degraded}` plus `lastOkAt`, `freshness`, `night`, `photo`, `peek`, `detail` and `cam` flows | `HubSource` (`SidecarClient`) |
 | `Dashboard` (Compose) | Header (clock, date, connection dot) plus a grid of cards placed from `tile.{col,row,w,h}` over `grid.{cols,rows}` | `UiState` |
 | `ValueCard` | Generic hero/sub/detail/severity card. Used for weather, energy, water, gas and the thermostat | — |
 | `DoorsCard` | One row per door: the state word plus the age | doors state |
@@ -418,7 +418,7 @@ The exact JSON shapes, glyph names, colours, sizes and timings are pinned in the
 | Layout | **Even 4×3 grid.** Calendar spans 2 rows and Activity takes the full right column; every other card is one cell. Positions are fixed; cards **light up** when active instead of moving. |
 | Photos | Full-bleed behind translucent smoked-glass cards. |
 | Photo source | A curated NAS folder, `/mnt/media/haku/kitchen` (NAS `192.0.2.5:/volume2/media`, NFS-mounted on nserver), seeded from `/mnt/media/Drone`. nserver mirrors it into the sidecar's `HAKU_BG_DIR` every 15 min (`haku-bg-sync`), and the sidecar serves the mirror to every display, the tablet and the wall Rokus alike; the tablet has no background `dir` of its own. The sidecar proxies the images because the tablet can only reach `.20`. Photos are curated in the NAS folder. |
-| Modules | Doors, laundry, water, energy, thermostat, weather, gas, calendar and activity. **No cameras.** |
+| Modules | Doors, laundry, water, energy, thermostat, weather, gas, calendar and activity. No camera card: the only video is the door camera takeover (§8.11). |
 | Touch | Tap a card for its detail panel, tap the header to peek at the photo, and tap ‹ or › during the peek to step through the photos (v3; v2 was glance-only). No controls that change house state (§8.10). |
 | Identity | **HAku family, refined**: the Roku's smoked glass, sage, coral and warm ink. |
 | Typeface and icons | Barlow and a Material Design Icons subset, both bundled. Fire OS has no Play Services, so nothing is downloaded. |
@@ -552,7 +552,7 @@ Card content is drawn with `CompositingStrategy.ModulateAlpha`: the stale and of
 
 ### 8.6 Motion: calm by default, one-shot on change
 
-**Rule:** nothing animates while the house is quiet. The only looping animation is the laundry LED bar in its animated modes, stepped at 10 fps or less, and only while its card has live data.
+**Rule:** nothing animates while the house is quiet. The only looping animation is the laundry LED bar in its animated modes, stepped at 10 fps or less, and only while its card has live data. The one exception is the door camera (§8.11): live video for up to a minute after the front door opens, never while the house is quiet.
 
 | Moment | Treatment |
 |--------|-----------|
@@ -672,7 +672,7 @@ A tap on a card opens a full-width glass panel over the card grid. The panel cov
 | Grid fade | The grid fades out underneath: alpha = 1 − reveal, through `graphicsLayer` with `CompositingStrategy.ModulateAlpha` (no offscreen buffer). With no photo (backgrounds off, an empty photo folder) there is no frost, which would let the cards show through the panel; the fade means nothing does. |
 | Content fade | The panel's content fades in over the last 60% of the reveal. |
 | Glass | `Modifier.glass` (§8.3), the same as a card. The panel sits inside the burn-in-shifted UI layer (§8.6), so it moves with the cards and the frost follows. |
-| Panel header | The module glyph and title, and "Tap to close". When the card is holding a stale value it also says "Live data unavailable · as of h:mm a" in amber. The live card (5 s polls) only fills the body: its hero, sub and detail show big while the detail loads, or for good when the module has no detail. |
+| Panel header | The module glyph and title, and "Tap to close". When the card is holding a stale value it also says "Live data unavailable · as of h:mm a" in amber. The live card (1 s polls) only fills the body: its hero, sub and detail show big while the detail loads, or for good when the module has no detail. |
 | Closes on | A tap anywhere on the panel, a header tap, Back (`BackHandler`), 90 s after opening, or any ALERT pulse. Taps are ignored while the reveal animates. There is no scrolling. |
 
 **Why a clip reveal.** Animating the panel's size would re-lay-out its whole content every frame, and would move it away from its frost source. A clip changes only what is drawn.
@@ -736,3 +736,13 @@ A tap on the header (the clock and date bar) fades the UI layer and the backdrop
   - `packages/water_cost.yaml`: `water_monthly` is also `always_available`.
   - `packages/gas_cost.yaml` (new): the gas daily and monthly utility meters, `sensor.gas_marginal_cost_per_m3` (the bill figures are placeholders, 0, until filled in), `sensor.gas_cost_today` and `sensor.gas_monthly_cost`.
   - The repo copies are `~/code/homewall/sidecar/ha-water-helpers.yaml` and `ha-gas-cost.yaml`.
+
+### 8.11 Door camera (1.1, 2026-10-14)
+
+When the front door opens, the tablet shows the Genbolt's fixed lens on the front steps (`front_steps`) full screen for a minute, the same minute the office Roku goes full screen on it. It is the tablet's only video, and it is a reaction to news like a pulse, not a camera feature: nothing plays while the house is quiet.
+
+- **Trigger, from the sidecar.** The doors module carries `takeover: {cam, hls, label, until}` for 60 s after the door opens (its `camera` descriptor key; the opening is an off→on edge the sidecar's 1 s HA poll catches, so it survives the door closing again). The tablet shows each opening once, keyed on `until`, until `until` measured against the state's `ts`, so the tablet's own clock doesn't matter.
+- **Looks.** Black, the stream fitted 16:9 (1024×576), the sidecar's `label` ("Front Steps") in a small smoked chip top left, "Connecting…" until the first frame. Muted, no audio focus.
+- **Closes** at `until`, on any tap or Back, on any ALERT (nothing may hide an alert), and on a player error (no black screen, no system dialog). A closed opening never comes back; the door opening again does. Opening it ends any peek or detail panel.
+- **Player.** A framework `VideoView` (no new dependency) in an `AndroidView`, playing the stream server's H.264 HLS (`http://192.0.2.20:1985/hls/front_steps.m3u8`, 3 × 2 s segments, about 5 s behind live). Its SurfaceView keeps video frames out of the app's own rendering. Cleartext to `192.0.2.20` is already allowed.
+- **Demo.** A debug build with `--es demo door` serves the quiet house for 5 s, then the front door open with a takeover on the real stream.

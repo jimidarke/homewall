@@ -281,3 +281,46 @@ def test_hero_texts():
     # Nothing configured is stale too, not "All closed".
     empty = doors.values(FakeHA(), {"id": "doors", "kind": "doors", "entities": {}})
     assert (empty["doors"], empty["stale"], empty["tile"]["hero"]) == ([], True, "No data")
+
+
+# --- door camera takeover (tablet) ------------------------------------------------
+CAMERA = {"door": "front", "cam": "front_steps", "sec": 60, "label": "Front Steps"}
+
+
+def _cam_doors(front=("on", 10), opened_ago=10, **extra):
+    ha = _ha(front=front)
+    if opened_ago is not None:
+        ha._rising = {FRONT: doors.now_s() - opened_ago}
+    return doors.values(ha, _desc(**extra)), ha
+
+
+def test_takeover_while_inside_the_window():
+    v, ha = _cam_doors(camera=CAMERA)
+    t = ha.last_on(FRONT)
+    assert v["takeover"] == {"cam": "front_steps", "label": "Front Steps", "until": t + 60,
+                             "hls": "http://192.0.2.20:1985/hls/front_steps.m3u8"}
+
+
+def test_takeover_holds_after_the_door_closes_again():
+    v, _ = _cam_doors(front=("off", 5), opened_ago=8, camera=CAMERA)
+    assert "takeover" in v
+
+
+def test_no_takeover_after_the_window():
+    v, _ = _cam_doors(opened_ago=61, camera=CAMERA)
+    assert "takeover" not in v
+
+
+def test_no_takeover_without_an_opening_or_a_camera_key():
+    assert "takeover" not in _cam_doors(opened_ago=None, camera=CAMERA)[0]
+    assert "takeover" not in _cam_doors()[0]                       # no camera key
+    assert "takeover" not in _cam_doors(camera={**CAMERA, "door": "garage"})[0]
+    assert "takeover" not in _cam_doors(camera={"door": "front"})[0]  # no cam
+
+
+def test_takeover_hls_base_from_env(monkeypatch):
+    monkeypatch.setenv("HAKU_HLS_BASE", "http://cams.lan:9000/hls/")
+    v, _ = _cam_doors(camera={"door": "front", "cam": "front_steps"})
+    assert v["takeover"]["hls"] == "http://cams.lan:9000/hls/front_steps.m3u8"
+    assert v["takeover"]["label"] == "Front"                        # the door's label
+    assert v["takeover"]["until"] - doors.now_s() in (49, 50, 51)   # sec defaults to 60

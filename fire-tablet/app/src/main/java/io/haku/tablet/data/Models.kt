@@ -91,6 +91,17 @@ data class Door(
     val glyph: String,
 )
 
+/**
+ * The doors module's camera takeover: for a minute after the front door opens the sidecar names a live
+ * stream ([hls], H.264 HLS) to show full screen, and the epoch second it ends ([until], on the sidecar's clock).
+ */
+data class DoorTakeover(
+    val cam: String,
+    val hls: String,
+    val label: String,
+    val until: Long,
+)
+
 /** [mode] is `idle | running | overtime | done | done_calm`; [leds] is 0..4; [status] is sidecar-formatted. */
 data class Machine(
     val id: String,
@@ -161,6 +172,15 @@ class HubState(private val root: JsonObject) {
                 glyph = it.str("glyph"),
             )
         }
+    }
+
+    /** The module's `takeover`, or null when it has none (the usual case) or it lacks a stream or an end. */
+    fun takeover(key: String): DoorTakeover? {
+        val t = (root[key] as? JsonObject)?.get("takeover") as? JsonObject ?: return null
+        val hls = t.str("hls")
+        val until = t.long("until") ?: return null
+        if (hls.isEmpty()) return null
+        return DoorTakeover(cam = t.str("cam"), hls = hls, label = t.str("label"), until = until)
     }
 
     /** Null when [key] has no `machines` array, so the card can fall back to a plain value tile. */

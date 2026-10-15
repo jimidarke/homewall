@@ -328,9 +328,12 @@ def test_forecast_cached_per_entity_and_type(monkeypatch):
 
 def test_forecast_keeps_last_good_and_never_caches_empty(monkeypatch):
     c = _client()
+    clock = [1_792_000_000.0]
+    monkeypatch.setattr(ha_mod.time, "time", lambda: clock[0])
     rest = _Rest(monkeypatch, c, {"service_response": {"weather.home": {"forecast": []}}},
                  _forecast("weather.home", "daily"), None)
     assert c.get_forecast("weather.home") == []
+    clock[0] += ha_mod._FAIL_BACKOFF_S + 1          # an empty answer counts as a failure
     good = c.get_forecast("weather.home")
     assert good[0]["kind"] == "daily"
     assert c.get_forecast("weather.home", ttl=0) == good           # failed refetch
@@ -370,3 +373,58 @@ def test_existing_request_path_unchanged(monkeypatch):
     assert seen == {"url": "http://ha.example:8123/api/history/period/x?filter_entity_id=a",
                     "auth": f"Bearer {SECRET_TOKEN}", "timeout": c.timeout}
     assert urlsplit(seen["url"]).netloc == "ha.example:8123"
+
+
+# --- the poller: rising edges, failure backoff ---------------------------------------
+DOOR = "binary_sensor.front_doorcontact_contact"
+
+
+def _snap(state, changed="2026-10-14T23:21:03+00:00"):
+    return [{"entity_id": DOOR, "state": state, "last_changed": changed}]
+
+
+def test_poll_records_the_rising_edge_at_has_last_changed(monkeypatch):
+    c = _client()
+    _Rest(monkeypatch, c, _snap("off"), _snap("on"), _snap("on"), _snap("off", "2026-10-14T23:21:06+00:00"))
+    c._poll_once()
+    assert c.last_on(DOOR) is None
+    c._poll_once()
+    opened = int(datetime(2026, 10, 14, 23, 21, 3, tzinfo=timezone.utc).timestamp())
+    assert c.last_on(DOOR) == opened
+    c._poll_once()
+    c._poll_once()                                   # closed again: the opening is kept
+    assert c.last_on(DOOR) == opened
+
+
+def test_first_poll_records_no_edge(monkeypatch):
+    c = _client()
+    _Rest(monkeypatch, c, _snap("on"))
+    c._poll_once()
+    assert c.last_on(DOOR) is None                   # open before the sidecar started
+
+
+def test_edge_from_unavailable_counts_and_bad_last_changed_uses_now(monkeypatch):
+    c = _client()
+    monkeypatch.setattr(ha_mod.time, "time", lambda: 1_792_000_000.0)
+    _Rest(monkeypatch, c, _snap("unavailable"), _snap("on", "garbage"))
+    c._poll_once()
+    c._poll_once()
+    assert c.last_on(DOOR) == 1_792_000_000
+
+
+def test_failed_fetch_is_not_retried_inside_the_backoff(monkeypatch):
+    c = _client()
+    clock = [1_792_000_000.0]
+    monkeypatch.setattr(ha_mod.time, "time", lambda: clock[0])
+    rest = _Rest(monkeypatch, c, None, [{"when": "x", "state": "on"}])
+    assert c.get_logbook(DOOR) == []                 # failed, nothing cached
+    assert c.get_logbook(DOOR) == []                 # inside the backoff: no new request
+    assert len(rest.calls) == 1
+    clock[0] += ha_mod._FAIL_BACKOFF_S + 1
+    assert c.get_logbook(DOOR) == [{"when": "x", "state": "on"}]
+    assert len(rest.calls) == 2
+
+
+def test_poll_interval_floor_is_one_second():
+    assert HAClient("http://x", "t", poll_interval=1).poll_interval == 1
+    assert HAClient("http://x", "t", poll_interval=0).poll_interval == 1

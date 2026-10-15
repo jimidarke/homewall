@@ -6,6 +6,14 @@ Layout-only module, defined in the tablet layout; the Roku layout reuses it thro
   openAlertSec      a door open longer than this is `high` (300)
   lookbackHours     logbook window for "since" (12, the timeline's, so the
                     `entity:hours` logbook cache entry is shared)
+  camera            optional door camera takeover (the tablet's):
+                    {door: <door id>, cam: <stream>, sec: 60, label: <door's label>}
+
+Camera takeover: when `camera.door` opened less than `sec` ago, the values carry
+`takeover: {cam, hls, label, until}` (`until` = opening epoch + sec), and no key at all
+otherwise. The opening time is the HA client's `last_on` (an off->on edge between two
+of its snapshots), so it survives the door closing again and needs the 1 s poll to
+catch a quick open. `hls` is `$HAKU_HLS_BASE/<cam>.m3u8` (default the stream server).
 
 State: `on` -> open, `off` -> closed, anything else (unavailable/unknown/missing) -> unknown.
 
@@ -35,6 +43,8 @@ state and since (the same restart-proof logic as the tile), and "Today", every o
 since local midnight from the contacts' state history, newest first, with how long it
 stayed open ("open now" while it still is).
 """
+import os
+
 from .. import blocks
 from .. import config as cfg
 from .. import history as hist
@@ -46,6 +56,8 @@ _STATES = {"on": "open", "off": "closed"}
 _GLYPHS = {"open": "door-open", "closed": "door-closed", "unknown": "door"}
 _DEAD = ("unavailable", "unknown")
 _FRESH_SEC = 60    # a last_changed this recent is newer than the 30 s logbook cache
+_DEFAULT_CAMERA_SEC = 60
+_DEFAULT_HLS_BASE = "http://192.0.2.20:1985/hls"
 
 
 def values(ha, descriptor):
@@ -54,17 +66,37 @@ def values(ha, descriptor):
     lookback = _int(descriptor.get("lookbackHours"), _DEFAULT_LOOKBACK_HOURS)
     now = now_s()
 
-    doors = [_door(ha, d, alert_sec, lookback, now)
-             for d in (ents.get("doors") or []) if isinstance(d, dict)]
+    configured = [d for d in (ents.get("doors") or []) if isinstance(d, dict)]
+    doors = [_door(ha, d, alert_sec, lookback, now) for d in configured]
     open_count = sum(1 for d in doors if d["state"] == "open")
     stale = all(d["state"] == "unknown" for d in doors)   # also true with no doors
 
-    return {
+    out = {
         "doors": doors,
         "open_count": open_count,
         "stale": stale,
         "tile": _tile(doors, open_count, stale),
     }
+    takeover = _takeover(ha, descriptor.get("camera"), configured, doors, now)
+    if takeover:
+        out["takeover"] = takeover
+    return out
+
+
+def _takeover(ha, cam, configured, doors, now):
+    """The camera takeover for a door opened in the last `sec`, or None."""
+    if not isinstance(cam, dict) or not cam.get("cam") or not hasattr(ha, "last_on"):
+        return None
+    for conf, door in zip(configured, doors):
+        if door["id"] == cam.get("door") and conf.get("entity"):
+            opened = ha.last_on(conf["entity"])
+            sec = _int(cam.get("sec"), _DEFAULT_CAMERA_SEC)
+            if opened is None or not (0 <= now - opened < sec):
+                return None
+            base = os.environ.get("HAKU_HLS_BASE", _DEFAULT_HLS_BASE).rstrip("/")
+            return {"cam": cam["cam"], "hls": f"{base}/{cam['cam']}.m3u8",
+                    "label": cam.get("label") or door["label"], "until": opened + sec}
+    return None
 
 
 def _door(ha, d, alert_sec, lookback, now):

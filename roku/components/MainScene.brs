@@ -11,6 +11,9 @@
 ' BackgroundGallery covers burn-in.
 
 sub init()
+    m.configPending = false     ' startHubPoll(true) until a config arrives
+    m.pollFailed = false
+    m.lastPollLog = 0
     m.home           = m.top.findNode("home")
     m.live           = m.top.findNode("live")
     m.grid           = m.top.findNode("grid")
@@ -76,10 +79,10 @@ sub init()
     m.modules.layout = HK_LAYOUT()
     regDelete(HK_REG_KEY_CONFIG_OLD())   ' pre-0.11 default-view cache: never read again
 
-    m.stateTimer.duration = HK_STATE_POLL_MS() / 1000
     m.idleTimer.duration = HK_IDLE_TO_HOME_MS() / 1000
     m.returnHomeTimer.duration = HK_RETURN_HOME_MS() / 1000
     m.homeCamTimer.duration = HK_HOME_CAM_MAX_MS() / 1000
+    m.stateTimer.duration = hkStatePollMsFor(createObject("roDeviceInfo").getModel()) / 1000
     m.bgListTimer.duration = HK_BG_LIST_MS() / 1000
     m.bgListTimer.control = "start"
 
@@ -230,22 +233,26 @@ end function
 ' ---------------------------------------------------------------------------
 ' Sidecar poll
 ' ---------------------------------------------------------------------------
+' A config fetch stays pending until a config arrives: a RUN sent while the Task is
+' still busy is dropped, and at a 1 s poll the next tick must ask for it again.
 sub startHubPoll(fetchConfig as boolean)
     if m.hubBase = "" then return
-    m.modules.fetchConfig = fetchConfig
+    if fetchConfig then m.configPending = true
+    m.modules.fetchConfig = m.configPending
     m.modules.control = "RUN"
     m.stateTimer.control = "start"
 end sub
 
 sub onStateTimer()
     if m.hubBase = "" then return
-    m.modules.fetchConfig = false
+    m.modules.fetchConfig = m.configPending
     m.modules.control = "RUN"
 end sub
 
 sub onModuleConfig()
     cfg = m.modules.config
     if cfg = invalid or cfg.modules = invalid then return
+    m.configPending = false
     m.config = cfg
     m.home.config = cfg
     m.bgGallery.intervalMs = hkBgRotateMs(cfg)
@@ -276,12 +283,21 @@ sub onModuleSnapshot()
         startHubPoll(true)               ' the sidecar lost the layout: re-fetch config
         return
     end if
-    if snap.ts = invalid then return     ' error payloads carry no ts
+    if snap.ts = invalid then            ' error payloads carry no ts
+        if not m.pollFailed then hkEvent("poll_fail", { err: snap.err })
+        m.pollFailed = true
+        return
+    end if
     m.lastSnapshot = snap
     m.home.state = snap
-    m.home.lastOk = hkNowSeconds()
+    now = hkNowSeconds()
+    m.home.lastOk = now
     if m.route = "module" then refreshModuleScreen()
-    hkEvent("poll_ok", { ts: snap.ts })
+    if hkPollLogDue(m.lastPollLog, now, m.pollFailed) then
+        hkEvent("poll_ok", { ts: snap.ts })
+        m.lastPollLog = now
+    end if
+    m.pollFailed = false
 end sub
 
 function moduleIds(cfg as object) as string

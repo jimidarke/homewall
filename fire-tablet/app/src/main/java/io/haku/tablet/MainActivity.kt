@@ -41,6 +41,7 @@ class MainActivity : ComponentActivity() {
                 ui, vm.freshness, vm.lastOkAt, vm.photo, vm.night,
                 vm.peek, vm::startPeek, vm::endPeek, vm::stepPhoto,
                 vm.detail, vm::openDetail, vm::closeDetail,
+                vm.cam, vm::closeCam, vm::camFailed,
             )
         }
         // Dim the whole window during the config's night window; follow the system brightness otherwise.

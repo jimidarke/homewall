@@ -37,8 +37,9 @@ class FakeHA:
     FAIL = object()
 
     def __init__(self, states=None, forecast=None, calendars=None, events=None, logbook=None,
-                 statistics=None, history=None):
+                 statistics=None, history=None, rising=None):
         self._states = states or {}
+        self._rising = rising or {}      # entity_id -> epoch of the last off->on edge
         self._forecast = forecast if forecast is not None else []
         self._calendars = calendars or []
         self._events = events or {}      # entity_id -> [event, ...]
@@ -72,6 +73,9 @@ class FakeHA:
 
     def get_logbook(self, eid, lookback_hours=12, ttl=30):
         return self._logbook.get(eid, [])
+
+    def last_on(self, eid):
+        return self._rising.get(eid)
 
     def get_statistics(self, statistic_ids, start, end, period, types, units=None, ttl=600):
         self.calls.append(("get_statistics", {

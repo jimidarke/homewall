@@ -41,6 +41,8 @@ sub Main()
     test_hkStreamUrl()
     test_hkTileCam()
     test_hkHomeCam()
+    test_hkPollLogDue()
+    test_hkStatePollMsFor()
     test_hkBgListUpdate()
     test_hkVideoFit()
     test_hkDoorLayout()
@@ -575,6 +577,24 @@ sub test_hkHomeCam()
     assertEq("override, no tile", hkHomeCam(invalid, "front_steps", streams), "front_steps")
     assertEq("no tile, no override", hkHomeCam(invalid, "", streams), "mosaic")
     assertEq("invalid override", hkHomeCam(tile, invalid, streams), "front")
+end sub
+
+sub test_hkPollLogDue()
+    print "== hkPollLogDue =="
+    assertEq("first ok", hkPollLogDue(0, 1000, false), true)
+    assertEq("ok 10 s later", hkPollLogDue(1000, 1010, false), false)
+    assertEq("ok a minute later", hkPollLogDue(1000, 1060, false), true)
+    assertEq("recovered", hkPollLogDue(1000, 1005, true), true)
+end sub
+
+sub test_hkStatePollMsFor()
+    print "== hkStatePollMsFor =="
+    assertEq("Express (kids)", hkStatePollMsFor("3930CA"), 2000)
+    assertEq("Express X", hkStatePollMsFor("3930X"), 2000)
+    assertEq("Express 4K", hkStatePollMsFor("3940CA2"), 1000)
+    assertEq("Premiere+", hkStatePollMsFor("4630X"), 1000)
+    assertEq("Stick", hkStatePollMsFor("3600X"), 1000)
+    assertEq("unknown", hkStatePollMsFor(""), 1000)
 end sub
 
 sub test_hkBgListUpdate()
