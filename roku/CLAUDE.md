@@ -114,6 +114,8 @@ main.brs  ──creates──▶ MainScene  (render thread; routes: home·live·
 
 **Registry conventions** — single section `haku`, keys via `HK_REG_KEY_*()` accessors in `Config.brs`. Audio mute is per-cam (`audioMuted_<cam>`); the discovery cache is one JSON blob (`discoveryCacheV2`); the default cam is `defaultCam`; HA bootstrap stores `haUrl` + `haToken` (the latter is scrubbed from logs by `hkScrub()` and `hkEvent()` redaction).
 
+**HA push side** — `ha-housewall.yaml` is a byte-for-byte copy of mserver's `/root/docker/homeassistantV3/config/ha/packages/housewall.yaml` (the `rest_command`s, the active-Roku selector, `script.housewall_broadcast` and the HouseWall automations). Change it here, diff the live file first (`md5sum`), back it up next to itself, copy it over, run HA's config check (`POST /api/config/core/check_config`), then reload (`automation.reload`, `script.reload`, `rest_command.reload`, `template.reload` as needed).
+
 **ECP wire format & overlay schemas** — `../docs/HAKU_DESIGN.md` § "Overlay layer" + § "Event-driven flows" are authoritative for what HA may send. ECP `/input` reads only the URL's query string (a POST body is ignored), and two POSTs landing on one Roku at the same instant can arrive as one request's params twice; HA's `housewall.yaml` sends payloads in the URL and queues its broadcasts for that reason. Values from ECP are strings, but MainScene hands components integers (`hkParseInt`); read them back with `hkParseInt`, never `.toInt()`, which is a runtime error on an integer. Any change to that schema needs a matching update in `OverlayLayer` + `MainScene.dispatchEcp` + the smoke test's overlay POST list.
 
 ## Conventions
