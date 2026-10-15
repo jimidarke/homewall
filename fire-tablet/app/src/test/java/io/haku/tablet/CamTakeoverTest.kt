@@ -47,9 +47,9 @@ class CamTakeoverTest {
 
     private val quietTs = 1_790_822_530L          // quiet.json's ts
 
-    /** quiet.json with the doors module carrying a takeover that ends at [until], and the state's [ts]. */
-    private fun withTakeover(until: Long, ts: Long = quietTs): HubState {
-        val root = HubJson.json.parseToJsonElement(demoJson("quiet")).jsonObject
+    /** [base] (quiet.json by default) with the doors module carrying a takeover that ends at [until], at [ts]. */
+    private fun withTakeover(until: Long, ts: Long = quietTs, base: String = "quiet"): HubState {
+        val root = HubJson.json.parseToJsonElement(demoJson(base)).jsonObject
         val doors = root.getValue("doors").jsonObject
         val takeover = buildJsonObject {
             put("cam", "front_steps")
@@ -157,6 +157,18 @@ class CamTakeoverTest {
         src.state = Fetch.Ok(demo("alert"))
         advance(2_000)
         assertNull(vm.cam.value)                    // nothing may hide an alert
+    }
+
+    @Test
+    fun an_alert_in_the_same_poll_keeps_it_closed() {
+        val src = FakeSource()
+        val vm = viewModel(src)
+        advance(1_500)                              // a quiet baseline, so the alert is an edge
+        src.state = Fetch.Ok(withTakeover(until = quietTs + 60, base = "alert"))
+        advance(1_000)
+        assertNull(vm.cam.value)                    // nothing may hide an alert, even one in the same poll
+        advance(1_000)
+        assertNull(vm.cam.value)                    // nor on the next poll: that opening is spent
     }
 
     @Test

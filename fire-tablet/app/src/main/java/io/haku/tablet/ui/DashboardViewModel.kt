@@ -151,11 +151,17 @@ class DashboardViewModel(
     private var camShown: Long? = null
     private var camJob: Job? = null
 
+    /** Whether the poll being projected fired an ALERT; a door camera doesn't open over it. Poll coroutine only. */
+    @Volatile private var alertThisPoll = false
+
     /** Pulse and highlight baselines. Used only by the poll coroutine. */
     private val tracker = PollTracker { fired ->
         logEvent("pulse", fired.entries.joinToString(" ") { (id, p) -> "$id=${p.name.lowercase()}" })
         // Nothing may hide an alert. This runs on the poll's work context, so hop to the main thread.
-        if (Pulse.ALERT in fired.values) viewModelScope.launch { closeOverlays() }
+        if (Pulse.ALERT in fired.values) {
+            alertThisPoll = true
+            viewModelScope.launch { closeOverlays() }
+        }
     }
 
     init {
@@ -307,6 +313,7 @@ class DashboardViewModel(
                 is Fetch.Ok -> {
                     failures = 0
                     val config = _ui.value.config
+                    alertThisPoll = false
                     val polled = config?.let { withContext(work) { tracker.onOk(it, r.value, clock()) } }
                     _ui.update {
                         it.copy(
@@ -319,7 +326,11 @@ class DashboardViewModel(
                     _lastOkAt.value = clock()
                     config?.modules?.firstOrNull { it.kind == "doors" }
                         ?.let { r.value.takeover(it.key) }
-                        ?.let { maybeOpenCam(it, r.value.ts) }
+                        ?.let { t ->
+                            // An alert in this same poll wins, and spends the opening, so the camera
+                            // never opens over it (it would only flash open before closeOverlays).
+                            if (alertThisPoll) camShown = t.until else maybeOpenCam(t, r.value.ts)
+                        }
                     if (loggedAt == 0L || clock() - loggedAt >= POLL_LOG_EVERY_MS) {
                         logEvent("poll_ok", "ts=${r.value.ts}")
                         loggedAt = clock()
