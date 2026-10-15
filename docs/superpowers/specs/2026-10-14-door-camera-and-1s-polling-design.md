@@ -1,6 +1,6 @@
 # Door camera on the tablet + office Roku, and 1 s polling — design (HAku 1.2)
 
-Date: 2026-10-14. Status: shipped. Roku 1.2.1 is on the four fleet Rokus that were on HAku; the Den runs Netflix (see Rollout). The tablet is on 1.1.0 (versionCode 6) and the sidecar on 1.1.0. HA is live. Plan: `docs/superpowers/plans/2026-10-14-door-camera-and-1s-polling.md`.
+Date: 2026-10-14. Status: shipped. Roku 1.2.1 is installed on all five Rokus. The tablet is on 1.1.0 (versionCode 6) and the sidecar on 1.1.0. HA is live. Plan: `docs/superpowers/plans/2026-10-14-door-camera-and-1s-polling.md`.
 
 ## Asked for
 
