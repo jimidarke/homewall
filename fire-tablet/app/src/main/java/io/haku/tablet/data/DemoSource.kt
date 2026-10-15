@@ -81,7 +81,7 @@ class DemoSource(
     private companion object {
         val CYCLE = listOf("quiet", "busy", "alert")
         const val CYCLE_MS = 10_000L
-        /** How long `offline` and `degraded` serve the quiet state before their fault starts. */
+        /** How long `offline`, `degraded` and `door` serve the quiet state before their fault (or the door) starts. */
         const val OFFLINE_AFTER_MS = 5_000L
     }
 }

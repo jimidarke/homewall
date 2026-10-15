@@ -1,46 +1,40 @@
-# HouseWall — HA → Roku channel automation package
+# HAku push package (HA -> Roku over ECP)
 #
-# What this package does
-# ----------------------
-# Bridges HA sensor events to the HouseWall Roku channel via Roku's ECP
-# /input endpoint. The Roku channel's InputPumpTask receives the form-encoded
-# payload as a roInputEvent and MainScene.dispatchEcp routes it (cam swap,
-# severity-coloured toast, optional 15s replay).
+# Live copy: mserver /root/docker/homeassistantV3/config/ha/packages/housewall.yaml.
+# This file is a byte-for-byte copy; change it here and deploy as described in
+# roku/CLAUDE.md "HA push side". What HA may send: docs/HAKU_DESIGN.md
+# "Overlay layer" and "Event-driven flows".
 #
-# Severity model (handled in MainScene.brs):
-#   high   → unconditional cam swap + replay (red border toast, 5s)
-#   normal → cam swap + toast (3s)
-#   low    → toast only (no swap; v0.5 will render PIP for these)
+# Entities, scripts and automations are named housewall_* / "HouseWall" because
+# the package predates the HAku name.
 #
-# Routing scope
-# -------------
-# v0.4 widens to the full HouseWall-running fleet (4 Rokus, dev-unlocked
-# 2026-05-08): living=.51, kids=.52, bedroom=.53, den=.54. Garage/dad
-# Rokus are excluded (not dev-unlocked / not running HouseWall).
-# Active-Roku selector (sensor.housewall_active_service) keys off
-# sensor.jimi_phone_room and falls through to housewall_living when the
-# room is unmapped or espresense is offline (most ESP modules report
-# unavailable today — see HOUSEWALL_DESIGN.md §"Followup — sensor health").
-# script.housewall_broadcast fans the same payload to all 5 Rokus (the 4 above
-# plus the office dev Roku .55) —
-# used by the motion-timestamp heartbeat so every HUD stays fresh.
+# How a push reaches a Roku: a rest_command POSTs to the Roku's ECP
+# http://<roku>:8060/input?<payload>. The running HAku channel gets it as a
+# roInputEvent and MainScene.dispatchEcp routes it:
+#   homeCam=<cam>|default         point the home camera square at a stream, or back
+#   cam=<cam>&severity=high|normal full-screen live camera + toast (replay= seeks back)
+#   cam=<cam>&severity=low        PIP overlay, no route change
+#   lastMotion=<cam>&lastMotionAt=<unix>   "motion N min ago" label on the live HUD
 #
-# Entity sources (validated against HA states 2026-05-08):
-#   binary_sensor.front_doorcontact_contact   front door open/close
-#   binary_sensor.front_motion_occupancy      front cam motion
-#   binary_sensor.back_doorcontact_contact    back door open/close
-#   binary_sensor.backyard_motion_occupancy   backyard cam motion (primary)
-#   binary_sensor.backyard_corner_motion       backyard secondary (currently unavailable per design doc)
-#   sensor.jimi_phone_room                    espresense — used only when active-Roku selector is wired (deferred)
+# Contents:
+#   rest_command.housewall_<room>     one per Roku (living .51, kids .52,
+#                                     bedroom .53, den .54, office .55)
+#   sensor.housewall_active_service   which Roku to target, from sensor.jimi_phone_room
+#   script.housewall_broadcast        the same payload to all five Rokus
+#   automations                       front steps view, front door opened,
+#                                     after-hours back motion / back door,
+#                                     motion-timestamp heartbeat
+#
+# Sensors used: binary_sensor.front_motion_occupancy, binary_sensor.front_doorcontact_contact,
+# binary_sensor.back_doorcontact_contact, binary_sensor.backyard_motion_occupancy,
+# sensor.jimi_phone_room (ESPresense).
 
 #-------------------------------------------------------------------------------
-# REST COMMANDS — one per Roku.
-# Re-add only what HouseWall needs (the upstream "OPTIMIZED" pass stripped
-# rest_command from configuration.yaml). Packages are allowed to declare it.
+# REST COMMANDS — one per Roku. (configuration.yaml declares no rest_command;
+# this package does.)
 #-------------------------------------------------------------------------------
 # Roku ECP /input reads only the URL's query string and ignores a POST body, so the
 # payload (already form-encoded, e.g. "cam=front&severity=normal") goes in the URL.
-# Until 2026-10-14 it went in the body and no push ever reached a Roku.
 rest_command:
   housewall_living:
     url: "http://192.0.2.51:8060/input?{{ payload }}"
@@ -58,17 +52,17 @@ rest_command:
     url: "http://192.0.2.54:8060/input?{{ payload }}"
     method: POST
     timeout: 5
-  # Office (dev) Roku, also a HAku wall since 2026-10-14. Broadcast only: the
-  # active-Roku selector never picks it.
+  # Office Roku (the dev Roku, also a wall). Reached by the broadcast script and
+  # the front-door automation; the active-Roku selector never picks it.
   housewall_office:
     url: "http://192.0.2.55:8060/input?{{ payload }}"
     method: POST
     timeout: 5
 
 #-------------------------------------------------------------------------------
-# ACTIVE-ROKU SELECTOR — picks which rest_command to fire based on espresense.
-# Falls through to housewall_living when the user's room is unknown or maps to
-# a room without a dedicated Roku (office, laundry, bedroom_2).
+# ACTIVE-ROKU SELECTOR — the rest_command for the Roku in the room ESPresense
+# puts Jimi's phone in. Anything else (unknown, offline, a room without a mapped
+# Roku) falls through to housewall_living.
 #-------------------------------------------------------------------------------
 template:
   - sensor:
@@ -83,9 +77,8 @@ template:
           {% endif %}
 
 #-------------------------------------------------------------------------------
-# BROADCAST SCRIPT — fan a payload to every HouseWall Roku in parallel.
-# Used by the motion-timestamp heartbeat so every HUD's "motion N min ago"
-# label stays current regardless of which screen the user is in front of.
+# BROADCAST SCRIPT — send one payload to all five Rokus in parallel.
+# Used by the front steps view and the motion-timestamp heartbeat.
 #-------------------------------------------------------------------------------
 script:
   housewall_broadcast:
@@ -93,9 +86,9 @@ script:
     description: Fan a payload to all 5 HAku Rokus in parallel.
     # queued: two automations can broadcast in the same instant (the motion-
     # timestamp heartbeat and the front steps revert both fire when motion clears).
-    # single mode drops the second call, and parallel lets two POSTs hit one Roku at
-    # once, where ECP may hand the channel one request's params twice and lose the
-    # other's (seen 2026-10-14). Queued runs them back to back, each still fanned out.
+    # single mode would drop the second call, and parallel lets two POSTs hit one
+    # Roku at once, where ECP may hand the channel one request's params twice and
+    # lose the other's. Queued runs them back to back, each still fanned out.
     mode: queued
     fields:
       payload:
@@ -125,16 +118,16 @@ script:
               payload: "{{ payload }}"
 
 #-------------------------------------------------------------------------------
-# AUTOMATIONS — v0.4 severity-routed event handlers.
+# AUTOMATIONS
 #-------------------------------------------------------------------------------
 automation:
 
-  # --- Front steps view (HAku 1.1, 2026-10-14) ------------------------------
-  # Replaces the old "Front motion" full-screen takeover. Front motion that lasts
-  # 5 s points every wall's camera square at the Genbolt's fixed lens on the steps
-  # (stream front_steps); the PTZ (front) is mounted sideways and can't see them.
-  # The sensor holds "on" for 90 s after the last movement, so clearing is the
-  # revert. The Rokus also revert by themselves after 15 min if this push is missed.
+  # --- Front steps view (broadcast) -------------------------------------------
+  # Front motion that lasts 5 s points every wall's camera square at the Genbolt's
+  # fixed lens on the steps (stream front_steps); the PTZ (front) is mounted
+  # sideways and can't see them. The sensor holds "on" for 90 s after the last
+  # movement, so clearing is the revert. The Rokus also revert by themselves after
+  # 15 min if the revert is missed.
   - alias: "HouseWall · Front steps view"
     id: housewall_front_steps_view
     description: >-
@@ -161,12 +154,13 @@ automation:
           payload: >-
             {{ 'homeCam=front_steps' if trigger.id == 'steps' else 'homeCam=default' }}
 
+  # --- Front door opened (office Roku only) -----------------------------------
   - alias: "HouseWall · Front door opened"
     id: housewall_front_door_opened
     description: >-
       Front door contact opens → the office Roku goes full-screen on the
-      fixed lens over the front steps (front_steps) for 60 s. Since
-      2026-10-14; the kitchen tablet shows the same camera via the sidecar.
+      fixed lens over the front steps (front_steps) for 60 s. The kitchen
+      tablet shows the same camera for the same minute via the sidecar.
     mode: single
     trigger:
       - platform: state
@@ -177,7 +171,7 @@ automation:
         data:
           payload: "cam=front_steps&severity=normal&reason=opened&banner=Front+Door+opened"
 
-  # --- After-hours back-of-house — escalate to HIGH severity ----------------
+  # --- After hours (22:00–06:00): back of house, high severity, active Roku ---
   - alias: "HouseWall · After-hours back motion"
     id: housewall_after_hours_back_motion
     description: >-
@@ -190,8 +184,8 @@ automation:
       - platform: state
         entity_id:
           - binary_sensor.backyard_motion_occupancy
-          # binary_sensor.backyard_corner_motion_occupancy currently unavailable
-          # (see HOUSEWALL_DESIGN.md §"Followup — sensor health"); add back when restored.
+          # binary_sensor.backyard_corner_motion_occupancy is unavailable; add it
+          # back here when it returns.
         to: "on"
     condition:
       - condition: time
@@ -221,10 +215,10 @@ automation:
         data:
           payload: "cam=backyard&severity=high&replay=15&reason=after+hours+door&banner=ATTN+Back+Door"
 
-  # --- Motion-timestamp heartbeat (HUD freshness) -----------------------------
-  # When any tracked motion sensor *clears* (off), push a lastMotion=<cam>&
-  # lastMotionAt=<unix> payload so the LiveGroup HUD's "motion 2 min ago"
-  # stays accurate without HouseWall having to poll HA.
+  # --- Motion-timestamp heartbeat (broadcast) ---------------------------------
+  # When a tracked motion sensor clears, push lastMotion=<cam>&lastMotionAt=<unix>
+  # so the live view's "motion N min ago" label stays current without the Roku
+  # polling HA.
   - alias: "HouseWall · Push motion timestamps"
     id: housewall_push_motion_timestamps
     description: >-
@@ -238,16 +232,14 @@ automation:
         entity_id:
           - binary_sensor.front_motion_occupancy
           - binary_sensor.backyard_motion_occupancy
-          # binary_sensor.backyard_corner_motion_occupancy currently unavailable
-          # (see HOUSEWALL_DESIGN.md §"Followup — sensor health"); add back when restored.
+          # binary_sensor.backyard_corner_motion_occupancy is unavailable; add it
+          # back here when it returns.
         to: "off"
     action:
       - service: script.housewall_broadcast
         data:
-          # Map HA entity_id → Roku cam id. Only the front and backyard cams
-          # are wired today — side and yard direct-cam motion sensors don't
-          # exist on the LAN inventory. Broadcast so every Roku's HUD stays
-          # fresh regardless of which one the user is in front of.
+          # Map HA entity_id → Roku cam id. Only front and backyard have
+          # motion sensors; side and yard have none.
           payload: >-
             {%- set raw = trigger.entity_id | replace('binary_sensor.','') -%}
             {%- if raw == 'front_motion_occupancy' -%}

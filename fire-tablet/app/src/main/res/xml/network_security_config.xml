@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Cleartext HTTP only to the HAku sidecar on the LAN; everything else stays HTTPS-only. -->
+<!-- Cleartext HTTP only to nserver on the LAN (the HAku sidecar :1986 and the door camera HLS :1985); everything else stays HTTPS-only. -->
 <network-security-config>
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="false">192.0.2.20</domain>

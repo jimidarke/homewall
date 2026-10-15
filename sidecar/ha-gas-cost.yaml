@@ -2,17 +2,30 @@
 # tablet (Gas tile and detail panel), and the price entity for HA's Energy
 # dashboard.  (deploy to HA as packages/gas_cost.yaml)
 #
-# Bill structure: FILL IN from a gas bill. Every figure below is a placeholder
-# (0), which keeps the cost sensors unavailable, so the tablet hides gas cost
-# until the price is set. Alberta gas is billed per GJ; the bill prints the
-# heat content (GJ per m³) used to convert the meter's m³.
-#   Energy charge (retailer):          $_.____/GJ   -> energy_per_gj
-#   Delivery, variable (ATCO):         $_.____/GJ   -> delivery_per_gj
-#   Riders / other per-GJ charges:     $_.____/GJ   -> riders_per_gj
-#   Heat content:                      0.0___ GJ/m³ -> gj_per_m3
-#   Fixed monthly (no usage component): $__.__      -> fixed_monthly
+# Bill structure (Direct Energy Regulated Services statement 2026-09-29,
+# Aug 22 → Sep 21, 31 days, 2.03 GJ, current charges $66.44 incl. GST):
+#   Retailer (Direct Energy):
+#     Energy (regulated, set MONTHLY):  $1.124/GJ  (Sep; Aug was $1.729)  -> energy_per_gj
+#     Administration fee:               $11.50/month (fixed)
+#     Rider C7:                         $-1.27 credit (monthly true-up, left out)
+#   Distributor (ATCO Gas North):
+#     Delivery, variable ($2.13 / 2.03 GJ): $1.0493/GJ                     -> delivery_per_gj
+#     Delivery, fixed:                  $30.91 / 31 days
+#     Rate riders:                      $4.96 (treated as fixed; a winter bill will show
+#                                        whether part of it scales with GJ) -> riders_per_gj = 0
+#     Municipal franchise fee (Edmonton): $12.59 = 33.13 % of delivery + riders -> franchise
+#   GST 5% on everything.
+#   Heat content: ATCO conversion factor 1.014893810 GJ per 1000 ft³ (the meter reads
+#     in ft³) = 1.014893810 / 28.316847 = 0.035841 GJ/m³                    -> gj_per_m3
+#   Fixed monthly: (11.50 + (30.91 + 4.96) × 1.33132) × 1.05 = $62.22 / 31 days
+#     = $2.00701/day → $61.09 per average month (30.44 d)                   -> fixed_monthly
 #
-# Marginal $/m³ = (energy_per_gj + delivery_per_gj + riders_per_gj) x gj_per_m3
+# Marginal $/m³ = (energy + delivery × (1 + franchise) + riders) × 1.05 × gj_per_m3
+#               = (1.124 + 1.0493 × 1.33132) × 1.05 × 0.035841 = $0.09487/m³
+# Check: 31 days at 2.03 GJ → $67.59 vs the bill's $66.44 (the gap is mostly the
+# Rider C7 credit). The energy rate changes every month; update energy_per_gj
+# from each gas bill. Bills read the meter to the nearest 1000 ft³, so a single
+# summer bill can't validate the meter's volume (±50 % at ~2 GJ/month).
 #
 # After filling in:
 #   Settings -> Dashboards -> Energy -> Gas consumption (sensor.gas_meter_gas_meter_direct)
@@ -29,7 +42,7 @@
 #   sensor.gas_flow                   m³/h now; falls to 0 when the meter stops ticking -> tablet "now"
 #   sensor.gas_daily_usage            m³ so far today        -> tablet "today"
 #   sensor.gas_monthly_usage          m³ so far this month   -> tablet detail
-#   sensor.gas_marginal_cost_per_m3   CAD/m³ (0 until filled in)
+#   sensor.gas_marginal_cost_per_m3   CAD/m³ incl. franchise fee and GST
 #   sensor.gas_cost_today             CAD, unavailable while the price is 0
 #   sensor.gas_monthly_cost           CAD estimate incl. the fixed charge, ditto
 
@@ -97,11 +110,14 @@ template:
         device_class: monetary
         icon: mdi:fire
         state: >
-          {% set energy_per_gj = 0.0 %}
-          {% set delivery_per_gj = 0.0 %}
+          {% set energy_per_gj = 1.124 %}
+          {% set delivery_per_gj = 1.0493 %}
           {% set riders_per_gj = 0.0 %}
-          {% set gj_per_m3 = 0.0 %}
-          {{ ((energy_per_gj + delivery_per_gj + riders_per_gj) * gj_per_m3) | round(5) }}
+          {% set franchise = 0.33132 %}
+          {% set gst = 0.05 %}
+          {% set gj_per_m3 = 0.035841 %}
+          {{ ((energy_per_gj + delivery_per_gj * (1 + franchise) + riders_per_gj)
+              * (1 + gst) * gj_per_m3) | round(5) }}
 
       - name: Gas Cost Today
         unique_id: gas_cost_today
@@ -121,7 +137,7 @@ template:
         device_class: monetary
         icon: mdi:cash
         state: >
-          {% set fixed_monthly = 0.0 %}
+          {% set fixed_monthly = 61.09 %}
           {{ (fixed_monthly + states('sensor.gas_monthly_usage') | float(0)
               * states('sensor.gas_marginal_cost_per_m3') | float(0)) | round(2) }}
         availability: >

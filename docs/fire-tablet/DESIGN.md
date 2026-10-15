@@ -1,7 +1,7 @@
 # Kitchen Tablet Display: Design
 
 > Date: 2026-09-30
-> Status: **Built, release 1.0.0** (`~/code/homewall/fire-tablet`); the wall runs the R8 release build. **What ships is §8**: the v2 UI in §8.1 to §8.9 and the v3 touch layer in [§8.10](#810-touch-detail-panels-and-photo-peek-v3-2026-10-01) (detail panels, and a photo peek with ‹ › buttons to step through the photos). v3 also lightens the glass (§8.3) and holds stale values (§8.5). §1 to §7 are the original v1 design, which the proof of concept built and verified on the device on 2026-09-30. [§8](#8-ui-v2-2026-09-30) wins where they conflict, and the lines it replaced are marked "(superseded by §8)". The sidecar changes (§3, refined in §8.8) are deployed on nserver. The kiosk takeover in §4.5 is not built yet. Results: [KITCHEN-TABLET.md § Display App](../../../home-arr/docs/KITCHEN-TABLET.md#display-app-haku-tablet).
+> Status: **Built, release 1.1.1** (`~/code/homewall/fire-tablet`); the wall runs the R8 release build and polls state every 1 s. **What ships is §8**: the v2 UI in §8.1 to §8.9, the v3 touch layer in [§8.10](#810-touch-detail-panels-and-photo-peek-v3-2026-10-01) (detail panels, and a photo peek with ‹ › buttons to step through the photos), and the door camera in [§8.11](#811-door-camera) (added in 1.1.0 on 2026-10-14: the front steps full screen for a minute after the front door opens). v3 also lightens the glass (§8.3) and holds stale values (§8.5). §1 to §7 are the original v1 design, which the proof of concept built and verified on the device on 2026-09-30. [§8](#8-ui-v2-2026-09-30) wins where they conflict, and the lines it replaced are marked "(superseded by §8)". The sidecar changes (§3, refined in §8.8, and the doors `takeover` in §8.11) are deployed on nserver. The kiosk takeover in §4.5 is not built yet. Results: [KITCHEN-TABLET.md § Display App](../../../home-arr/docs/KITCHEN-TABLET.md#display-app-haku-tablet).
 > Device: Fire 7 `KFQUWI` at `192.0.2.60` (see [home-arr KITCHEN-TABLET.md](../../../home-arr/docs/KITCHEN-TABLET.md))
 > Data source: HAku sidecar on nserver, `http://192.0.2.20:1986` (`~/code/homewall/sidecar`)
 
@@ -30,7 +30,7 @@ The structure and content follow HAku, the Roku home wall (`~/code/homewall/roku
 - The tablet runs for weeks unattended without freezing or dropping back to the Fire launcher.
 - The Roku fleet sees no change.
 
-**Out of scope for v1:** controls (toggles, acknowledging laundry), cameras, the calendar, push or voice alerts, charge management (planned separately as a smart plug), and HA notifications (the HA Companion app keeps doing those). (Superseded by §8: the calendar is now in scope, and since 1.1 one camera shows, full screen for a minute after the front door opens, §8.11.)
+**Out of scope for v1:** controls (toggles, acknowledging laundry), cameras, the calendar, push or voice alerts, charge management (planned separately as a smart plug), and HA notifications (the HA Companion app keeps doing those). (Superseded by §8: the calendar is in scope, and one camera shows, full screen for a minute after the front door opens, §8.11.)
 
 ## 2. Architecture
 
@@ -56,7 +56,7 @@ haku-sidecar (nserver .20:1986)
 - HA load stays at one `/api/states` poll regardless of how many displays there are.
 - Formatting and the activity feed's noise filtering are written once and shared with the Rokus.
 
-**Cost:** the tablet depends on nserver being up, and a change shows up after 10 s (sidecar poll) plus the tablet's own poll interval. Both are acceptable for a status display.
+**Cost:** the tablet depends on nserver being up, and a change shows up after 10 s (sidecar poll) plus the tablet's own poll interval. Both are acceptable for a status display. (Superseded: the sidecar polls HA every 1 s and the tablet polls state every 1 s. On 2026-10-14 the tablet's door camera opened about 1.5 s after HA logged the front door, §8.9.)
 
 **Verified 2026-09-30:** the tablet reaches `192.0.2.20:1986` through the quarantine (an `/api/health` GET from the tablet returned `ha_connected: true`).
 
@@ -80,13 +80,13 @@ haku-sidecar (nserver .20:1986)
       "header": { "clock": true },
       "nightDim": { "start": "22:00", "end": "06:30", "brightness": 0.15 },
       "modules": [
-        { "id": "doors",   "kind": "doors",   "feedKey": "doors",   "refreshMs": 5000,
+        { "id": "doors",   "kind": "doors",   "feedKey": "doors",
           "tile": { "type": "value", "col": 0, "row": 0, "w": 1, "h": 1 },
           "openAlertSec": 300, "lookbackHours": 24,
           "entities": { "doors": [
             { "id": "front", "entity": "binary_sensor.front_doorcontact_contact", "label": "Front" },
             { "id": "back",  "entity": "binary_sensor.back_doorcontact_contact",  "label": "Back"  } ] } },
-        { "id": "laundry", "kind": "laundry", "feedKey": "laundry", "refreshMs": 5000,
+        { "id": "laundry", "kind": "laundry", "feedKey": "laundry",
           "tile": { "type": "value", "col": 1, "row": 0, "w": 1, "h": 1 },
           "machines": [
             { "id": "washer", "label": "Washer", "color": "#00AAFF" },
@@ -102,7 +102,7 @@ haku-sidecar (nserver .20:1986)
 }
 ```
 
-(Superseded by §8: the live block is a 4×3 grid with no `header` key, it adds `background`, and `lookbackHours` is 12. The exact shape is in the [v2 contract](../superpowers/plans/2026-09-30-tablet-ui-v2-contract.md) §1.1.)
+(Superseded by §8: the live block is a 4×3 grid with no `header` key, it adds `background`, and `lookbackHours` is 12. Module descriptors may carry a `refreshMs`, but no client uses it: the tablet and the Rokus poll the whole `/api/state` every 1 s (2 s on the Roku Express). The exact shape is in the [v2 contract](../superpowers/plans/2026-09-30-tablet-ui-v2-contract.md) §1.1.)
 
 **How the endpoints behave:**
 
@@ -264,19 +264,20 @@ Three approaches were considered:
 
 | Unit | Responsibility | Depends on |
 |------|----------------|-----------|
-| `SidecarClient` | GET `/api/config`, `/api/state`, `/api/backgrounds` and `/api/background/<name>`, each with `?layout=tablet`. Returns a parsed value or a typed error (`Fetch`), never throws | OkHttp, models |
+| `SidecarClient` | GET `/api/config`, `/api/state`, `/api/detail/<id>`, `/api/backgrounds` and `/api/background/<name>`, each with `?layout=tablet`. Returns a parsed value or a typed error (`Fetch`), never throws | OkHttp, models |
 | `Models` | `@Serializable` mirrors of the config JSON; state is kept as raw JSON and read per module. Unknown keys are ignored so newer sidecars stay compatible | kotlinx.serialization |
-| `DashboardViewModel` | Owns the poll loop (`viewModelScope`): config at start and every 10 min, state every 1 s (5 s before 1.1). Backs off to 30 s after 3 consecutive failures. Exposes `UiState {sidecar, config, cards, error, stateFetched, degraded}` plus `lastOkAt`, `freshness`, `night`, `photo`, `peek`, `detail` and `cam` flows | `HubSource` (`SidecarClient`) |
+| `DashboardViewModel` | Owns the poll loop (`viewModelScope`): config at start and every 10 min, state every 1 s. Backs off to 30 s after 3 consecutive failures. Exposes `UiState {sidecar, config, cards, error, stateFetched, degraded}` plus `lastOkAt`, `freshness`, `night`, `photo`, `peek`, `detail` and `cam` flows | `HubSource` (`SidecarClient`) |
 | `Dashboard` (Compose) | Header (clock, date, connection dot) plus a grid of cards placed from `tile.{col,row,w,h}` over `grid.{cols,rows}` | `UiState` |
 | `ValueCard` | Generic hero/sub/detail/severity card. Used for weather, energy, water, gas and the thermostat | — |
 | `DoorsCard` | One row per door: the state word plus the age | doors state |
 | `LaundryCard` | One row per machine: a label, a status line and a 4-segment bar (§4.4) | laundry state |
 | `AgendaCard` | The activity feed (a newest-first list of `items`, headers dropped as on the Roku via `dropHeaders`) and the calendar | timeline and calendar state |
+| `ui/detail/` | The detail panels (§8.10) | `SidecarClient.detail(id)`, state `items` |
+| `TileHold` | Holds a stale value card's last good reading (§8.5) | card models |
+| `CamLayer` | The door camera takeover, a framework `VideoView` (§8.11) | `DashboardViewModel.cam` |
 | `MainActivity` | Keep-screen-on, immersive mode and the night-dim window brightness. The HOME intent filter (§4.5) is not built yet | — |
 
-(Renamed in v2: the `*Tile` composables are now `ValueCard`, `DoorsCard`, `LaundryCard` and `AgendaCard`, each drawn inside a `GlassCard`; see §8.4.)
-
-(Added in v3: `SidecarClient.detail(id)` for `GET /api/detail/<id>?layout=tablet`, the panels in `ui/detail/`, and `ui/model/TileHold.kt`; see §8.5 and §8.10.)
+Each card is drawn inside a `GlassCard` (§8.4).
 
 **Card choice.** The `kind` picks the card (`doors` → `DoorsCard`, `laundry` → `LaundryCard`). For any other kind, `tile.type` decides: `value` → `ValueCard`, `agenda` → `AgendaCard`. Anything unknown falls back to `ValueCard` using `tile.hero/sub/detail`, the same forward-compatibility rule as the Roku's `hkModuleKind`.
 
@@ -329,7 +330,7 @@ The mapping from mode to segment frames is a **pure function** of `(mode, leds, 
 
 ### 4.5 Kiosk behaviour
 
-**Status (1.0.0).** Built: keep-screen-on, immersive mode, the night-dim window brightness, the cleartext rule, the status screen and the offline banner. Not built yet: the HOME takeover, the crash-restart handler and the `--es sidecar` override. The device lockscreen was still enabled when last checked, on 2026-10-01 (`locksettings get-disabled` read `false`).
+**Status (1.1.1).** Built: keep-screen-on, immersive mode, the night-dim window brightness, the cleartext rule, the status screen and the offline banner. Not built yet: the HOME takeover, the crash-restart handler and the `--es sidecar` override. The device lockscreen was still enabled when last checked, on 2026-10-01 (`locksettings get-disabled` read `false`).
 
 **Lockscreen (found in the proof of concept).** Fire OS 8 ignores `setShowWhenLocked`/`setTurnScreenOn`: after a screen sleep the swipe keyguard stays in front (`occluded=false`). The app keeps both calls, but the real fix is device-side: `adb shell locksettings set-disabled true` (the tablet has no PIN), applied together with the HOME takeover below.
 
@@ -354,7 +355,7 @@ The mapping from mode to segment frames is a **pure function** of `(mode, leds, 
 | Module returns `error` | That tile shows "—" and the error is logged. (As built: a module with no tile or a blank hero shows "—"; nothing is logged per module. A value card now holds its last good reading instead, §8.5.) |
 | App crash | It's the home activity, so Android relaunches it on the next home event. A `Thread.setDefaultUncaughtExceptionHandler` that restarts the activity via `AlarmManager` covers the case where nothing presses home. (Not built yet, see the status above.) |
 
-**Logging.** Structured `logcat` lines tagged `KitchenWall` for `adb logcat -s KitchenWall`, each `event=<name> k=v`: `event=source`, `config_loaded`, `config_fail`, `poll_ok`, `poll_fail` and `pulse`, plus `bg_list`, `bg_list_fail`, `bg_photo`, `bg_miss`, `bg_step` and `bg_step_miss` from the photo backdrop, and `detail_open`, `detail_close` and `detail_fail` for the detail panels. A failure ends `err=<reason>`, the same reason the offline banner shows (`http 502`, `network: …`, `parse: …`).
+**Logging.** Structured `logcat` lines tagged `KitchenWall` for `adb logcat -s KitchenWall`, each `event=<name> k=v`. A failure ends `err=<reason>`, the same reason the offline banner shows (`http 502`, `network: …`, `parse: …`). At a 1 s poll, `poll_ok` is logged once a minute and on recovery, not per poll. The events are listed in the [README](../../fire-tablet/README.md#logs-and-checks).
 
 ### 4.6 APK tests
 
@@ -364,6 +365,8 @@ The mapping from mode to segment frames is a **pure function** of `(mode, leds, 
 - the laundry frame function for every mode;
 - the night-dim window, including the midnight wrap;
 - stale thresholds.
+
+(As built, `app/src/test/java/io/haku/tablet/` covers these and every later layer, one test class per unit: for example pulses and the re-pulse cooldown (`PulsesTest`, `PollTrackerTest`), held values (`TileHoldTest`), the detail panels (`DetailParseTest`, `DetailBlocksTest`, `DetailVmTest`, `ChartGeometryTest`), the peek (`PeekTest`, `HeaderTapTest`, `BackdropLoaderTest`) and the door camera (`CamTakeoverTest`). The fixtures are in `app/src/test/resources/`; see the [README](../../fire-tablet/README.md#test-fixtures).)
 
 **On-device checklist (manual, over ADB):**
 1. Install, set as home, reboot. It must come back to the dashboard.
@@ -376,7 +379,7 @@ The mapping from mode to segment frames is a **pure function** of `(mode, leds, 
 ## 5. Tablet prerequisites (from KITCHEN-TABLET.md)
 
 - **Turn off Smart Suspend.** Found still on during the 2026-09-30 validation (`smartsuspend_enabled=1`). It's the documented cause of Fire 7 freezes every 2–3 days, and has to be off before the soak test. Low Power Mode is already off (`low_power=0`).
-- **Enable WiFi ADB** (`adb tcpip 5555`) before mounting, so reinstalls don't need USB.
+- **Enable WiFi ADB** (`adb tcpip 5555`) before mounting, so reinstalls don't need USB. (Enabled 2026-10-14, but only nserver can reach it, and it resets on reboot; see the [README](../../fire-tablet/README.md#install-the-wall-build-release).)
 - **Mount orientation:** this design assumes landscape (§7.2).
 
 ## 6. Rollout order
@@ -400,13 +403,13 @@ The mapping from mode to segment frames is a **pure function** of `(mode, leds, 
 8. **Faster recovery:** after WiFi returns, the app can take up to 30 s (the backoff) to go live again. A connectivity callback that polls right away would remove that delay. Minor.
 9. **Water `active` flaps at a trickle.** On 2026-10-01, from about 07:55 to 09:00, the water flow alternated between 0.0 and 0.4 L/min every 10 to 20 s. Each flip turns the Water card on or off, and each turn-on pulsed, so the wall was never still. The tablet holds back the ring for 120 s after a card stops (§8.6), so a run of flips rings once, but the accent still fades in and out on every flip. A hold time or hysteresis on `running` in the sidecar's water module, like the displayed-rate rule for gas, would fix it at the source. Not built.
 10. **The ESP water meter keeps dropping off.** `esp-watermeter` (`192.0.2.41`) fails its ESPHome API handshake several times a day (12 outages in 7 days, 5 of them in one hour checked). v3 stops the wall from blanking (HA `always_available` on the water meters, held values, §8.5, §8.10), but the meter itself is not fixed. Stabilise its WiFi, its power or the ESPHome API keepalive.
-11. **Gas has no price.** The bill figures in `packages/gas_cost.yaml` are placeholders (0), so `sensor.gas_marginal_cost_per_m3` reads 0 and the gas cost lines are left out. Fill them in and set `sensor.gas_marginal_cost_per_m3` as the gas price in HA's Energy dashboard. The gas cost lines and per-day costs then appear with no code change. Gas history also only starts on 2026-10-01, so its graph fills in over a week.
+11. **Gas price (resolved 2026-10-14).** `packages/gas_cost.yaml` now carries the real bill figures (repo copy `sidecar/ha-gas-cost.yaml`: $0.09487/m³ incl. franchise fee and GST), and the Energy dashboard prices gas with `sensor.gas_marginal_cost_per_m3`, so the gas cost lines and per-day costs show. The energy rate changes monthly; update `energy_per_gj` from each bill. Gas history also only starts on 2026-10-01, so its graph fills in over a week.
 12. **The Emporia daily energy counter reset to 0 at 8:32 PM on 2026-10-01**, likely a device restart. Consider `restore: true` on its `total_daily_energy` in ESPHome.
 13. **24 h soak with panels.** The v3 release build has been measured over minutes, not a day (§8.9). Run the 24 h PSS soak with panel opens and peeks.
 
 ## 8. UI v2 (2026-09-30)
 
-v2 replaces the v0.1.0 look. The POC drew the Roku's layout: 8 equal flat cards, an empty "Cameras" card, no icons, no imagery, no motion, and labels below the size floor in §4.3. This section is the approved v2 design. Where it conflicts with §1 to §7, §8 wins, and the superseded lines are marked in place. §8.10 adds the v3 touch layer on 2026-10-01; where v3 changes a v2 value (§8.3, §8.5), the line says so.
+v2 replaces the v0.1.0 look. The POC drew the Roku's layout: 8 equal flat cards, an empty "Cameras" card, no icons, no imagery, no motion, and labels below the size floor in §4.3. This section is the approved v2 design. Where it conflicts with §1 to §7, §8 wins, and the superseded lines are marked in place. §8.10 adds the v3 touch layer on 2026-10-01; where v3 changes a v2 value (§8.3, §8.5), the line says so. §8.11 adds the door camera on 2026-10-14.
 
 The exact JSON shapes, glyph names, colours, sizes and timings are pinned in the [v2 contract](../superpowers/plans/2026-09-30-tablet-ui-v2-contract.md). If this section and the contract disagree on a value, the contract wins. The v3 values are in the [v3 contract](../superpowers/specs/2026-10-01-tablet-v3-details-contract.md). The build steps are in the [v2 plan](../superpowers/plans/2026-09-30-tablet-ui-v2.md), and the reference code sketches are in the [sketches](../superpowers/plans/2026-09-30-tablet-ui-v2-sketches.md).
 
@@ -419,7 +422,7 @@ The exact JSON shapes, glyph names, colours, sizes and timings are pinned in the
 | Photos | Full-bleed behind translucent smoked-glass cards. |
 | Photo source | A curated NAS folder, `/mnt/media/haku/kitchen` (NAS `192.0.2.5:/volume2/media`, NFS-mounted on nserver), seeded from `/mnt/media/Drone`. nserver mirrors it into the sidecar's `HAKU_BG_DIR` every 15 min (`haku-bg-sync`), and the sidecar serves the mirror to every display, the tablet and the wall Rokus alike; the tablet has no background `dir` of its own. The sidecar proxies the images because the tablet can only reach `.20`. Photos are curated in the NAS folder. |
 | Modules | Doors, laundry, water, energy, thermostat, weather, gas, calendar and activity. No camera card: the only video is the door camera takeover (§8.11). |
-| Touch | Tap a card for its detail panel, tap the header to peek at the photo, and tap ‹ or › during the peek to step through the photos (v3; v2 was glance-only). No controls that change house state (§8.10). |
+| Touch | Tap a card for its detail panel, tap the header to peek at the photo, and tap ‹ or › during the peek to step through the photos (§8.10). A tap closes the door camera (§8.11). No controls that change house state. |
 | Identity | **HAku family, refined**: the Roku's smoked glass, sage, coral and warm ink. |
 | Typeface and icons | Barlow and a Material Design Icons subset, both bundled. Fire OS has no Play Services, so nothing is downloaded. |
 | Motion | Calm by default, one-shot on change (§8.6). |
@@ -636,25 +639,16 @@ The work is additive and ships in three small deploys, each followed by a Roku c
 
 ### 8.9 Budgets and checks
 
-- **Memory:** PSS at most 95 MB (70.8 MB at v0.1.0) and flat over 24 h. Bitmaps peak at about 5 MB during a cross-fade. The only additions are about 210 KB of fonts and the glyph strings. v3 adds no libraries: the charts are `drawWithCache` paths.
+- **Memory:** PSS at most 95 MB (70.8 MB at v0.1.0) and flat over 24 h. Bitmaps peak at about 5 MB during a cross-fade. The only additions are about 210 KB of fonts and the glyph strings. No later layer adds a library: the charts are `drawWithCache` paths and the door camera is a framework `VideoView`.
 - **Quiet frames:** about 0 frames per second while the house is quiet, measured with `gfxinfo`. A detail panel left open on a quiet house meets the same budget (3 frames in 30 s).
-- **Release build for the wall:** R8 (`isMinifyEnabled`), signed with the debug key. After installing, trigger the profile installer with `am broadcast -a androidx.profileinstaller.action.INSTALL_PROFILE -n io.haku.tablet/androidx.profileinstaller.ProfileInstallReceiver`, then run `cmd package compile -f -m speed-profile io.haku.tablet`.
+- **Release build for the wall:** R8 (`isMinifyEnabled`), signed with the debug key, with the bundled baseline profile compiled on the device after each install (the steps are in the [README](../../fire-tablet/README.md#install-the-wall-build-release)).
 - **Verification:** the sidecar tests, the tablet unit tests and the on-device checks (screenshots only, no sleep or wake) are listed in the v2 plan. The v2 ship step ends with a 24 h soak that checks PSS stays flat. The v3 soak, with panels, is still to do (§7).
-- **Measured on 2026-10-01, v2 (0.2.0)** (release build with the speed-profile compile, live data; the full table is in the README):
-  - PSS is 54.0 to 61.1 MB over 18 samples in 70 minutes (debug: 91.2 MB the same morning).
-  - With the house quiet, two 60 s windows rendered 8 and 9 frames (about 0.15 fps), within the quiet-frames budget above.
-  - A photo cross-fade draws 94 to 99 frames over its 1.6 s. That is a frame on every vsync, but each takes two to three vsync periods to complete, so `gfxinfo` counts all of them janky (p90 30 to 46 ms).
-  - The APK is 1.96 MB (debug: 24.7 MB).
-  - A water meter flapping between 0.0 and 0.4 L/min turns the Water card on and off two or three times a minute, at 254 to 808 frames per minute. The re-pulse cooldown (§8.6) rings only the first start of such a run, but the accent still fades on every flip. Debouncing `active` in the sidecar would quiet it fully (§7).
-- **Measured on 2026-10-01, v3 (0.3.0)** (release build on the wall; the full table is in the README):
-  - PSS is 51.0 MB at rest, 63.7 MB after 20 panel opens and 62.0 MB after 10 peeks. After 40 more opens it read 72.2 MB, then 68.4 MB, and it settled at 64.8 MB after a minute idle (Java heap 11.7 MB, native 21.3 MB, graphics 14.4 MB). That is within the 95 MB budget and not climbing. A 24 h soak is still to do.
-  - A panel left open while the house is quiet drew 3 frames in 30 s.
-  - Open then close drew 33 frames: p50 12 ms, p90 21 ms, p99 32 ms.
-  - Live `/api/detail/*` calls took under 90 ms cold and about 2 ms warm.
-- **Measured on 2026-10-05, 0.4.0** (release build on the wall, peek stepping):
-  - PSS is 57.1 MB at rest, 77.9 MB just after 30 steps (15 forward, 15 back), and 57.7 MB once the peek had ended and the app sat idle for 45 s. That is within the 95 MB budget and not climbing.
-  - A step's photo (both variants fetched and decoded) lands about 0.2 s after the tap. Three taps sent at once showed as `d=1` then a combined `d=2`, with one load for the pair.
-  - A rotation that fell due mid-peek was held and came one full interval later. A step 20 s into a peek kept it up at 40 s, and it ended by 53 s.
+- **Measured.** Every measurement, dated, with its tables, is in the [README](../../fire-tablet/README.md#measurements). In short, all on the release build:
+  - v2 (2026-10-01): 54.0 to 61.1 MB PSS; 8 and 9 frames in a quiet 60 s. A photo cross-fade draws a frame on every vsync, but each takes two to three vsync periods, so `gfxinfo` counts all of them janky.
+  - v3 (2026-10-01): 51.0 MB at rest, 72.2 MB at the peak of 60 panel opens, settling at 64.8 MB; a panel open on a quiet house drew 3 frames in 30 s.
+  - Peek stepping (2026-10-05): 77.9 MB just after 30 steps, back to 57.7 MB when idle. This is the highest PSS measured.
+  - 1.1.0 at 1 s polling (2026-10-14): 49 to 62 MB idle, 0 to 5 frames per 10 s untouched, 63.6 to 66 MB around a door camera takeover. The camera opened about 1.5 s after HA logged the front door.
+  - None of them climbs; a 24 h soak is still to do (§7).
 
 ### 8.10 Touch: detail panels and photo peek (v3, 2026-10-01)
 
@@ -734,15 +728,15 @@ A tap on the header (the clock and date bar) fades the UI layer and the backdrop
 - **HA packages (mserver).**
   - `packages/haku_water.yaml`: both water utility meters get `always_available: true`, so a drop-out of the ESP water meter no longer makes every water helper unavailable; and `sensor.water_cost_today`.
   - `packages/water_cost.yaml`: `water_monthly` is also `always_available`.
-  - `packages/gas_cost.yaml` (new): the gas daily and monthly utility meters, `sensor.gas_marginal_cost_per_m3` (the bill figures are placeholders, 0, until filled in), `sensor.gas_cost_today` and `sensor.gas_monthly_cost`.
+  - `packages/gas_cost.yaml` (new): the gas daily and monthly utility meters, `sensor.gas_marginal_cost_per_m3` (the bill figures, filled in from a gas bill on 2026-10-14), `sensor.gas_cost_today` and `sensor.gas_monthly_cost`.
   - The repo copies are `~/code/homewall/sidecar/ha-water-helpers.yaml` and `ha-gas-cost.yaml`.
 
-### 8.11 Door camera (1.1, 2026-10-14)
+### 8.11 Door camera
 
-When the front door opens, the tablet shows the Genbolt's fixed lens on the front steps (`front_steps`) full screen for a minute, the same minute the office Roku goes full screen on it. It is the tablet's only video, and it is a reaction to news like a pulse, not a camera feature: nothing plays while the house is quiet.
+When the front door opens, the tablet shows the Genbolt's fixed lens on the front steps (`front_steps`) full screen for a minute, the same minute the office Roku goes full screen on it. It is the tablet's only video, and it is a reaction to news like a pulse, not a camera feature: nothing plays while the house is quiet. The record of the work, with its measurements, is the [door camera design](../superpowers/specs/2026-10-14-door-camera-and-1s-polling-design.md) and its [plan](../superpowers/plans/2026-10-14-door-camera-and-1s-polling.md).
 
-- **Trigger, from the sidecar.** The doors module carries `takeover: {cam, hls, label, until}` for 60 s after the door opens (its `camera` descriptor key; the opening is an off→on edge the sidecar's 1 s HA poll catches, so it survives the door closing again). The tablet shows each opening once, keyed on `until`, until `until` measured against the state's `ts`, so the tablet's own clock doesn't matter.
-- **Looks.** Black, the stream fitted 16:9 (1024×576), the sidecar's `label` ("Front Steps") in a small smoked chip top left, "Connecting…" until the first frame. Muted, no audio focus.
-- **Closes** at `until`, on any tap or Back, on any ALERT (nothing may hide an alert), and on a player error (no black screen, no system dialog). A closed opening never comes back; the door opening again does. Opening it ends any peek or detail panel.
-- **Player.** A framework `VideoView` (no new dependency) in an `AndroidView`, playing the stream server's H.264 HLS (`http://192.0.2.20:1985/hls/front_steps.m3u8`, 3 × 2 s segments, about 5 s behind live). Its SurfaceView keeps video frames out of the app's own rendering. Cleartext to `192.0.2.20` is already allowed.
-- **Demo.** A debug build with `--es demo door` serves the quiet house for 5 s, then the front door open with a takeover on the real stream.
+- **Trigger, from the sidecar.** The tablet layout's doors module has a `camera` key (`{door, cam, sec, label}`). For `sec` (60) seconds after that door opens, its state carries `takeover: {cam, hls, label, until}`. The opening is an off→on edge that the sidecar's 1 s HA poll records, so the takeover lasts its full minute even if the door closes again. The tablet (`HubState.takeover()` → `DashboardViewModel.cam`) shows each opening once, keyed on `until`, for `until − ts` seconds measured on the sidecar's clock (the state's `ts`), so the tablet's own clock doesn't matter.
+- **Looks.** Black, the stream fitted 16:9 (1024×576), the sidecar's `label` ("Front Steps") in a small smoked chip top left, "Connecting…" until the first frame. Muted, no audio focus. There is no transition in or out.
+- **Closes** at `until`, on any tap or Back, on any ALERT (nothing may hide an alert), and on a player error (no black screen, no system dialog). A closed opening never comes back; the door opening again does. Opening it ends any peek or detail panel, and while it shows it takes every tap.
+- **Player.** `ui/cam/CamLayer.kt`: a framework `VideoView` (no new dependency) in an `AndroidView`, playing the stream server's H.264 HLS (`http://192.0.2.20:1985/hls/front_steps.m3u8`, 3 × 2 s segments, about 5 s behind live). Its SurfaceView keeps video frames out of the app's own rendering. The cleartext rule for `192.0.2.20` (§4.5) covers it.
+- **Tests and demo.** `CamTakeoverTest` covers opening, closing at `until`, the sidecar clock, taps, alerts, player errors and ending a peek or panel. A debug build with `--es demo door` plays the real stream (README).

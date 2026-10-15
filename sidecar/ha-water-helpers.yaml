@@ -1,9 +1,10 @@
 # HAku — water period helpers  (deploy to HA as packages/haku_water.yaml)
 #
-# The Water glance card's hero ("usage in the last hour") and "24h" line need
-# HOURLY and DAILY usage totals. Home Assistant already exposes monthly usage
-# (sensor.water_monthly_usage) and live flow (sensor.water_flow_lpm) from the
-# existing `water_cost` package; these helpers add the shorter windows.
+# HAku's Water tile and detail panel need HOURLY and DAILY usage totals and
+# today's cost. Home Assistant already exposes monthly usage
+# (sensor.water_monthly_usage), live flow (sensor.water_flow_lpm) and the
+# marginal price from the `water_cost` package; these helpers add the shorter
+# windows and the daily cost.
 #
 # INSTALL (Home Assistant on mserver, Docker container `homeassistant`):
 #   1. Copy this file to <config>/packages/haku_water.yaml.
@@ -17,13 +18,15 @@
 # RESULTING ENTITIES (utility_meter entity_ids derive from the slugified `name:`,
 # matching the existing "Water Monthly Usage" -> sensor.water_monthly_usage rule):
 #   sensor.water_consumption_litres  m³ running total -> litres (utility_meter source)
-#   sensor.water_hourly_usage        usage so far this hour (L)  -> tile hero
-#   sensor.water_daily_usage         usage so far today  (L)     -> tile "24h" line
-#   sensor.water_cost_today          today's usage x the marginal $/m3 (CAD) -> tablet "today" cost
+#   sensor.water_hourly_usage        usage so far this hour (L)  -> the default view's tile hero
+#   sensor.water_daily_usage         usage so far today  (L)     -> tile "today" (the default
+#                                    view's "24h" line), detail panel "Today"
+#   sensor.water_cost_today          today's usage x the marginal $/m3 (CAD) -> tile and
+#                                    detail panel "today" cost
 #
 # Both utility meters are `always_available`: the ESP water meter drops off the
 # ESPHome API several times a day (handshake timeouts), and without it the meters
-# went unavailable with their source and the wall blanked. They now hold their
+# would go unavailable with their source and blank the tile. They hold their
 # last value through an outage and count the missed litres when it comes back.
 
 template:

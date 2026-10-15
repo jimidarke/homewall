@@ -7,7 +7,7 @@
 # Endpoints (LAN, served on enp1s0 IP 192.0.2.20):
 #   RTSP        rtsp://192.0.2.20:8554/mosaic
 #   HLS shallow http://192.0.2.20:1984/api/stream.m3u8?src=mosaic   (go2rtc native, ~1s buffer)
-#   HLS deep    http://192.0.2.20:1985/hls/mosaic.m3u8              (haku-hls.service, 12s buffer — Roku consumers use this)
+#   HLS (Roku)  http://192.0.2.20:1985/hls/mosaic.m3u8              (haku-hls.service, 3 × 2s window — Roku consumers use this)
 #   MJPEG       http://192.0.2.20:1984/api/stream.mjpeg?src=mosaic
 #   WebRTC      via http://192.0.2.20:1984/stream.html?src=mosaic
 #   JPEG snap   http://192.0.2.20:1984/api/frame.jpeg?src=mosaic
@@ -56,9 +56,10 @@ streams:
       -an
       -f rtsp {output}
 
-  # ----- Phase 2 per-cam streams (credentials via EnvironmentFile) -----
-  # User-camera mapping confirmed 2026-05-08 (front re-pointed 2026-10-07):
-  #   front     192.0.2.31  Genbolt dual-lens, PTZ lens (/21), front walk
+  # ----- Per-cam streams (credentials via EnvironmentFile) -----
+  # Camera mapping:
+  #   front        192.0.2.31  Genbolt dual-lens, PTZ lens (/21, mounted sideways), front walk
+  #   front_steps  192.0.2.31  Genbolt dual-lens, fixed lens (/11), the front steps
   #   yard      192.0.2.32  Reolink, PTZ, full back yard / drive pad / fence
   #   side      192.0.2.33  Amcrest, PTZ, side gate
   #   backyard  192.0.2.34  Reolink-family, no PTZ, playground behind garage
