@@ -41,6 +41,7 @@ sub Main()
     test_hkStreamUrl()
     test_hkTileCam()
     test_hkHomeCam()
+    test_hkPickerCams()
     test_hkPollLogDue()
     test_hkStatePollMsFor()
     test_hkBgListUpdate()
@@ -612,4 +613,34 @@ sub test_hkBgListUpdate()
     r = hkBgListUpdate(abc, ["a", "c"], "b")
     assertEq("shown removed: swap", r.action, "swap")
     assertEq("shown removed: next is the first", r.idx, 1)
+end sub
+
+function pickerIds(rows as object) as string
+    ids = []
+    for each r in rows
+        ids.push(r.id)
+    end for
+    return ids.join(",")
+end function
+
+sub test_hkPickerCams()
+    print "== hkPickerCams =="
+    streams = {
+        backyard:    { displayName: "Backyard", hls: "h/backyard.m3u8" }
+        front:       { displayName: "Front Door", hls: "h/front.m3u8" }
+        front_steps: { displayName: "Front Steps", hls: "h/front_steps.m3u8" }
+        mosaic:      { displayName: "NVR 4-up Mosaic", hls: "h/mosaic.m3u8" }
+        side:        { displayName: "Side Gate", hls: "h/side.m3u8" }
+        yard:        { displayName: "Yard", hls: "h/yard.m3u8" }
+    }
+    rows = hkPickerCams(streams)
+    assertEq("discovery order", pickerIds(rows), "front,front_steps,yard,side,backyard,mosaic")
+    assertEq("displayName", rows[3].name, "Side Gate")
+    assertEq("mosaic name", rows[5].name, "NVR 4-up Mosaic")
+    rows = hkPickerCams({ mosaic: { hls: "m" }, porch: { hls: "p" }, attic: { hls: "a" }, yard: { hls: "y" }, side: {} })
+    assertEq("extras alphabetical before mosaic, no-hls skipped", pickerIds(rows), "yard,attic,porch,mosaic")
+    assertEq("name falls back", rows[0].name, "Yard")
+    assertEq("unknown name is the id", rows[2].name, "porch")
+    assertEq("invalid", hkPickerCams(invalid).count(), 0)
+    assertEq("empty", hkPickerCams({}).count(), 0)
 end sub

@@ -17,6 +17,8 @@
 #        - >=2 event=cam_switch cam=...         carousel responds to Right
 #        - >=3 distinct event=overlay_show kind=...   overlay layer alive
 #        - event=home_cam_override cam=front_steps    HA's homeCam= push reached home
+#        - event=picker_open + event=picker_select    OK on home lists the cameras,
+#                                                    OK on a row plays it, Back returns
 #        - no BrightScript runtime error             HA's real payloads (replay=,
 #                                                    lastMotion=) don't crash the channel
 #
@@ -27,7 +29,8 @@
 # Exit codes: 0 ok, 1 timeout/missing core event, 2 missing config, 3 gate/deploy
 #             failed, 4 discovery_failed without recovery, 5 carousel dead,
 #             6 overlay layer dead, 7 takeover routing dead (no route=live),
-#             8 channel crashed (runtime error), 9 homeCam= override dead.
+#             8 channel crashed (runtime error), 9 homeCam= override dead,
+#             10 camera picker dead.
 
 set -uo pipefail
 
@@ -101,7 +104,16 @@ sleep 2
     curl -sf -X POST -d '' "http://${ROKU_IP}:8060/input?homeCam=front_steps" >/dev/null 2>&1 || true
     sleep 3
     curl -sf -X POST -d '' "http://${ROKU_IP}:8060/input?homeCam=default" >/dev/null 2>&1 || true
-    REMAINING=$((TIMEOUT > 25 ? TIMEOUT - 22 : 3))
+    sleep 1
+    # Camera picker: OK on home opens it, Down + OK plays Front Steps, Back goes home.
+    curl -sf -X POST -d '' "http://${ROKU_IP}:8060/keypress/Select" >/dev/null 2>&1 || true
+    sleep 1
+    curl -sf -X POST -d '' "http://${ROKU_IP}:8060/keypress/Down" >/dev/null 2>&1 || true
+    sleep 0.5
+    curl -sf -X POST -d '' "http://${ROKU_IP}:8060/keypress/Select" >/dev/null 2>&1 || true
+    sleep 3
+    curl -sf -X POST -d '' "http://${ROKU_IP}:8060/keypress/Back" >/dev/null 2>&1 || true
+    REMAINING=$((TIMEOUT > 31 ? TIMEOUT - 28 : 3))
     sleep "$REMAINING"
     kill $TELNET_PID 2>/dev/null
     wait $TELNET_PID 2>/dev/null
@@ -164,5 +176,10 @@ if ! grep -q "event=home_cam_override cam=front_steps" "$LOG"; then
     exit 9
 fi
 
-echo "✓ smoke pass: launch + home + takeover→live + stream_start + carousel (${SWITCHES}) + overlays (${OVERLAY_KINDS} kinds) + HA payloads + homeCam"
+if ! grep -q "event=picker_open" "$LOG" || ! grep -q "event=picker_select cam=" "$LOG"; then
+    echo "!! smoke fail: OK on home didn't open the camera picker, or OK on a row didn't pick"
+    exit 10
+fi
+
+echo "✓ smoke pass: launch + home + takeover→live + stream_start + carousel (${SWITCHES}) + overlays (${OVERLAY_KINDS} kinds) + HA payloads + homeCam + picker"
 exit 0

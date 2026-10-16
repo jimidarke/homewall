@@ -1,6 +1,7 @@
 ' MainScene — route router for HAku.
-'   Routes: home (read-only glass wall, default) · live (fullscreen camera) · grid
-'           (2x2) · module (drill-down, no longer reached from home) · diag (status). Owns discovery, the
+'   Routes: home (glass wall, default; OK opens the picker) · picker (camera list over
+'           home) · live (fullscreen camera) · grid (2x2) · module (drill-down, no longer
+'           reached from home) · diag (status). Owns discovery, the
 '           sidecar poll, ECP fan-out, overlays, toasts, and idle/auto-takeover.
 ' Live video is gated by LiveGroup.cam: home/module/diag leave it "" so the single
 ' H.264 decoder is free. On home the camera card's feed (HomeGroup.camActive) holds it
@@ -19,6 +20,7 @@ sub init()
     m.grid           = m.top.findNode("grid")
     m.moduleScreen   = m.top.findNode("moduleScreen")
     m.diag           = m.top.findNode("diag")
+    m.picker         = m.top.findNode("picker")
     m.overlays       = m.top.findNode("overlays")
     m.toast          = m.top.findNode("toast")
     m.bgGallery      = m.top.findNode("bgGallery")
@@ -49,6 +51,7 @@ sub init()
     m.bgList.observeField("result", "onBgList")
     m.diagHealth.observeField("result", "onDiagHealth")
     m.diag.observeField("dismiss", "onDiagDismiss")
+    m.picker.observeField("selected", "onPickerSelected")
     m.keepAwake.observeField("state", "onKeepAwakeState")
     m.home.observeField("hasCam", "onHomeHasCam")
     m.stateTimer.observeField("fire", "onStateTimer")
@@ -66,6 +69,7 @@ sub init()
     m.schemaVersion = ""
     m.streamCount = 0
     m.takeoverActive = false
+    m.manualLive = false        ' a camera picked from the OK list: no idle return
     m.keepAwakeOn = false
 
     ' Keep-awake decoder content (a tiny silent black loop). Built once; play/stop
@@ -354,12 +358,14 @@ sub goHome()
     m.grid.visible = false
     m.moduleScreen.visible = false
     m.diag.visible = false
+    m.picker.visible = false
     setBackdrop(true)
     m.home.visible = true
     m.home.setFocus(true)
     m.route = "home"
     syncHomeDecoder()
     m.takeoverActive = false
+    m.manualLive = false
     m.returnHomeTimer.control = "stop"
     resetIdle()
     hkEvent("route", { to: "home" })
@@ -381,6 +387,7 @@ sub goLive(cam as string, replaySeconds as integer)
     m.home.visible = false
     m.moduleScreen.visible = false
     m.diag.visible = false
+    m.picker.visible = false
     if m.route = "grid" then
         m.grid.active = false
         m.grid.visible = false
@@ -460,6 +467,33 @@ end sub
 sub onGridCancel()
     if not m.grid.cancel then return
     goLive(m.lastLiveCam, 0)
+end sub
+
+' ---------------------------------------------------------------------------
+' PICKER (reached from HOME via OK): pick a camera to watch full screen
+' ---------------------------------------------------------------------------
+' Opens over home, whose camera card keeps the decoder until a camera is chosen.
+sub goPicker()
+    cams = hkPickerCams(m.live.streams)
+    if cams.count() = 0 then
+        showToast("No cameras yet", "low", 2500)
+        return
+    end if
+    m.picker.cams = cams
+    m.picker.visible = true
+    m.picker.callFunc("takeFocus")
+    m.route = "picker"
+    resetIdle()
+    hkEvent("picker_open", { cams: cams.count() })
+end sub
+
+' A camera picked by hand stays up until Back (resetIdle skips it).
+sub onPickerSelected()
+    cam = m.picker.selected
+    if cam = "" then return
+    hkEvent("picker_select", { cam: cam })
+    m.manualLive = true
+    goLive(cam, 0)
 end sub
 
 ' ---------------------------------------------------------------------------
@@ -588,7 +622,7 @@ end sub
 
 ' The config or discovery arrived (or went): re-pick home's decoder holder.
 sub onHomeHasCam()
-    if m.route = "home" then syncHomeDecoder()
+    if m.route = "home" or m.route = "picker" then syncHomeDecoder()
 end sub
 sub startKeepAwake()
     if m.keepAwakeOn then return
@@ -734,8 +768,9 @@ sub takeoverModule(id as string, e as object)
 end sub
 
 sub beginTakeover()
-    ' Only auto-return home if the takeover interrupted the passive home route.
-    if m.route = "home" then
+    ' Only auto-return home if the takeover interrupted the passive home route
+    ' (the picker sits over home).
+    if m.route = "home" or m.route = "picker" then
         m.takeoverActive = true
         m.returnHomeTimer.control = "stop"
         m.returnHomeTimer.control = "start"
@@ -754,7 +789,8 @@ end function
 ' ---------------------------------------------------------------------------
 sub resetIdle()
     m.idleTimer.control = "stop"
-    if m.route = "live" or m.route = "module" or m.route = "grid" or m.route = "diag" then
+    if m.manualLive and (m.route = "live" or m.route = "grid") then return
+    if m.route = "live" or m.route = "module" or m.route = "grid" or m.route = "diag" or m.route = "picker" then
         m.idleTimer.control = "start"
     end if
 end sub
@@ -768,8 +804,8 @@ sub onReturnHomeTimer()
 end sub
 
 ' MainScene catches keys the focused group didn't consume — Back climbs the route
-' tree to home; any bubbled key cancels an in-progress auto-takeover. Home itself is
-' read-only (HomeGroup takes no keys): only * / options (diag) and Back do anything.
+' tree to home; any bubbled key cancels an in-progress auto-takeover. HomeGroup takes
+' no keys: on home, OK opens the camera picker, * / options the diag screen, Back exits.
 function onKeyEvent(key as string, press as boolean) as boolean
     if not press then return false
     ' A user keypress that reaches here means they're interacting — drop takeover.
@@ -779,6 +815,10 @@ function onKeyEvent(key as string, press as boolean) as boolean
     if key = "back" then
         if m.route = "home" then return false  ' let the OS exit the channel
         goHome()
+        return true
+    end if
+    if key = "OK" and m.route = "home" then
+        goPicker()
         return true
     end if
     ' * / options from the passive home route opens the diagnostic/status screen.

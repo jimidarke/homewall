@@ -64,18 +64,27 @@ HAku has one resting screen and a few places HA (or the remote) can take it. Eve
 
 ```
         ┌──────────────────────────────────────┐
-        │   H O M E   (default, read-only)     │
+        │   H O M E   (default)                │
         │   6×4 glass wall + live front cam    │
         └──────────────────────────────────────┘
-          │  ▲                         │  ▲
- HA cam=  │  │ Back · 60 s after a     │  │ Back
- takeover │  │ takeover · 5 min idle   *  │
-          ▼  │                         ▼  │
-  ┌──────────────────────┐      ┌──────────────────┐
-  │   L I V E            │      │   D I A G        │
-  │   one camera,        │      │   device +       │
-  │   fullscreen, HUD    │      │   discovery + HA │
-  └──────────────────────┘      └──────────────────┘
+          │  ▲              │  ▲            │  ▲
+ HA cam=  │  │ Back · 60 s  │  │ Back ·     │  │ Back
+ takeover │  │ after a      OK │ 5 min      *  │
+          │  │ takeover ·   │  │ idle       │  │
+          │  │ 5 min idle   ▼  │            ▼  │
+          │  │      ┌──────────────────┐ ┌──────────────────┐
+          │  │      │   P I C K E R    │ │   D I A G        │
+          │  │      │   camera list    │ │   device +       │
+          │  │      │   over home      │ │   discovery + HA │
+          │  │      └──────────────────┘ └──────────────────┘
+          │  │               │
+          │  │               │ OK: the picked camera
+          ▼  │               │ (stays until Back, no idle)
+  ┌──────────────────────┐   │
+  │   L I V E            │ ◀─┘
+  │   one camera,        │
+  │   fullscreen, HUD    │
+  └──────────────────────┘
        │  ▲
  long  │  │ OK (pick cam) · Back
  OK    ▼  │
@@ -167,13 +176,17 @@ r3   Weather    Thermo   [          ]   [ 3-day +  ]
 - **Front steps on motion.** HA's `homeCam=front_steps` broadcast (front motion on for 5 s) points the square at the Genbolt's fixed lens; `homeCam=default` (motion clears) points it back. The switch takes ~1 s on most Rokus (the kids Express can take ~30 s). The override lives on `HomeGroup.homeCam`, so it survives takeovers, is ignored for a stream discovery doesn't list (`hkHomeCam`), and clears itself after 15 min (`HK_HOME_CAM_MAX_MS`) if the revert never arrives.
 - **Forecast.** A 3-day strip (`outlook`) over the sidecar's `weather_chart` PNG (48 h outdoor temperature: 24 h observed, 24 h forecast), re-fetched every 5 min.
 - **Backgrounds.** The shared drone photos ([Sidecar](#sidecar-haku-sidecar)). The Roku asks `w=1920&h=1080&fit=cover`, rotates every 20 s by default (`background.intervalMs`) and re-reads the list every 10 min.
-- **Read-only.** Home takes no remote input except `*` (diag) and Back (exit). An HA `focusModule=<id>` naming a non-camera card lights that card for 8 s instead of navigating.
+- **Almost read-only.** Home takes three keys: OK (the camera picker, below), `*` (diag) and Back (exit). An HA `focusModule=<id>` naming a non-camera card lights that card for 8 s instead of navigating.
+
+### PICKER
+
+OK on home opens a camera list over the wall (`CameraPicker`): every discovery stream with an HLS URL, in wall order (Front Door, Front Steps, Yard, Side Gate, Backyard), then any other stream alphabetically, then the NVR mosaic last; names come from discovery's `displayName` (`hkPickerCams`). The home camera square keeps playing behind it. Up/Down moves, OK plays that stream in LIVE, Back closes it. A camera picked here stays up until Back: the 5 min idle return is off for it (and for GRID reached from it) until the next return home. A forgotten open picker closes after 5 min. An HA takeover over the open picker behaves as one over home (back to the wall after 60 s).
 
 ---
 
 ## LIVE
 
-Fullscreen single-camera HLS feed, reached by an HA camera takeover (`cam=…` or a camera `focusModule=`), `mode=grid` → OK, or from GRID. The **whole** screen is video; HUD floats over it.
+Fullscreen single-camera HLS feed, reached by an HA camera takeover (`cam=…` or a camera `focusModule=`), a pick from the PICKER (including the NVR mosaic, full screen), `mode=grid` → OK, or from GRID. The **whole** screen is video; HUD floats over it.
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
@@ -359,19 +372,19 @@ Used for: the banner of an HA camera takeover ("ATTN Back Door"), low-priority H
 
 ## Remote button map
 
-Home is read-only, so the remote mostly matters once HA has put a camera up.
+On home the remote opens the camera picker or diag; it matters most once a camera is up.
 
-| Button | HOME | LIVE | GRID | DIAG |
-|---|---|---|---|---|
-| **◀ Left / ▶ Right** | — | prev / next cam (carousel wrap) | move grid focus | — |
-| **▲ Up / ▼ Down** | — | show HUD | move grid focus | — |
-| **OK** (tap) | — | toggle HUD visibility | select focused cam → LIVE | — |
-| **OK** (long, >500ms) | — | enter GRID | — | — |
-| **Back** | (OS) exits channel | → HOME | → LIVE on previous cam | → HOME |
-| **Replay (↺)** | — | restart at `-15 s` (in practice the oldest HLS segment, see [Event-driven flows](#event-driven-flows)) | — | — |
-| **\* Options** | → DIAG | toggle audio mute for current cam | — | close |
-| **Info** | — | toggle dim mode (HUD off, [LIVE] pip at 30%) | — | — |
-| **Home** | (OS) exits channel | (OS) | (OS) | (OS) |
+| Button | HOME | PICKER | LIVE | GRID | DIAG |
+|---|---|---|---|---|---|
+| **◀ Left / ▶ Right** | — | — | prev / next cam (carousel wrap) | move grid focus | — |
+| **▲ Up / ▼ Down** | — | move list focus | show HUD | move grid focus | — |
+| **OK** (tap) | → PICKER | play focused cam → LIVE | toggle HUD visibility | select focused cam → LIVE | — |
+| **OK** (long, >500ms) | — | — | enter GRID | — | — |
+| **Back** | (OS) exits channel | → HOME | → HOME | → LIVE on previous cam | → HOME |
+| **Replay (↺)** | — | — | restart at `-15 s` (in practice the oldest HLS segment, see [Event-driven flows](#event-driven-flows)) | — | — |
+| **\* Options** | → DIAG | — | toggle audio mute for current cam | — | close |
+| **Info** | — | — | toggle dim mode (HUD off, [LIVE] pip at 30%) | — | — |
+| **Home** | (OS) exits channel | (OS) | (OS) | (OS) | (OS) |
 
 Any key that reaches `MainScene` cancels a takeover's automatic return home and restarts the idle timer.
 
@@ -568,11 +581,16 @@ Creds live in `/etc/haku/cam-creds.env` (mode 0640 root:media, never committed) 
 ## State machine (formally)
 
 ```
-routes   = { HOME, LIVE, GRID, DIAG }        (MODULE exists but is unreachable)
+routes   = { HOME, PICKER, LIVE, GRID, DIAG }        (MODULE exists but is unreachable)
 overlays = { PIP_active, TOAST_visible, RECONNECT_visible }
 inputs   = { D-Pad, OK_tap, OK_long, Back, Replay, Star, Info, ECP_input, Timer, StreamError }
 
 HOME × Star             → DIAG
+HOME × OK               → PICKER (no cameras discovered: toast, stay HOME)
+PICKER × D-Pad          → PICKER (list focus moves)
+PICKER × OK             → LIVE (cam = focused), no idle return until HOME
+PICKER × Back           → HOME
+PICKER × ECP(cam, sev=high|normal) → LIVE + return-home timer (as from HOME)
 HOME × Back             → (exit channel)
 HOME × ECP(cam, sev=high|normal)   → LIVE (cam, replay if set) + return-home timer
 HOME × ECP(focusModule=camera)     → LIVE + return-home timer
@@ -636,6 +654,7 @@ The home camera card has its own simpler loop: the same backoff, then after 4 er
 | 1 s polling end to end (2 s on the Roku Express) | ✅ |
 | LIVE: 4-cam carousel, HUD with dot pager + last-motion, per-cam audio, Replay (limited to the HLS window) | ✅ |
 | GRID via the NVR mosaic + long-press OK + focus overlay | ✅ |
+| Camera picker: OK on home → list of every camera + the NVR mosaic → full screen until Back | ✅ (Roku 1.3.0) |
 | Per-cam direct RTSP → deep HLS, discovery schema v2 | ✅ (backyard camera offline) |
 | ECP severity routing + `focusModule=` takeovers with return-home | ✅ |
 | HA push package (`housewall.yaml`, 5 Rokus, active-Roku selector, queued broadcast) | ✅; follow-me effectively always "living" ([Open items](#open-items)) |
@@ -649,12 +668,12 @@ Dropped or never built: BRIEFING and GLANCE ([Routes](#routes)), PIP promote/dis
 ## Resolved decisions
 
 1. **PIP source** — *JPEG snapshot*, not a second Video node ([PIP](#overlay-1--pip-picture-in-picture)). The Express and Stick couldn't run dual decoders anyway, and the home camera card already holds the one decoder.
-2. **Camera count** — *4 cams* in the carousel and GRID: `front`, `yard`, `side`, `backyard`. 2×2 is the right shape; no paging needed. `front_steps` is the front camera's second lens, used only by the home square and the door takeover.
+2. **Camera count** — *4 cams* in the carousel and GRID: `front`, `yard`, `side`, `backyard`. 2×2 is the right shape; no paging needed. `front_steps` is the front camera's second lens, used by the home square, the door takeover and the OK picker (which also lists the mosaic).
 3. **Default cam per Roku** — stored in the registry per Roku via one-time deep-link `?setDefault=<cam>`; unset means `front`. With the wall showing front live, it only matters for camera takeovers that name no cam.
 4. **HA token bootstrapping** — the one-time deep-link ([Cold-launch flows](#cold-launch-flows)) is kept for compatibility, but unused: the sidecar does all HA reads.
 5. **Brand identity** — *Daylight palette (cream / sage UI chrome) + the HAku house/camera-lens logo (blue/orange)* for the splash, icons, LIVE/GRID chrome and overlays; the home wall uses the tablet's glass instead. Family-friendly, easy on the eyes; explicitly *not* the dark-navy security-console look. Assets and dimensions: [Visual style](#visual-style). The seed background card (`sidecar/backgrounds/bg_00_haku_logo.jpg`) is not in the live rotation, which comes from the NAS mirror.
 6. **Audio** — *muted by default; `*` toggles per-cam audio in LIVE.* Roku TVs sit in living rooms with people watching other things; auto-playing camera audio is intrusive. PIP and the home camera card are *always* muted. Audio policy is per-cam, persisted in registry — turning it on for the front cam stays on for that cam across sessions.
-7. **Read-only home** — the wall takes no navigation; cameras are reached by HA events, and the remote only matters once a camera is up. Matches the tablet's "no controls that change house state" rule.
+7. **Read-only home** — the wall takes no navigation; cameras are reached by HA events or the OK camera picker (1.3.0), and otherwise the remote only matters once a camera is up. Matches the tablet's "no controls that change house state" rule.
 
 ## Out of scope
 

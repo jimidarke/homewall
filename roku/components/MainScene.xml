@@ -3,9 +3,10 @@
   MainScene — state router. Owns:
     - DiscoveryTask (SSDP + JSON fetch)
     - InputPumpTask (ECP /input fan-out)
-    - HomeGroup     (default route: the read-only glass wall)
-    - LiveGroup     (HA camera takeovers)
+    - HomeGroup     (default route: the glass wall)
+    - LiveGroup     (HA camera takeovers + cameras picked from the list)
     - GridGroup     (toggled on long-press OK from live)
+    - CameraPicker  (OK from home: pick a camera to watch full screen)
     - OverlayLayer  (door / weather / sensor / pip / text)
     - Toast         (top-centre legacy notifier — kept above overlays)
 
@@ -44,6 +45,7 @@
         <GridGroup id="grid" visible="false" />
         <ModuleScreen id="moduleScreen" visible="false" />
         <DiagScreen id="diag" visible="false" />
+        <CameraPicker id="picker" visible="false" />
 
         <OverlayLayer id="overlays" />
         <Toast id="toast" />

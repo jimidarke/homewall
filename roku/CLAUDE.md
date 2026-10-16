@@ -1,6 +1,6 @@
 # CLAUDE.md — roku/
 
-The **HAku Roku channel**: BrightScript + SceneGraph, packaged as `haku.zip` and sideloaded onto the wall Rokus. It boots to a **read-only glass wall** in the kitchen tablet's v3 design: a 6×4 grid of landscape cards (Doors 2×1, the other value tiles 1×1, Calendar and Activity 2×2, a 2×2 Forecast with the sidecar's 48 h temperature chart, and a 2×2 square playing the **front PTZ camera live**). Home takes no input; HA pushes can take over the screen with a full-screen live camera.
+The **HAku Roku channel**: BrightScript + SceneGraph, packaged as `haku.zip` and sideloaded onto the wall Rokus. It boots to a **glass wall** in the kitchen tablet's v3 design: a 6×4 grid of landscape cards (Doors 2×1, the other value tiles 1×1, Calendar and Activity 2×2, a 2×2 Forecast with the sidecar's 48 h temperature chart, and a 2×2 square playing the **front PTZ camera live**). Home takes almost no input: OK opens a camera picker that plays the chosen camera (or the NVR mosaic) full screen until Back, and HA pushes can take over the screen with a full-screen live camera.
 
 Data comes two ways from Home Assistant (mserver, 192.0.2.10): the **sidecar** (`../sidecar/`, `../sidecar/CLAUDE.md`) pulls the glance values and serves config/state JSON and PNG cards, and HA **pushes events** straight to each Roku over ECP `/input` (see HA push side). Camera streams and discovery come from `../stream/`. Repo overview: `../CLAUDE.md`; full design: `../docs/HAKU_DESIGN.md`.
 
@@ -23,7 +23,7 @@ npm run clean           # rm -rf dist out
 
 **Unit tests**: `tests/unit/test_pure.brs` is one file printing `OK …`/`FAIL …` and a final `RESULT pass=N fail=M`; there is no single-test runner, so comment cases out to focus or add an `assertEq` block.
 
-**Smoke test (real Roku)**: `tests/smoke/smoke.sh` runs lint + unit + the fixture discovery contract, sideloads, cold-relaunches, then over ECP drives a camera takeover (`focusModule=cameras&cam=front&severity=high`), a `Right` keypress on the live view, HA's real door-open (`cam=…&replay=15`) and heartbeat (`lastMotion=`) payloads, four overlays (weather/door/sensor/text), `mode=home`, and `homeCam=front_steps` then `homeCam=default`, while tailing the console. It asserts `event=launch`, `route to=home`, `route … to=live`, `stream_start`, ≥2 `cam_switch`, ≥3 distinct `overlay_show kind=`, `home_cam_override cam=front_steps`, and no BrightScript runtime error (a crashed sideload freezes in the debugger). Exit codes are listed at the top of the script.
+**Smoke test (real Roku)**: `tests/smoke/smoke.sh` runs lint + unit + the fixture discovery contract, sideloads, cold-relaunches, then over ECP drives a camera takeover (`focusModule=cameras&cam=front&severity=high`), a `Right` keypress on the live view, HA's real door-open (`cam=…&replay=15`) and heartbeat (`lastMotion=`) payloads, four overlays (weather/door/sensor/text), `mode=home`, `homeCam=front_steps` then `homeCam=default`, and the camera picker (`Select`, `Down`, `Select`, `Back`), while tailing the console. It asserts `event=launch`, `route to=home`, `route … to=live`, `stream_start`, ≥2 `cam_switch`, ≥3 distinct `overlay_show kind=`, `home_cam_override cam=front_steps`, `picker_open` + `picker_select cam=`, and no BrightScript runtime error (a crashed sideload freezes in the debugger). Exit codes are listed at the top of the script.
 
 ```bash
 ROKU_IP=192.0.2.55 ROKU_DEV_PASSWORD=$ROKU_PW_OFFICE tests/smoke/smoke.sh
@@ -76,10 +76,11 @@ main.brs  ──creates──▶ MainScene  (render thread; routes: home·live·
                             ├─ HomeGroup          (DEFAULT route: header + ModuleTiles)
                             │    └─ ModuleTile    (one glass card; body by hkCardKind: ValueBody|DoorsBody|
                             │                      LaundryBody|AgendaBody|ForecastBody|CameraBody (live HLS))
-                            ├─ LiveGroup          (HA camera takeovers: single-cam HLS, carousel + chevrons, Hud)
+                            ├─ LiveGroup          (HA takeovers + picked cams: single-cam HLS, carousel + chevrons, Hud)
                             ├─ GridGroup          (long-press OK from live: 2×2 mosaic + focus ring)
                             ├─ ModuleScreen       (old drill-down; nothing routes to it)
                             ├─ DiagScreen         (`*`/options from home: device, discovery, HA status)
+                            ├─ CameraPicker       (OK from home: LabelList of hkPickerCams(streams))
                             ├─ OverlayLayer       (door / text / weather / sensor / pip transient alerts)
                             └─ Toast              (top-centre notifier, queued)
 ```
@@ -88,11 +89,13 @@ main.brs  ──creates──▶ MainScene  (render thread; routes: home·live·
 
 ### Routes
 
-`MainScene` routes between `m.route` ∈ home/live/grid/module/diag and boots to `home`. Home is **read-only**: `HomeGroup` has no `onKeyEvent`, so keys bubble to `MainScene.onKeyEvent`, where `*`/options → `goDiag()` and Back exits (or climbs to home from another route). Live/grid are reached only by HA takeovers; `goModule` exists but nothing calls it.
+`MainScene` routes between `m.route` ∈ home/picker/live/grid/module/diag and boots to `home`. `HomeGroup` has no `onKeyEvent`, so keys bubble to `MainScene.onKeyEvent`, where OK → `goPicker()`, `*`/options → `goDiag()` and Back exits (or climbs to home from another route). Live/grid are reached by HA takeovers and the picker; `goModule` exists but nothing calls it.
 
-Each transition focuses its own group (`goHome` → `m.home`, `goLive` → `m.live`, `enterGrid` → `m.grid`, `goDiag` → `m.diag`), because live/grid/diag keys are handled by `onKeyEvent` on `LiveGroup`/`GridGroup`/`DiagScreen`. Focus left on the Scene breaks them; smoke's "Right after the takeover must `cam_switch`" assertion catches that.
+**Camera picker**: `goPicker()` shows `CameraPicker` over home (the home camera keeps the decoder) with `hkPickerCams(m.live.streams)`: every stream with an `hls`, wall order, extras alphabetically, `mosaic` last, named by discovery's `displayName`. No streams → a toast instead. OK on a row (`picker.selected`) sets `m.manualLive` and calls `goLive`; Back from the picker or the picked camera goes home. `m.manualLive` keeps `resetIdle` off on live/grid until `goHome` clears it. Logs `event=picker_open cams=N` and `event=picker_select cam=…`.
 
-**Idle / auto-takeover**: a camera takeover (`cam=`, or a `focusModule=` naming the cameras module) goes live from home and `returnHomeTimer` brings it back after `HK_RETURN_HOME_MS` (60 s); any other `focusModule=` only lights that card for 8 s (`HomeGroup.attention`, `event=module_attention`). Any bubbled keypress cancels the takeover; `idleTimer` returns live/grid/module/diag to home after `HK_IDLE_TO_HOME_MS` (5 min).
+Each transition focuses its own group (`goHome` → `m.home`, `goPicker` → the picker's list via `takeFocus`, `goLive` → `m.live`, `enterGrid` → `m.grid`, `goDiag` → `m.diag`), because live/grid/diag keys are handled by `onKeyEvent` on `LiveGroup`/`GridGroup`/`DiagScreen`. Focus left on the Scene breaks them; smoke's "Right after the takeover must `cam_switch`" assertion catches that.
+
+**Idle / auto-takeover**: a camera takeover (`cam=`, or a `focusModule=` naming the cameras module) goes live from home (or the open picker) and `returnHomeTimer` brings it back after `HK_RETURN_HOME_MS` (60 s); any other `focusModule=` only lights that card for 8 s (`HomeGroup.attention`, `event=module_attention`). Any bubbled keypress cancels the takeover; `idleTimer` returns picker/live/grid/module/diag to home after `HK_IDLE_TO_HOME_MS` (5 min), except a camera picked from the picker (`m.manualLive`), which stays until Back.
 
 ### One video decoder
 
@@ -192,7 +195,7 @@ One section, `haku`, with keys from the `HK_REG_KEY_*()` accessors in Config.brs
 ## Conventions
 
 - BrightScript has no module-scope const, so `Config.brs` exposes constants as zero-arg functions (`HK_FADE_MS()`, `HK_BG_CREAM()`, …). Keep that pattern.
-- Pure helpers (`hkNextBackoffSeconds`, `hkCamIndex`, `hkParseInt`, `hkGridQuadrantPos`, `hkMotionLabel`, `hkOverlayDurationMs`, `hkSeverityColor`, `hkHomeCam`, `hkStatePollMsFor`, `hkPollLogDue`, the glass helpers) live in `Config.brs` so `test_pure.brs` can run them under `brs` without SceneGraph. New helpers go there too, dependency-free.
+- Pure helpers (`hkNextBackoffSeconds`, `hkCamIndex`, `hkPickerCams`, `hkParseInt`, `hkGridQuadrantPos`, `hkMotionLabel`, `hkOverlayDurationMs`, `hkSeverityColor`, `hkHomeCam`, `hkStatePollMsFor`, `hkPollLogDue`, the glass helpers) live in `Config.brs` so `test_pure.brs` can run them under `brs` without SceneGraph. New helpers go there too, dependency-free.
 - Log only through `hkLog` / `hkDebug` / `hkEvent`, never ad-hoc `print`. `hkEvent("name", { k: v })` emits `[HAku] event=name k=v` and redacts keys named `haToken`/`token`/`password`; smoke depends on the format.
 - `bs_const DEBUG=false` in `manifest` compiles out `hkDebug()`. Flip it for verbose dev sideloads; never commit `DEBUG=true`.
 - Surfaces with a severity take their colour from `hkSeverityColor()` (`Toast.brs` still hardcodes the same three).

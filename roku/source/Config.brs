@@ -262,6 +262,35 @@ function hkHomeCam(tile as dynamic, override as dynamic, streams as dynamic) as 
     return hkTileCam(tile)
 end function
 
+' Rows for the OK camera picker: [{ id, name }] for every discovered stream with an
+' hls URL. Known cams first in wall order, then any others alphabetically, then the
+' NVR mosaic last. Names come from discovery's displayName.
+function hkPickerCams(streams as dynamic) as object
+    rows = []
+    if streams = invalid or type(streams) <> "roAssociativeArray" then return rows
+    order = ["front", "front_steps", "yard", "side", "backyard"]
+    known = { mosaic: true }
+    for each id in order
+        known[id] = true
+    end for
+    extras = []
+    for each k in streams
+        if not known.doesExist(k) then extras.push(k)
+    end for
+    extras.sort()
+    order.append(extras)
+    order.push("mosaic")
+    for each id in order
+        s = streams[id]
+        if s <> invalid and type(s) = "roAssociativeArray" and s.hls <> invalid and s.hls <> "" then
+            name = HK_CAM_DISPLAY_NAME(id)
+            if s.displayName <> invalid and s.displayName <> "" then name = s.displayName.toStr()
+            rows.push({ id: id, name: name })
+        end if
+    end for
+    return rows
+end function
+
 ' Index of `cam` in roster; returns 0 if not found (safe default for carousel).
 function hkCamIndex(cam as string, roster as object) as integer
     for i = 0 to roster.count() - 1

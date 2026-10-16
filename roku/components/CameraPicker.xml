@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  CameraPicker — the OK-from-home camera list. Shown over the home wall (whose
+  camera card keeps the decoder while it's up); OK on a row asks MainScene to play
+  that camera full screen. Back bubbles to MainScene, which closes it.
+
+  Inputs (MainScene writes):
+    cams     : [{ id, name }] from hkPickerCams(streams)
+  Output:
+    selected : the chosen camera id (alwaysNotify)
+-->
+<component name="CameraPicker" extends="Group">
+    <interface>
+        <field id="cams" type="array" onChange="onCams" />
+        <field id="selected" type="string" value="" alwaysNotify="true" />
+        <function name="takeFocus" />
+    </interface>
+
+    <script type="text/brightscript" uri="CameraPicker.brs" />
+
+    <children>
+        <Rectangle id="dim" width="1920" height="1080" color="0x0A0E0D80" />
+        <Rectangle id="panel" translation="[560, 190]" width="800" height="690" color="0x121816FF" />
+        <Rectangle translation="[560, 190]" width="800" height="5" color="0x5B8C7FFF" />
+
+        <Label id="title" translation="[600, 220]" color="0xFAF6EEFF"
+               font="font:LargeBoldSystemFont" text="CAMERAS" />
+
+        <LabelList id="list"
+                   translation="[600, 300]"
+                   itemSize="[720, 72]"
+                   itemSpacing="[0, 8]"
+                   numRows="6"
+                   vertFocusAnimationStyle="floatingFocus"
+                   color="0xF3EFE6FF"
+                   focusedColor="0xFAF6EEFF"
+                   focusBitmapBlendColor="0x5B8C7FFF"
+                   font="font:MediumSystemFont"
+                   focusedFont="font:MediumBoldSystemFont" />
+
+        <Label id="hint" translation="[600, 830]" color="0xF3EFE6B3"
+               font="font:SmallSystemFont" text="OK  watch        Back  close" />
+    </children>
+</component>
