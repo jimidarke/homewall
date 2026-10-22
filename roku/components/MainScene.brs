@@ -68,7 +68,7 @@ sub init()
     m.host = ""
     m.schemaVersion = ""
     m.streamCount = 0
-    m.takeoverActive = false
+    m.takeoverReturn = invalid  ' the view an HA camera takeover goes back to (hkTakeoverReturn)
     m.manualLive = false        ' a camera picked from the OK list: no idle return
     m.keepAwakeOn = false
 
@@ -364,7 +364,7 @@ sub goHome()
     m.home.setFocus(true)
     m.route = "home"
     syncHomeDecoder()
-    m.takeoverActive = false
+    m.takeoverReturn = invalid
     m.manualLive = false
     m.returnHomeTimer.control = "stop"
     resetIdle()
@@ -748,8 +748,8 @@ sub dispatchEcp(e as object)
     end if
 end sub
 
-' Auto-takeover: a camera module (or cam=) takes the screen live, then returns home
-' after a TTL (unless the user is already on a self-chosen route). Any other module
+' Auto-takeover: a camera module (or cam=) takes the screen live, then goes back to
+' the view it interrupted after a TTL (beginTakeover). Any other module
 ' only lights its card on the read-only home wall: no drill-down.
 sub takeoverModule(id as string, e as object)
     md = moduleById(id)
@@ -768,15 +768,12 @@ sub takeoverModule(id as string, e as object)
 end sub
 
 sub beginTakeover()
-    ' Only auto-return home if the takeover interrupted the passive home route
-    ' (the picker sits over home).
-    if m.route = "home" or m.route = "picker" then
-        m.takeoverActive = true
-        m.returnHomeTimer.control = "stop"
-        m.returnHomeTimer.control = "start"
-    else
-        m.takeoverActive = false
-    end if
+    ' Remember the view this takeover interrupts (home, or the camera or grid being
+    ' watched) and go back to it after HK_RETURN_HOME_MS. A takeover landing on a
+    ' takeover keeps the first view and restarts the minute.
+    m.takeoverReturn = hkTakeoverReturn(m.route, m.live.cam, m.manualLive, m.takeoverReturn)
+    m.returnHomeTimer.control = "stop"
+    if m.takeoverReturn <> invalid then m.returnHomeTimer.control = "start"
 end sub
 
 function toastTextFor(severity as string, banner as string, cam as string) as string
@@ -800,7 +797,20 @@ sub onIdleTimer()
 end sub
 
 sub onReturnHomeTimer()
-    if m.takeoverActive then goHome()
+    r = m.takeoverReturn
+    m.takeoverReturn = invalid
+    if r = invalid then return
+    hkEvent("takeover_return", { to: r.route, cam: r.cam })
+    if r.route = "live" then
+        m.manualLive = r.manual
+        goLive(r.cam, 0)
+    else if r.route = "grid" then
+        m.manualLive = r.manual
+        if r.cam <> "" then m.lastLiveCam = r.cam
+        enterGrid()
+    else
+        goHome()
+    end if
 end sub
 
 ' MainScene catches keys the focused group didn't consume — Back climbs the route
@@ -809,7 +819,7 @@ end sub
 function onKeyEvent(key as string, press as boolean) as boolean
     if not press then return false
     ' A user keypress that reaches here means they're interacting — drop takeover.
-    m.takeoverActive = false
+    m.takeoverReturn = invalid
     m.returnHomeTimer.control = "stop"
     resetIdle()
     if key = "back" then

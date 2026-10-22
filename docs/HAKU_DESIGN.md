@@ -223,7 +223,9 @@ Fullscreen single-camera HLS feed, reached by an HA camera takeover (`cam=…` o
 
 **[LIVE] pip** (top-left, always visible while playing): `accent.live` coral dot pulsing at 1 Hz, "LIVE" in `text.cream`. **Inside title-safe.** This is the only persistent indicator.
 
-**Leaving LIVE**: Back returns home. A takeover that interrupted the home wall returns home on its own after **60 s** (`HK_RETURN_HOME_MS`) unless a key is pressed; any route other than home returns home after **5 min** without input (`HK_IDLE_TO_HOME_MS`).
+**Leaving LIVE**: Back returns home. A takeover goes back on its own after **60 s** (`HK_RETURN_HOME_MS`) unless a key is pressed, to the view it interrupted: home, or the camera (or GRID) being watched, so a camera picked by hand comes back after a door-open takeover (1.3.1, `hkTakeoverReturn`). A takeover landing on a takeover keeps the first view. Any route other than home returns home after **5 min** without input (`HK_IDLE_TO_HOME_MS`), except a camera picked from the picker.
+
+**4 h stream stop**: Roku OS drops a channel to its home screen 4 h 00 m 31 s after the last stream start with no remote input (Bandwidth Saver; seen on the office Roku 2026-10-15..17, exit reason `EXIT_USER_NAV`). Every player (home square, LIVE, GRID) therefore starts its stream afresh after `HK_STREAM_REFRESH_S` (3 h) of playing, a ~1 s blip.
 
 **Reconnect curtain** (when player errors):
 ```
@@ -397,7 +399,7 @@ Notable choices:
 
 ## Event-driven flows
 
-HA decides the severity in the automation; HAku reacts. `high` and `normal` take the screen (LIVE on that camera); `low` shows a PIP and leaves the screen alone. A takeover from the home wall returns home after 60 s untouched; from GRID, a camera event drops to LIVE on that cam (one decoder). Which automation sends what to which Roku: [Live automations](#live-automations).
+HA decides the severity in the automation; HAku reacts. `high` and `normal` take the screen (LIVE on that camera); `low` shows a PIP and leaves the screen alone. A takeover goes back to the view it interrupted (home, or the camera or GRID being watched) after 60 s untouched; from GRID, a camera event drops to LIVE on that cam (one decoder). Which automation sends what to which Roku: [Live automations](#live-automations).
 
 ### High severity — after-hours back door or backyard motion
 

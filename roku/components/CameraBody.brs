@@ -12,11 +12,14 @@ sub init()
     m.backoff = m.top.findNode("backoff")
     m.rest = m.top.findNode("rest")
     m.watchdog = m.top.findNode("watchdog")
+    m.refresh = m.top.findNode("refresh")
+    m.refresh.duration = HK_STREAM_REFRESH_S()
 
     m.video.observeField("state", "onVideoState")
     m.backoff.observeField("fire", "onBackoff")
     m.rest.observeField("fire", "onRestEnd")
     m.watchdog.observeField("fire", "onWatchdog")
+    m.refresh.observeField("fire", "onRefresh")
 
     ' The keep-awake clip the card plays while it rests (see MainScene's keepAwake).
     m.keepAwake = createObject("roSGNode", "ContentNode")
@@ -65,6 +68,8 @@ sub startCam()
     m.video.control = "play"
     m.lastGood = hkNowSeconds()
     m.watchdog.control = "start"
+    m.refresh.control = "stop"
+    m.refresh.control = "start"
     report("start")
 end sub
 
@@ -74,6 +79,7 @@ sub stopAll()
     m.backoff.control = "stop"
     m.rest.control = "stop"
     m.watchdog.control = "stop"
+    m.refresh.control = "stop"
     m.video.control = "stop"
     placeVideo("hidden")
     m.url = ""
@@ -116,6 +122,7 @@ end sub
 ' away while the one decoder is still ours.
 sub startRest()
     m.mode = "rest"
+    m.refresh.control = "stop"     ' the rest ends in a fresh startCam anyway
     report("rest")
     showOffline(true)
     placeVideo("clip")
@@ -128,6 +135,14 @@ end sub
 sub onRestEnd()
     if m.mode <> "rest" or not m.top.active then return
     m.attempts = 0
+    startCam()
+end sub
+
+' Roku OS drops a stream 4 h after it started with no remote input: start it afresh.
+sub onRefresh()
+    if m.mode <> "cam" or not m.top.active then return
+    report("refresh")
+    m.video.control = "stop"
     startCam()
 end sub
 

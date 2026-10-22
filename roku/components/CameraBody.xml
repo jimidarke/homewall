@@ -45,5 +45,6 @@
         <Timer id="backoff" repeat="false" />
         <Timer id="rest" repeat="false" />
         <Timer id="watchdog" repeat="true" duration="30" />
+        <Timer id="refresh" repeat="false" />  <!-- HK_STREAM_REFRESH_S: beats the OS 4 h stream stop -->
     </children>
 </component>

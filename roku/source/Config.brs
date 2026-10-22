@@ -72,6 +72,9 @@ function HK_POLL_LOG_S()      as integer : return 60     : end function  ' poll_
 function HK_IDLE_TO_HOME_MS() as integer : return 300000 : end function  ' user idle -> glance home
 function HK_RETURN_HOME_MS()  as integer : return 60000  : end function  ' after an auto-takeover
 function HK_HOME_CAM_MAX_MS() as integer : return 900000 : end function  ' homeCam= override, if HA's revert never arrives
+' Roku OS drops a stream to its home screen 4 h after the stream started with no remote
+' input (Bandwidth Saver), so every player starts its stream afresh after this long.
+function HK_STREAM_REFRESH_S() as integer : return 10800  : end function
 
 ' Rotating background gallery. Interval is overridable per-install via
 ' /api/config's `background.intervalMs`; hkBgRotateMs() resolves it with a floor.
@@ -260,6 +263,18 @@ function hkHomeCam(tile as dynamic, override as dynamic, streams as dynamic) as 
         if s <> invalid and s.hls <> invalid then return override.toStr()
     end if
     return hkTileCam(tile)
+end function
+
+' Where a camera takeover goes when its minute is up: back to the view it interrupted.
+' Home and the picker return home; a live camera (picked by hand or not) returns to
+' that camera, and the grid to the grid (`cam` is what Back from the grid plays). diag/module: invalid, no auto-return. A
+' takeover landing on a takeover keeps the first one's view (`current`).
+function hkTakeoverReturn(route as string, liveCam as string, manual as boolean, current as dynamic) as dynamic
+    if current <> invalid then return current
+    if route = "home" or route = "picker" then return { route: "home" }
+    if route = "live" and liveCam <> "" then return { route: "live", cam: liveCam, manual: manual }
+    if route = "grid" then return { route: "grid", cam: liveCam, manual: manual }
+    return invalid
 end function
 
 ' Rows for the OK camera picker: [{ id, name }] for every discovered stream with an

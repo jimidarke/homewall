@@ -23,7 +23,8 @@
 #   script.housewall_broadcast        the same payload to all five Rokus
 #   automations                       front steps view, front door opened,
 #                                     after-hours back motion / back door,
-#                                     motion-timestamp heartbeat
+#                                     motion-timestamp heartbeat, office
+#                                     relaunch (Roku home screen → HAku)
 #
 # Sensors used: binary_sensor.front_motion_occupancy, binary_sensor.front_doorcontact_contact,
 # binary_sensor.back_doorcontact_contact, binary_sensor.backyard_motion_occupancy,
@@ -248,3 +249,28 @@ automation:
               {%- set cam = 'backyard' -%}
             {%- endif -%}
             lastMotion={{ cam }}&lastMotionAt={{ as_timestamp(now()) | int }}
+
+  # --- Office relaunch ---------------------------------------------------------
+  # The office Roku drops to the Roku home screen now and then (a stray Back or
+  # Home press, or the OS). Every 5 min, if it's sitting on the home screen
+  # (app 562859, screensaver or not), launch HAku. Any other app, HAku included,
+  # is left alone. HA's state can't tell home from an app: it reads "idle" for
+  # any screensaver and "on" for the "Roku Dynamic Menu" home app.
+  - alias: "HouseWall · Office relaunch"
+    id: housewall_office_relaunch
+    description: >-
+      Every 5 min: office Roku on the Roku home screen → launch HAku
+      (media_player.select_source). Netflix, HAku or any other app: no-op.
+    mode: single
+    trigger:
+      - platform: time_pattern
+        minutes: "/5"
+    condition:
+      - condition: template
+        value_template: "{{ state_attr('media_player.office_office', 'app_id') == '562859' }}"
+    action:
+      - service: media_player.select_source
+        target:
+          entity_id: media_player.office_office
+        data:
+          source: HAku

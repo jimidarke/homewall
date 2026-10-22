@@ -2,7 +2,7 @@ title=HAku
 subtitle=Home Assistant on your TV
 major_version=1
 minor_version=3
-build_version=00000
+build_version=00001
 
 mm_icon_focus_fhd=pkg:/images/icon_focus_fhd.png
 mm_icon_focus_hd=pkg:/images/icon_focus_hd.png

@@ -21,6 +21,10 @@ sub init()
         backyard: m.top.findNode("dotBR")
     }
 
+    m.refresh   = m.top.findNode("refresh")
+    m.refresh.duration = HK_STREAM_REFRESH_S()
+    m.refresh.observeField("fire", "onRefresh")
+
     m.focusIdx = 0
     m.player.observeField("state", "onPlayerStateChanged")
     m.lastMotionByCam = {}
@@ -72,11 +76,22 @@ sub startMosaic()
     m.player.mute = true
     m.player.content = content
     m.player.control = "play"
+    m.refresh.control = "stop"
+    m.refresh.control = "start"
     placeRing()
 end sub
 
 sub stopMosaic()
+    m.refresh.control = "stop"
     m.player.control = "stop"
+end sub
+
+' Roku OS drops a stream 4 h after it started with no remote input: start it afresh.
+sub onRefresh()
+    if not m.top.active then return
+    hkEvent("stream_refresh", { cam: "mosaic" })
+    m.player.control = "stop"
+    startMosaic()
 end sub
 
 sub onPlayerStateChanged()

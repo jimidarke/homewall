@@ -42,6 +42,8 @@ sub Main()
     test_hkTileCam()
     test_hkHomeCam()
     test_hkPickerCams()
+    test_hkTakeoverReturn()
+    test_HK_STREAM_REFRESH_S()
     test_hkPollLogDue()
     test_hkStatePollMsFor()
     test_hkBgListUpdate()
@@ -578,6 +580,37 @@ sub test_hkHomeCam()
     assertEq("override, no tile", hkHomeCam(invalid, "front_steps", streams), "front_steps")
     assertEq("no tile, no override", hkHomeCam(invalid, "", streams), "mosaic")
     assertEq("invalid override", hkHomeCam(tile, invalid, streams), "front")
+end sub
+
+sub test_hkTakeoverReturn()
+    print "== hkTakeoverReturn =="
+    r = hkTakeoverReturn("home", "", false, invalid)
+    assertEq("from home", r.route, "home")
+    assertEq("from picker", hkTakeoverReturn("picker", "front", false, invalid).route, "home")
+    r = hkTakeoverReturn("live", "yard", true, invalid)
+    assertEq("from a picked cam: route", r.route, "live")
+    assertEq("from a picked cam: cam", r.cam, "yard")
+    assertEq("from a picked cam: stays picked", r.manual, true)
+    r = hkTakeoverReturn("live", "side", false, invalid)
+    assertEq("from live: cam", r.cam, "side")
+    assertEq("from live: not picked", r.manual, false)
+    assertEq("from live, no cam", hkTakeoverReturn("live", "", true, invalid), invalid)
+    r = hkTakeoverReturn("grid", "front", true, invalid)
+    assertEq("from grid", r.route, "grid")
+    assertEq("from grid: stays picked", r.manual, true)
+    assertEq("from grid: its live cam", r.cam, "front")
+    assertEq("from diag", hkTakeoverReturn("diag", "", false, invalid), invalid)
+    assertEq("from module", hkTakeoverReturn("module", "", false, invalid), invalid)
+    first = { route: "live", cam: "yard", manual: true }
+    r = hkTakeoverReturn("live", "front_steps", true, first)
+    assertEq("takeover on a takeover keeps the first view", r.cam, "yard")
+end sub
+
+sub test_HK_STREAM_REFRESH_S()
+    print "== HK_STREAM_REFRESH_S =="
+    ' Roku OS drops a stream 4 h after it started with no remote input.
+    assertEq("under 4 h", HK_STREAM_REFRESH_S() < 4 * 3600, true)
+    assertEq("not churning", HK_STREAM_REFRESH_S() >= 3600, true)
 end sub
 
 sub test_hkPollLogDue()

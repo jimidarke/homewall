@@ -95,5 +95,6 @@
         </Group>
 
         <Rectangle id="focusSink" width="1" height="1" color="0x00000000" />
+        <Timer id="refresh" repeat="false" />  <!-- HK_STREAM_REFRESH_S: beats the OS 4 h stream stop -->
     </children>
 </component>
