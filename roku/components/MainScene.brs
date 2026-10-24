@@ -82,6 +82,8 @@ sub init()
 
     m.modules.layout = HK_LAYOUT()
     regDelete(HK_REG_KEY_CONFIG_OLD())   ' pre-0.11 default-view cache: never read again
+    regDelete(HK_REG_KEY_HA_TOKEN())     ' 2026-05 HA bootstrap: written, never read; one-time cleanup, harmless when absent
+    regDelete(HK_REG_KEY_HA_URL())
 
     m.idleTimer.duration = HK_IDLE_TO_HOME_MS() / 1000
     m.returnHomeTimer.duration = HK_RETURN_HOME_MS() / 1000
@@ -130,17 +132,6 @@ end sub
 sub onArgs()
     args = m.top.args
     if args = invalid then return
-
-    if args.haToken <> invalid and args.haToken <> "" then
-        regWrite(HK_REG_KEY_HA_TOKEN(), args.haToken)
-        haUrlVal = "(unchanged)"
-        if args.haUrl <> invalid then
-            regWrite(HK_REG_KEY_HA_URL(), args.haUrl)
-            haUrlVal = args.haUrl
-        end if
-        showToast("Connected to Home Assistant", "low", 2000)
-        hkEvent("ha_bootstrap", { haToken: "REDACTED", haUrl: haUrlVal })
-    end if
 
     if args.hubBase <> invalid and args.hubBase <> "" then
         hkSetHubBase(args.hubBase)

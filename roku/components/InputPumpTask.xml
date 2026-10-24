@@ -8,5 +8,7 @@
     <interface>
         <field id="event" type="assocarray" alwaysNotify="true" />
     </interface>
+    <script type="text/brightscript" uri="pkg:/source/Config.brs" />
+    <script type="text/brightscript" uri="pkg:/source/Glyphs.brs" />
     <script type="text/brightscript" uri="InputPumpTask.brs" />
 </component>

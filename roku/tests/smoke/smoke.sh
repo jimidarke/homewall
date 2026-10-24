@@ -30,7 +30,8 @@
 #             failed, 4 discovery_failed without recovery, 5 carousel dead,
 #             6 overlay layer dead, 7 takeover routing dead (no route=live),
 #             8 channel crashed (runtime error), 9 homeCam= override dead,
-#             10 camera picker dead.
+#             10 camera picker dead, 11 registry written more than once per launch,
+#             12 an haToken value reached the console.
 
 set -uo pipefail
 
@@ -133,6 +134,17 @@ fi
 if ! grep -q "event=launch" "$LOG"; then
     echo "!! smoke fail: never saw event=launch in ${TIMEOUT}s"
     exit 1
+fi
+
+REG_WRITES=$(grep -c "event=reg_write key=hubBaseV2" "$LOG" || true)
+if [ "$REG_WRITES" -gt 1 ]; then
+    echo "!! smoke fail: hubBaseV2 written $REG_WRITES times in one launch (expected <=1; regWriteIfChanged guard broken)"
+    exit 11
+fi
+
+if grep -qiE "hatoken=[^*[:space:]]" "$LOG"; then
+    echo "!! smoke fail: an haToken value reached the console (should be ***** or absent)"
+    exit 12
 fi
 
 if ! grep "event=route" "$LOG" | grep -q "to=home"; then

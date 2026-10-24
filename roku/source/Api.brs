@@ -10,7 +10,7 @@ function hkHubBase() as string
 end function
 
 function hkSetHubBase(base as string) as void
-    if base <> invalid and base <> "" then regWrite(HK_REG_KEY_HUB_BASE(), base)
+    if base <> invalid and base <> "" then regWriteIfChanged(HK_REG_KEY_HUB_BASE(), base)
 end function
 
 function hkHubConfigUrl(base as string) as string

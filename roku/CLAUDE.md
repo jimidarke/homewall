@@ -37,10 +37,9 @@ SMOKE_TIMEOUT=60 ROKU_IP=… ROKU_DEV_PASSWORD=… tests/smoke/smoke.sh   # long
 ```bash
 curl -X POST -d '' "http://<ROKU_IP>:8060/input?cam=front&severity=normal&banner=Test"
 curl -X POST -d '' "http://<ROKU_IP>:8060/input?overlay=weather&temp=8&hi=14&cond=cloudy"
-curl -X POST -d '' "http://<ROKU_IP>:8060/launch/dev?haToken=$HA_TOKEN&haUrl=$HA_URL"   # cold launch only
 ```
 
-Launch args (`haToken`/`haUrl`, `hubBase`, `setDefault`) are read only on a cold `/launch/dev`; sent to a running channel they arrive as input and are ignored. A discovered `sidecar.base` overrides `hubBase` anyway.
+Launch args (`hubBase`, `setDefault`) are read only on a cold `/launch/dev`; the pre-1.3.2 `haToken`/`haUrl` bootstrap is gone (its registry keys are deleted on boot); sent to a running channel they arrive as input and are ignored. A discovered `sidecar.base` overrides `hubBase` anyway.
 
 ## Deploy
 
@@ -193,7 +192,7 @@ A schema change needs matching updates in `OverlayLayer`, `MainScene.dispatchEcp
 
 ### Registry
 
-One section, `haku`, with keys from the `HK_REG_KEY_*()` accessors in Config.brs: `discoveryCacheV2` (the streams JSON), `hubConfigRokuV1` (the `hkSlimConfig`-slimmed config; the pre-0.11 `hubConfigV2` is deleted on boot), `hubBaseV2`, `defaultCam`, per-cam `audioMuted_<cam>`, and the HA bootstrap's `haUrl` + `haToken`.
+One section, `haku`, with keys from the `HK_REG_KEY_*()` accessors in Config.brs: `discoveryCacheV2` (the streams JSON), `hubConfigRokuV1` (the `hkSlimConfig`-slimmed config; the pre-0.11 `hubConfigV2` is deleted on boot), `hubBaseV2`, `defaultCam`, per-cam `audioMuted_<cam>`. The pre-1.3.2 `haUrl`/`haToken` keys are deleted on boot.
 
 ## Conventions
 

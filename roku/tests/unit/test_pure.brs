@@ -53,6 +53,8 @@ sub Main()
     test_hkBgRotateMs()
     test_hkAgeLabel()
     test_hkUptimeLabel()
+    test_hkRegChanged()
+    test_hkFormatInput()
 
     print "RESULT pass=" + m.pass.toStr() + " fail=" + m.fail.toStr()
 end sub
@@ -676,4 +678,22 @@ sub test_hkPickerCams()
     assertEq("unknown name is the id", rows[2].name, "porch")
     assertEq("invalid", hkPickerCams(invalid).count(), 0)
     assertEq("empty", hkPickerCams({}).count(), 0)
+end sub
+
+sub test_hkRegChanged()
+    assertEq("regChanged: nothing cached writes", hkRegChanged(invalid, "http://a:1986"), true)
+    assertEq("regChanged: same value skips", hkRegChanged("http://a:1986", "http://a:1986"), false)
+    assertEq("regChanged: new value writes", hkRegChanged("http://a:1986", "http://b:1986"), true)
+    assertEq("regChanged: empty cached writes", hkRegChanged("", "x"), true)
+end sub
+
+sub test_hkFormatInput()
+    s = hkFormatInput({ cam: "front", severity: "normal" })
+    assertContains("formatInput: keeps plain keys", s, "cam=front")
+    assertContains("formatInput: keeps plain keys 2", s, "severity=normal")
+    s = hkFormatInput({ haToken: "abc123", haUrl: "http://ha:8123" })
+    assertContains("formatInput: redacts haToken", s, "haToken=*****")
+    assertEq("formatInput: token value gone", Instr(1, s, "abc123"), 0)
+    assertContains("formatInput: keeps haUrl", s, "haUrl=http://ha:8123")
+    assertEq("formatInput: invalid is {}", hkFormatInput(invalid), "{}")
 end sub

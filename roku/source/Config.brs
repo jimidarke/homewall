@@ -202,6 +202,22 @@ sub regWrite(key as string, value as string)
     section.flush()
 end sub
 
+' True when the stored registry value `current` (regRead gives "" when absent)
+' differs from `value`, i.e. a write and its flash flush are actually needed.
+function hkRegChanged(current as dynamic, value as string) as boolean
+    if current = invalid then return true
+    return current <> value
+end function
+
+' regWrite that skips the write + flush when the stored value already matches.
+' ModulePollTask calls hkSetHubBase on every poll; before 1.3.2 that was one
+' registry flush per second per Roku. Logs event=reg_write only on a real write.
+sub regWriteIfChanged(key as string, value as string)
+    if not hkRegChanged(regRead(key), value) then return
+    regWrite(key, value)
+    hkEvent("reg_write", { key: key })
+end sub
+
 sub regDelete(key as string)
     section = createObject("roRegistrySection", HK_REG_SECTION())
     if section = invalid then return
@@ -841,6 +857,24 @@ end function
 
 ' Scrub a key=value query-string-ish blob so haToken (and similar) don't
 ' end up in the telnet log. Used for printing args / event maps.
+' Render an ECP /input param map for the console, redacting secret-looking keys
+' (haToken/token/password) the same way hkEvent does. Used by InputPumpTask.
+function hkFormatInput(info as object) as string
+    if info = invalid then return "{}"
+    parts = []
+    for each k in info
+        v = info[k]
+        if v = invalid then
+            vs = "invalid"
+        else
+            vs = v.toStr()
+        end if
+        if LCase(k) = "hatoken" or LCase(k) = "token" or LCase(k) = "password" then vs = "*****"
+        parts.push(k + "=" + vs)
+    end for
+    return "{" + parts.join(",") + "}"
+end function
+
 function hkScrub(s as string) as string
     out = s
     for each k in ["haToken", "token", "password"]

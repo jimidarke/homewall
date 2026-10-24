@@ -18,17 +18,9 @@ sub pump()
         if type(msg) = "roInputEvent" then
             info = msg.getInfo()
             if info <> invalid then
-                print "[HAku][input] " + formatInfo(info)
+                print "[HAku][input] " + hkFormatInput(info)   ' redacts haToken/token/password
                 m.top.event = info
             end if
         end if
     end while
 end sub
-
-function formatInfo(info as object) as string
-    parts = []
-    for each k in info
-        parts.push(k + "=" + info[k].toStr())
-    end for
-    return "{" + parts.join(",") + "}"
-end function

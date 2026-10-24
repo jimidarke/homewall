@@ -481,7 +481,7 @@ roku boot
 
 **Default cam** (`?setDefault=<cam>`, per Roku, default `front`) is the camera LIVE opens on when a takeover names none (a camera `focusModule=` without `cam=`), and where GRID's Back lands before any cam has been shown.
 
-**HA token bootstrap**: one-time deep-link `?contentId=setup&haToken=<token>&haUrl=http://mserver:8123` (URL-encoded — without encoding the `:` in `http://` the Roku returns 404) writes to the `haku` registry section, scrubbed from logs. Nothing in the channel reads the token any more: the sidecar is the only HAku part that talks to HA, with its own token in `/etc/haku/haku.env`.
+**HA token bootstrap** (removed in Roku 1.3.2; the keys are deleted on boot): one-time deep-link `?contentId=setup&haToken=<token>&haUrl=http://mserver:8123` (URL-encoded — without encoding the `:` in `http://` the Roku returns 404) writes to the `haku` registry section, scrubbed from logs. Nothing in the channel reads the token any more: the sidecar is the only HAku part that talks to HA, with its own token in `/etc/haku/haku.env`.
 
 ---
 
