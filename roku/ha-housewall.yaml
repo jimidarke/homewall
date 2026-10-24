@@ -24,8 +24,9 @@
 #   script.housewall_broadcast        the same payload to all six Rokus
 #   automations                       front steps view, front door opened,
 #                                     after-hours back motion / back door,
-#                                     motion-timestamp heartbeat, office and
-#                                     dad relaunch (Roku home screen → HAku)
+#                                     motion-timestamp heartbeat, relaunch
+#                                     (Roku home screen → HAku) on office,
+#                                     den, living, master, kids and dad
 #
 # Sensors used: binary_sensor.front_motion_occupancy, binary_sensor.front_doorcontact_contact,
 # binary_sensor.back_doorcontact_contact, binary_sensor.backyard_motion_occupancy,
@@ -54,8 +55,8 @@ rest_command:
     url: "http://192.0.2.54:8060/input?{{ payload }}"
     method: POST
     timeout: 5
-  # Office Roku (the dev Roku, also a wall). Reached by the broadcast script and
-  # the front-door automation; the active-Roku selector never picks it.
+  # Office Roku (the dev Roku, also a wall). Reached by the broadcast script;
+  # the active-Roku selector never picks it.
   housewall_office:
     url: "http://192.0.2.55:8060/input?{{ payload }}"
     method: POST
@@ -95,7 +96,8 @@ template:
 
 #-------------------------------------------------------------------------------
 # BROADCAST SCRIPT — send one payload to all six Rokus in parallel.
-# Used by the front steps view and the motion-timestamp heartbeat.
+# Used by the front steps view, the front door takeover and the motion-timestamp
+# heartbeat.
 #-------------------------------------------------------------------------------
 script:
   housewall_broadcast:
@@ -175,11 +177,14 @@ automation:
           payload: >-
             {{ 'homeCam=front_steps' if trigger.id == 'steps' else 'homeCam=default' }}
 
-  # --- Front door opened (office Roku only) -----------------------------------
+  # --- Front door opened (broadcast) ------------------------------------------
+  # Every wall takes the same 60 s takeover, then returns to whatever it was
+  # showing (hkTakeoverReturn). A Roku on another app gets the /input too and
+  # ignores it.
   - alias: "HouseWall · Front door opened"
     id: housewall_front_door_opened
     description: >-
-      Front door contact opens → the office Roku goes full-screen on the
+      Front door contact opens → every Roku goes full-screen on the
       fixed lens over the front steps (front_steps) for 60 s. The kitchen
       tablet shows the same camera for the same minute via the sidecar.
     mode: single
@@ -188,7 +193,7 @@ automation:
         entity_id: binary_sensor.front_doorcontact_contact
         to: "on"
     action:
-      - service: rest_command.housewall_office
+      - service: script.housewall_broadcast
         data:
           payload: "cam=front_steps&severity=normal&reason=opened&banner=Front+Door+opened"
 
@@ -292,6 +297,91 @@ automation:
       - service: media_player.select_source
         target:
           entity_id: media_player.office_office
+        data:
+          source: HAku
+
+  # --- Den relaunch --------------------------------------------------------------
+  # Same rule as the office, through HA's Roku integration.
+  - alias: "HouseWall · Den relaunch"
+    id: housewall_den_relaunch
+    description: >-
+      Every 5 min: den Roku on the Roku home screen → launch HAku
+      (media_player.select_source). Netflix, HAku or any other app: no-op.
+    mode: single
+    trigger:
+      - platform: time_pattern
+        minutes: "/5"
+    condition:
+      - condition: template
+        value_template: "{{ state_attr('media_player.media_room_denroku', 'app_id') == '562859' }}"
+    action:
+      - service: media_player.select_source
+        target:
+          entity_id: media_player.media_room_denroku
+        data:
+          source: HAku
+
+  # --- Living relaunch --------------------------------------------------------
+  # Same rule as the office, through HA's Roku integration.
+  - alias: "HouseWall · Living relaunch"
+    id: housewall_living_relaunch
+    description: >-
+      Every 5 min: living Roku on the Roku home screen → launch HAku
+      (media_player.select_source). Netflix, HAku or any other app: no-op.
+    mode: single
+    trigger:
+      - platform: time_pattern
+        minutes: "/5"
+    condition:
+      - condition: template
+        value_template: "{{ state_attr('media_player.living_room_roku', 'app_id') == '562859' }}"
+    action:
+      - service: media_player.select_source
+        target:
+          entity_id: media_player.living_room_roku
+        data:
+          source: HAku
+
+  # --- Master relaunch --------------------------------------------------------
+  # Same rule as the office, through HA's Roku integration.
+  - alias: "HouseWall · Master relaunch"
+    id: housewall_master_relaunch
+    description: >-
+      Every 5 min: master Roku on the Roku home screen → launch HAku
+      (media_player.select_source). Netflix, HAku or any other app: no-op.
+    mode: single
+    trigger:
+      - platform: time_pattern
+        minutes: "/5"
+    condition:
+      - condition: template
+        value_template: "{{ state_attr('media_player.primary_bedroom_master_bedroom', 'app_id') == '562859' }}"
+    action:
+      - service: media_player.select_source
+        target:
+          entity_id: media_player.primary_bedroom_master_bedroom
+        data:
+          source: HAku
+
+  # --- Kids relaunch ----------------------------------------------------------
+  # Same rule as the office, through HA's Roku integration. The Express 3930 is
+  # USB-powered by the TV, so it is unavailable whenever the TV is off.
+  - alias: "HouseWall · Kids relaunch"
+    id: housewall_kids_relaunch
+    description: >-
+      Every 5 min: kids Roku on the Roku home screen → launch HAku
+      (media_player.select_source). Netflix, HAku or any other app: no-op.
+    mode: single
+    trigger:
+      - platform: time_pattern
+        minutes: "/5"
+    condition:
+      - condition: template
+        value_template: "{{ state_attr('media_player.kids_roku', 'app_id') == '562859' }}"
+    action:
+      - service: media_player.select_source
+        target:
+          entity_id: media_player.kids_roku
         data:
           source: HAku
 

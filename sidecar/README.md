@@ -293,7 +293,7 @@ plus `open_count` and `stale` (every door unknown).
   contact, so the takeover outlasts the door closing again, but a door that opens and
   closes inside one poll interval is missed, which is one reason the poll runs every
   second. The Roku layout inherits the key through its `tablet:` ref and ignores it (HA
-  pushes the camera to the office Roku itself).
+  pushes the camera to every Roku itself).
 
 **`laundry`.** Descriptor: `machines[]` of `{id, label, color, glyph?, entities?}`. It
 mirrors HA's laundry package and never re-derives it. Entity ids follow from the machine

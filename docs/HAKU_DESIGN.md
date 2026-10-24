@@ -6,7 +6,7 @@
 
 ## North star
 
-**HAku is the TV-shaped client for the home.** Most of the time it is a read-only wall of glass cards (doors, laundry, water, energy, gas, weather, thermostat, calendar, activity, a 3-day forecast with a 48 h temperature chart) over a rotating drone photo, with the front camera playing live in a 2×2 square. When the home has something to say, Home Assistant pushes it to the Rokus and HAku reacts: front motion turns every wall's camera square to the front steps, the front door opening puts the steps full-screen on the office Roku, and the back door or backyard motion after hours cuts the active Roku to the backyard camera. A minute later, untouched, a takeover goes back to the wall. Lesser events can shoulder a small picture-in-picture into a corner instead of yanking you out of what you were watching.
+**HAku is the TV-shaped client for the home.** Most of the time it is a read-only wall of glass cards (doors, laundry, water, energy, gas, weather, thermostat, calendar, activity, a 3-day forecast with a 48 h temperature chart) over a rotating drone photo, with the front camera playing live in a 2×2 square. When the home has something to say, Home Assistant pushes it to the Rokus and HAku reacts: front motion turns every wall's camera square to the front steps, the front door opening puts the steps full-screen on every Roku, and the back door or backyard motion after hours cuts the active Roku to the backyard camera. A minute later, untouched, a takeover goes back to the wall. Lesser events can shoulder a small picture-in-picture into a corner instead of yanking you out of what you were watching.
 
 It's a Roku channel because Rokus are the box that's already in every room. Home Assistant is the brain; HAku is just one of its faces. The kitchen wall's Fire 7 tablet is the other ([Tablet client](#tablet-client-kitchen-fire-7)).
 
@@ -39,11 +39,11 @@ Physical placement (confirmed 2026-05-08): .32 (HA's "Back Yard") is the Reolink
 
 | Friendly | LAN IP | Model | Notes |
 |---|---|---|---|
-| living | `192.0.2.51` | Roku Streaming Stick+ | |
-| kids | `192.0.2.52` | Roku Express (3930) | USB-powered by the bedroom TV; reachability = TV-power state proxy in HA `packages/kids_tv.yaml` |
-| master | `192.0.2.53` | Roku Streaming Stick | HA calls it `bedroom` (`rest_command.housewall_bedroom`) |
-| den | `192.0.2.54` | Roku Express 4K (3940) | |
-| office | `192.0.2.55` | Roku Premiere+ | Dev box in the office, also a wall; HA's `housewall_office` (broadcasts and the front-door takeover). Its own dev password; the fleet's is `$ROKU_PW_FLEET`. |
+| living | `192.0.2.51` | Roku Streaming Stick+ | HA's `media_player.living_room_roku`; `housewall_living_relaunch` brings HAku back from the home screen. |
+| kids | `192.0.2.52` | Roku Express (3930) | USB-powered by the bedroom TV; reachability = TV-power state proxy in HA `packages/kids_tv.yaml`; `housewall_kids_relaunch` (via `media_player.kids_roku`) brings HAku back from the home screen |
+| master | `192.0.2.53` | Roku Streaming Stick | HA calls it `bedroom` (`rest_command.housewall_bedroom`); `housewall_master_relaunch` (via `media_player.primary_bedroom_master_bedroom`) brings HAku back from the home screen. |
+| den | `192.0.2.54` | Roku Express 4K (3940) | HA's `media_player.media_room_denroku`; `housewall_den_relaunch` brings HAku back from the home screen, like the office. |
+| office | `192.0.2.55` | Roku Premiere+ | Dev box in the office, also a wall; HA's `housewall_office`, reached by the broadcasts. Its own dev password; the fleet's is `$ROKU_PW_FLEET`. |
 | dad | `192.0.2.56` | Roku Streaming Stick (3840CA) | Added 2026-10-23 on 1.3.1. Dev password `$ROKU_PW_OFFICE`, like the office. ECP is in Limited mode: `/input`, `/launch` and `/query/active-app` work, but `/query/media-player` and `/keypress` are refused. Not in HA's Roku integration; `housewall_dad_relaunch` polls ECP to bring HAku back from the home screen. |
 
 Not running HAku: a garage Roku was never seen on a scan.
@@ -421,10 +421,10 @@ T+60 s    back to the home wall, unless someone pressed a key
 ### Normal severity — front door opened
 
 ```
-T+0     HA → office Roku: POST /input?cam=front_steps&severity=normal&reason=opened&banner=Front+Door+opened
+T+0     HA → every Roku (broadcast): POST /input?cam=front_steps&severity=normal&reason=opened&banner=Front+Door+opened
 T+~50   Toast slide-in (3 s)
 T+~100  LIVE on front_steps at the live edge
-T+60 s  back to the home wall, unless someone pressed a key
+T+60 s  back to the view it interrupted, unless someone pressed a key
 ```
 
 The kitchen tablet shows the same camera for the same minute through the sidecar, not a push ([Sidecar](#sidecar-haku-sidecar)).
@@ -500,16 +500,16 @@ HA talks to HAku two ways:
 
 | Mode | Service to call | When to use |
 |---|---|---|
-| Specific Roku | `rest_command.housewall_<room>` | Room-specific events (the front door → office Roku) |
+| Specific Roku | `rest_command.housewall_<room>` | Room-specific events (none live) |
 | Active Roku (follow-me) | `"{{ states('sensor.housewall_active_service') }}"` | Alerts you want to *see now* |
-| Broadcast | `script.housewall_broadcast` | Ambient state every wall shares (`homeCam=`, `lastMotion=`) |
+| Broadcast | `script.housewall_broadcast` | What every wall shares: ambient state (`homeCam=`, `lastMotion=`) and the front door takeover |
 
 ### Live automations
 
 | Automation | Trigger | Target | Payload |
 |---|---|---|---|
 | `housewall_front_steps_view` | front motion on for 5 s / clears, unavailable or HA start | broadcast | `homeCam=front_steps` / `homeCam=default` |
-| `housewall_front_door_opened` | front door opens | office Roku | `cam=front_steps&severity=normal&reason=opened&banner=Front+Door+opened` |
+| `housewall_front_door_opened` | front door opens | broadcast | `cam=front_steps&severity=normal&reason=opened&banner=Front+Door+opened` |
 | `housewall_after_hours_back_motion` | backyard motion, 22:00–06:00 | active Roku | `cam=backyard&severity=high&replay=15&…&banner=ATTN+Backyard` |
 | `housewall_after_hours_back_door` | back door opens, 22:00–06:00 | active Roku | `cam=backyard&severity=high&replay=15&…&banner=ATTN+Back+Door` |
 | `housewall_push_motion_timestamps` | front/backyard motion clears | broadcast | `lastMotion=<cam>&lastMotionAt=<unix>` |
@@ -653,7 +653,7 @@ The home camera card has its own simpler loop: the same backoff, then after 4 er
 | Home glass wall (6×4, sidecar `?layout=roku`, live front camera, forecast chart) | ✅ |
 | Shared drone-photo backgrounds (`HAKU_BG_DIR` + `haku-bg-sync`, `fit=cover`) | ✅ |
 | Front steps view on front motion (`front_steps`, `homeCam=`) | ✅ |
-| Door camera: front door → steps full screen on the office Roku and the kitchen tablet | ✅ |
+| Door camera: front door → steps full screen on every Roku and the kitchen tablet | ✅ |
 | 1 s polling end to end (2 s on the Roku Express) | ✅ |
 | LIVE: 4-cam carousel, HUD with dot pager + last-motion, per-cam audio, Replay (limited to the HLS window) | ✅ |
 | GRID via the NVR mosaic + long-press OK + focus overlay | ✅ |
