@@ -16,3 +16,6 @@ secrets.json
 *.swp
 .DS_Store
 Thumbs.db
+
+# superpowers executor ledgers (scratch)
+.superpowers/

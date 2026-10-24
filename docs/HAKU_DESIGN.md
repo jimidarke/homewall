@@ -14,6 +14,8 @@ It's a Roku channel because Rokus are the box that's already in every room. Home
 
 > **Status (2026-10-14).** Roku 1.2.1 on all five Rokus (the four fleet Rokus and the office dev Roku), tablet 1.1.1, sidecar 1.1.0. The Rokus boot to the read-only 6×4 glass wall (spec `docs/superpowers/specs/2026-10-07-roku-wall-6x4-design.md`, baseline `docs/roku/screens/home.png`) over the shared drone photos (`…/2026-10-07-shared-backgrounds-design.md`). Front motion switches the camera square to the steps (`…/2026-10-14-front-steps-view-design.md`); the front door takes the office Roku and the kitchen tablet to the steps for a minute, and polling is 1 s end to end (`…/2026-10-14-door-camera-and-1s-polling-design.md`). The tablet runs its v3 touch UI.
 
+> **v2 in progress (2026-10-24):** the next generation is designed in [superpowers/specs/2026-10-24-haku-v2-design.md](superpowers/specs/2026-10-24-haku-v2-design.md). This document describes v1, which stays live until the v2 cutover.
+
 ---
 
 ## Inventory (what's actually on the LAN)
