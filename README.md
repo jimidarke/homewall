@@ -2,6 +2,8 @@
 
 A Home Assistant dashboard for the house's wall displays: Rokus around the house and a Fire 7 tablet in the kitchen. A small server on nserver (the **sidecar**) reads Home Assistant and serves ready-formatted cards; each display lays them out and draws them. Camera streams for the Rokus come from a separate go2rtc/HLS pipeline on the same host.
 
+Remote: private GitHub `jimidarke/homewall`. nserver holds a read-only clone at `/opt/haku/homewall` (deploy key `nserver-haku-deploy`); v2's deploy script will run from it.
+
 ```
 Home Assistant (mserver) ──► sidecar :1986 (nserver) ──► roku/         (Roku channel)
                                                     └──► fire-tablet/  (Android app)
