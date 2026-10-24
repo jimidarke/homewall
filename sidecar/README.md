@@ -484,7 +484,7 @@ python3 -m venv /opt/haku/sidecar/venv
 sudo install -D -m644 dashboard.json.example /etc/haku/dashboard.json   # then edit (must be readable by media)
 sudo install -D -m640 -o root -g media /dev/stdin /etc/haku/haku.env <<'ENV'
 HAKU_HA_URL=http://192.0.2.10:8123
-HAKU_HA_TOKEN=<rokuapp long-lived token>
+HAKU_HA_TOKEN=<long-lived token of the HA user `haku`>
 HAKU_SIDECAR_HTTP_PORT=1986
 HAKU_SIDECAR_BASE=http://192.0.2.20:1986
 HAKU_CONFIG=/etc/haku/dashboard.json
@@ -510,7 +510,7 @@ docker run -d --restart=always --network host --env-file /etc/haku/haku.env \
 | Var | Default | Purpose |
 |---|---|---|
 | `HAKU_HA_URL` | `http://192.0.2.10:8123` | Home Assistant base URL |
-| `HAKU_HA_TOKEN` | — | long-lived token (`rokuapp`); never logged, never in the repo |
+| `HAKU_HA_TOKEN` | — | long-lived token of the HA administrator user `haku` (`ha/README.md` § Rotate); never logged, never in the repo |
 | `HAKU_POLL_INTERVAL` | `10` (nserver runs `1`) | seconds between `/api/states` polls, floor 1; see [Reading Home Assistant](#reading-home-assistant) |
 | `HAKU_SIDECAR_HTTP_PORT` | `1986` | HTTP listen port |
 | `HAKU_SIDECAR_BASE` | `http://<LAN IP>:<port>` | base URL advertised to clients in `/api/config`'s `sidecar` block and the `/api/backgrounds` urls |

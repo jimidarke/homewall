@@ -1,6 +1,6 @@
 # CLAUDE.md — sidecar/
 
-`haku-sidecar`: Python/Flask on `:1986`, deployed on nserver (192.0.2.20). It polls HA's `/api/states` (every second on nserver) with the `rokuapp` long-lived token and serves the module→entity config, per-module value JSON, the tablet's detail panels, backgrounds and PNG cards. The HA binding lives in `/etc/haku/dashboard.json`, so another HA install is a config edit, not a code change. API, HA polling and caching, config and tile keys, layouts, backgrounds and env vars: `README.md`.
+`haku-sidecar`: Python/Flask on `:1986`, deployed on nserver (192.0.2.20). It polls HA's `/api/states` (every second on nserver) with the long-lived token of the HA administrator user `haku` (rotation: `../ha/README.md` § Rotate) and serves the module→entity config, per-module value JSON, the tablet's detail panels, backgrounds and PNG cards. The HA binding lives in `/etc/haku/dashboard.json`, so another HA install is a config edit, not a code change. API, HA polling and caching, config and tile keys, layouts, backgrounds and env vars: `README.md`.
 
 **Two clients read it**: the wall Rokus (`?layout=roku`, `../roku/`) and the kitchen tablet (`?layout=tablet`, `../fire-tablet/`). Any JSON change must keep both working. Without `?layout=` it serves the default view (top-level `modules`, for Roku channels before 0.11). No live display reads it, but `tests/test_roku_golden.py` pins it byte for byte, so change it only on purpose.
 

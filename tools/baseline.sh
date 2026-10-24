@@ -12,12 +12,18 @@ set -uo pipefail
 SECS="${1:-20}"
 ROKUS="192.0.2.51 192.0.2.52 192.0.2.53 192.0.2.54 192.0.2.56 192.0.2.55"
 HA_HOST=192.0.2.10
-cleanup() { ssh -o ConnectTimeout=8 nserver 'pkill -x tcpdump' >/dev/null 2>&1 || true; }
-trap cleanup EXIT INT TERM
+# shellcheck disable=SC1091
+source "$(dirname "$0")/lib/redact.sh"
+OUT=$(mktemp)
+cleanup() { ssh -o ConnectTimeout=8 nserver 'pkill -x tcpdump' >/dev/null 2>&1 || true; rm -f "$OUT"; }
+# Ctrl-C: kill the remote captures and stop; do not print the remaining sections.
+trap 'cleanup; trap - EXIT; exit 130' INT TERM
+trap cleanup EXIT
 
 h() { printf '\n## %s\n\n' "$1"; }
 code() { printf '```\n'; cat; printf '```\n'; }
 
+report() {
 printf '# HAku baseline — %s\n\nCapture window: %s s. Script: `tools/baseline.sh`.\n' "$(date -u +'%Y-%m-%d %H:%M UTC')" "$SECS"
 
 h "Hosts"
@@ -27,7 +33,7 @@ printf '### mserver\n'
 ssh mserver 'uptime; free -m; docker stats --no-stream --format "{{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}" homeassistant' | code
 
 h "Processes (nserver)"
-ssh nserver 'SP=$(systemctl show -p MainPID --value haku-sidecar); GP=$(systemctl show -p MainPID --value go2rtc); top -b -n 2 -d 3 -p "$SP,$GP" | grep -E "^ *[0-9]+ " | tail -2 | awk "{printf \"%-8s cpu=%s%% rss=%sKB\n\", \$12, \$9, \$6}"; ps -eo pid,%cpu,rss,etime,args --sort=-%cpu | grep -E "ffmpeg|haku-discovery|haku_sidecar" | grep -v grep | cut -c1-150' | code
+ssh nserver 'SP=$(systemctl show -p MainPID --value haku-sidecar); GP=$(systemctl show -p MainPID --value go2rtc); top -b -n 2 -d 3 -p "$SP,$GP" | grep -E "^ *[0-9]+ " | tail -2 | awk "{printf \"%-8s cpu=%s%% rss=%sKB\n\", \$12, \$9, \$6}"; ps -eo pid,%cpu,rss,etime,args --sort=-%cpu | grep -E "ffmpeg|haku-discovery|haku_sidecar" | grep -v grep' | haku_redact | cut -c1-160 | code
 
 h "Traffic ($SECS s)"
 ssh nserver "cd /tmp && timeout $SECS tcpdump -ni any -A -s 400 -l 'dst host $HA_HOST and dst port 8123' 2>/dev/null > /tmp/hk_ha.txt & timeout $SECS tcpdump -ni any -A -s 400 -l 'dst port 1986 and not src host 127.0.0.1' 2>/dev/null > /tmp/hk_sc.txt & timeout $SECS tcpdump -ni any -A -s 400 -l 'dst port 1985 and not src host 127.0.0.1' 2>/dev/null > /tmp/hk_hls.txt & timeout $SECS tcpdump -ni any -nn 'src host $HA_HOST and src port 8123' 2>/dev/null | grep -oE 'length [0-9]+' | awk '{s+=\$2} END{printf \"HA->sidecar bytes/s: %.0f\n\", s/$SECS}' > /tmp/hk_b1.txt & timeout $SECS tcpdump -ni any -nn 'src port 1986 and not dst host 127.0.0.1' 2>/dev/null | grep -oE 'length [0-9]+' | awk '{s+=\$2} END{printf \"sidecar->clients bytes/s: %.0f\n\", s/$SECS}' > /tmp/hk_b2.txt & timeout $SECS tcpdump -ni any -nn 'src port 1985 and not dst host 127.0.0.1' 2>/dev/null | grep -oE 'length [0-9]+' | awk '{s+=\$2} END{printf \"HLS->clients bytes/s: %.0f\n\", s/$SECS}' > /tmp/hk_b3.txt & wait
@@ -70,3 +76,17 @@ done
 
 h "Clients connected to the sidecar (:1986)"
 ssh nserver 'ss -Htn state established "( sport = :1986 )" | awk "{print \$4}" | sed "s/:[0-9]*\$//" | sort | uniq -c' | code
+}
+
+# Everything goes to a buffer first; the report is shown only if it holds no credential.
+# The report runs as a background job so that Ctrl-C/TERM interrupt `wait` at once (bash
+# defers traps while a foreground command runs), kill it, stop the remote captures and exit 130.
+report > "$OUT" &
+REPORT_PID=$!
+trap 'pkill -TERM -P "$REPORT_PID" 2>/dev/null; kill "$REPORT_PID" 2>/dev/null; wait "$REPORT_PID" 2>/dev/null; cleanup; trap - EXIT; exit 130' INT TERM
+wait "$REPORT_PID"
+if ! haku_leak_check < "$OUT"; then
+    echo "baseline: a credential-like string survived redaction; report withheld (see tools/lib/redact.sh)" >&2
+    exit 3
+fi
+cat "$OUT"

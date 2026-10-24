@@ -11,7 +11,7 @@ User=media
 Group=media
 # Token + HA URL + port live here (0640 root:media, NOT in the repo):
 #   HAKU_HA_URL=http://192.0.2.10:8123
-#   HAKU_HA_TOKEN=<rokuapp long-lived token>
+#   HAKU_HA_TOKEN=<long-lived token of the HA admin user haku; see ha/README.md § Rotate>
 #   HAKU_SIDECAR_HTTP_PORT=1986
 #   HAKU_SIDECAR_BASE=http://192.0.2.20:1986
 #   HAKU_CONFIG=/etc/haku/dashboard.json

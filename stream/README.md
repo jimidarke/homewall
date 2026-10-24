@@ -34,7 +34,7 @@ Three services on nserver (`192.0.2.20`) turn the NVR's HDMI-out (via a USB capt
 
 | File | Deploys to (on nserver) | Purpose |
 |---|---|---|
-| `go2rtc.yaml` | `/etc/go2rtc/go2rtc.yaml` | Stream config: UVC mosaic encoded by Intel QSV, plus 5 camera streams (`yard`/`side`/`backyard` forwarded as-is; the Genbolt's `front` and `front_steps` lenses QSV-transcoded HEVC → H.264) |
+| `go2rtc.yaml` | `/etc/go2rtc/go2rtc.yaml` | Stream config: UVC mosaic encoded by Intel QSV, plus 4 live camera streams (`backyard` disabled 2026-10-24, camera offline) (`yard`/`side`/`backyard` forwarded as-is; the Genbolt's `front` and `front_steps` lenses QSV-transcoded HEVC → H.264) |
 | `go2rtc.service` | `/etc/systemd/system/go2rtc.service` | go2rtc unit; runs as `media`, loads the cred env file |
 | `haku-hls.service` | `/etc/systemd/system/haku-hls.service` | ffmpeg remux of the mosaic RTSP into HLS |
 | `haku-hls@.service` | `/etc/systemd/system/haku-hls@.service` | Templated ffmpeg remux, one instance per camera (`@front`, `@front_steps`, `@yard`, `@side`, `@backyard`) |
@@ -67,7 +67,7 @@ go2rtc publishes one stream per source. `discovery.json` lists whatever go2rtc r
 | `front_steps` | Genbolt `192.0.2.31` fixed lens `/11` on the front steps (HEVC 1080p15) → QSV transcode | H.264 Main 3.2, 1280×720 @ 15 fps | `:1985/hls/front_steps.m3u8` |
 | `yard` | Reolink `192.0.2.32` sub-stream (main is HEVC 4K) | H.264 High 5.1, 640×360 @ 10 fps | `:1985/hls/yard.m3u8` |
 | `side` | Amcrest `192.0.2.33` | H.264 High 4.1, 1920×1080 @ 30 fps | `:1985/hls/side.m3u8` |
-| `backyard` | Reolink-family `192.0.2.34` main stream | H.264 Main 5.0, 2048×1536 @ 20 fps | `:1985/hls/backyard.m3u8` |
+| `backyard` _(disabled 2026-10-24: camera `.34` offline; re-enable steps in `docs/HAKU_DESIGN.md` § Open items)_ | Reolink-family `192.0.2.34` main stream | H.264 Main 5.0, 2048×1536 @ 20 fps | `:1985/hls/backyard.m3u8` |
 
 The Rokus' home square plays `front`, and switches to `front_steps` on HA's `homeCam=front_steps` push (front motion); `haku-hls@front_steps` keeps that stream warm so the switch never waits for a cold start. The Genbolt has its own login (`HAKU_FRONT_*`). The two transcodes run GOP 30 (2 s at 15 fps) at ~2 Mbps; the Express and Stick Rokus can't decode HEVC.
 
@@ -159,7 +159,7 @@ systemctl disable sendHDMI.service || true
 systemctl daemon-reload
 systemctl enable --now go2rtc.service haku-hls.service haku-discovery.service
 systemctl enable --now haku-hls@front.service haku-hls@front_steps.service haku-hls@yard.service \
-                       haku-hls@side.service haku-hls@backyard.service
+                       haku-hls@side.service
 
 # 7. Smoke test
 sleep 5
@@ -198,7 +198,7 @@ The legacy `sendHDMI.service` unit (mjpg_streamer on `:8090`) is left installed,
 ssh root@nserver
 systemctl stop go2rtc.service haku-hls.service haku-discovery.service 'haku-hls@*.service'
 systemctl disable go2rtc.service haku-hls.service haku-discovery.service \
-  haku-hls@front.service haku-hls@front_steps.service haku-hls@yard.service haku-hls@side.service haku-hls@backyard.service
+  haku-hls@front.service haku-hls@front_steps.service haku-hls@yard.service haku-hls@side.service
 systemctl enable --now sendHDMI.service
 # HA's camera.camerafeed picks the old MJPEG up again.
 ```

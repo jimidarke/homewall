@@ -2,7 +2,7 @@
 
 The camera pipeline on nserver (192.0.2.20) that feeds the Rokus, in three stages:
 
-1. **`go2rtc`** (`:1984`, config `go2rtc.yaml`): the NVR's HDMI-out mosaic (USB capture, Intel QSV encode) plus 5 camera streams. `yard`/`side`/`backyard` are forwarded as-is; the Genbolt's two HEVC lenses are QSV-transcoded to H.264: `front` (PTZ, `/21`) and `front_steps` (fixed lens on the steps, `/11`, which the Rokus' home square switches to on front motion).
+1. **`go2rtc`** (`:1984`, config `go2rtc.yaml`): the NVR's HDMI-out mosaic (USB capture, Intel QSV encode) plus 4 live camera (`backyard` disabled 2026-10-24, camera offline) streams. `yard`/`side`/`backyard` are forwarded as-is; the Genbolt's two HEVC lenses are QSV-transcoded to H.264: `front` (PTZ, `/21`) and `front_steps` (fixed lens on the steps, `/11`, which the Rokus' home square switches to on front motion).
 2. **`haku-hls.service`** (mosaic) and **`haku-hls@<cam>`** (per camera): ffmpeg remux into a 3 × 2 s HLS window in tmpfs `/run/haku-hls`, ~5 s behind live on the Rokus.
 3. **`haku-discovery.py`** (`:1985`): SSDP responder, `discovery.json`, HLS file server.
 
