@@ -61,7 +61,7 @@
       "drill": { "type": "camera", "route": "live" },
       "feedKey": "cameras",
       "refreshMs": 10000,
-      "streams": ["front", "yard", "side", "backyard", "mosaic"],
+      "streams": ["front", "yard", "side", "mosaic"],
       "entities": {
         "motion": {
           "front": "binary_sensor.front_motion_occupancy",

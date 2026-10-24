@@ -63,12 +63,11 @@
         "motion_age_s": 90
       }
     },
-    "count": 5,
+    "count": 4,
     "streams": [
       "front",
       "yard",
       "side",
-      "backyard",
       "mosaic"
     ],
     "thumbCam": "mosaic"

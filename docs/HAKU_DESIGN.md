@@ -701,7 +701,7 @@ HAku's second kind of display client is a native Android app (`io.haku.tablet`) 
 
 Checked 2026-10-14 against HA's `/api/states`, a port probe and nserver's units:
 
-- [ ] **`backyard` camera (.34) offline** — RTSP closed; the NVR can't reach it either, and `haku-hls@backyard` restarts in a loop until it returns. Both after-hours back automations and GRID's bottom-right quadrant point at it.
+- [x] **`backyard` camera (.34) offline** — RTSP closed; the NVR can't reach it either, and `haku-hls@backyard` restarts in a loop until it returns. Both after-hours back automations and GRID's bottom-right quadrant point at it. **Done 2026-10-24:** `haku-hls@backyard` disabled, the stream removed from go2rtc/discovery/`dashboard.json`, and the after-hours automations use `yard`. Re-enable: uncomment it in `stream/go2rtc.yaml` and `stream/haku-discovery.py`, deploy, `systemctl enable --now haku-hls@backyard`, add it back to `streams`, and revert `cam=yard` in `ha/packages/housewall.yaml`.
 - [ ] **ESPresense rooms** — only `office` reports, and `sensor.jimi_phone_room` is `not_home`/unmapped most of the time, so follow-me always lands on the living-room Roku.
 - [ ] **`person.alex`** — `unknown`; that phone's tracker isn't reporting.
 - [ ] **Gate, garage and backyard-corner sensors** — `binary_sensor.gate_doorcontact_contact`, `garage_doorcontact_contact` and `backyard_corner_motion_occupancy` no longer exist in HA, so yard and side have no event source.

@@ -9,19 +9,6 @@
     "state": "/api/state"
   },
   "streams": {
-    "backyard": {
-      "displayName": "Backyard",
-      "vendor": "Reolink-family",
-      "ptz": false,
-      "codec": "h264",
-      "resolution": "2048x1536",
-      "framerate": 20,
-      "audio": false,
-      "rtsp": "rtsp://192.0.2.20:8554/backyard",
-      "hls": "http://192.0.2.20:1985/hls/backyard.m3u8",
-      "mjpeg": "http://192.0.2.20:1984/api/stream.mjpeg?src=backyard",
-      "snapshot": "http://192.0.2.20:1984/api/frame.jpeg?src=backyard"
-    },
     "front": {
       "displayName": "Front Door",
       "vendor": "Genbolt",

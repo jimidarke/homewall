@@ -28,7 +28,7 @@ FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "discovery.json"
 
 EXPECTED_SCHEMA_VERSION = 2
 EXPECTED_KEYS_PER_STREAM = ("hls", "rtsp", "displayName")
-EXPECTED_STREAMS = ("mosaic", "front", "front_steps", "yard", "side", "backyard")
+EXPECTED_STREAMS = ("mosaic", "front", "front_steps", "yard", "side")
 # v2 adds the sidecar pointer (haku-sidecar: module JSON + rendered PNG cards).
 EXPECTED_SIDECAR_KEYS = ("base", "config", "state")
 

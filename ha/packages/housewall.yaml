@@ -202,7 +202,7 @@ automation:
     id: housewall_after_hours_back_motion
     description: >-
       Backyard motion between 22:00–06:00 is a high-severity event:
-      unconditional cam swap to backyard with 15 s replay, coral-bordered
+      unconditional cam swap to yard (the backyard camera has been offline since 2026-10; switch back when it returns) with 15 s replay, coral-bordered
       "ATTN" toast. Either the primary backyard sensor or the secondary
       back_yard motion sensor triggers this.
     mode: single
@@ -220,7 +220,7 @@ automation:
     action:
       - service: "{{ states('sensor.housewall_active_service') }}"
         data:
-          payload: "cam=backyard&severity=high&replay=15&reason=after+hours+motion&banner=ATTN+Backyard"
+          payload: "cam=yard&severity=high&replay=15&reason=after+hours+motion&banner=ATTN+Backyard"
 
   - alias: "HouseWall · After-hours back door"
     id: housewall_after_hours_back_door
@@ -239,7 +239,7 @@ automation:
     action:
       - service: "{{ states('sensor.housewall_active_service') }}"
         data:
-          payload: "cam=backyard&severity=high&replay=15&reason=after+hours+door&banner=ATTN+Back+Door"
+          payload: "cam=yard&severity=high&replay=15&reason=after+hours+door&banner=ATTN+Back+Door"
 
   # --- Motion-timestamp heartbeat (broadcast) ---------------------------------
   # When a tracked motion sensor clears, push lastMotion=<cam>&lastMotionAt=<unix>
