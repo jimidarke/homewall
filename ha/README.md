@@ -33,3 +33,13 @@ curl -s -X POST -H "$H" http://127.0.0.1:8123/api/services/automation/reload    
 `check_config` reports `KeyError: 'triggers'` for UI automations written with the plural schema; that is a false positive of the offline script. Template sensors, `utility_meter` and `camera:` platform changes need an HA restart (`docker restart homeassistant`), which also restarts every HAku Roku's push target for a minute.
 
 v2 adds `ha/deploy.sh` (Phase 4) and the packages `haku.yaml` (events) and `haku_health.yaml` (alerting); see `docs/superpowers/specs/2026-10-24-haku-v2-design.md` § 6.5 and § 6.7.
+
+## Rotate the sidecar's HA token
+
+The sidecar authenticates as the HA user `haku` (administrator: `subscribe_events` for custom event types needs it). To rotate without the token ever touching a chat or a shell history:
+
+1. In HA, signed in **as `haku`** (private window): Profile → Security → Long-lived access tokens → Create, name `haku-server-<date>`. Leave it on the clipboard.
+2. In your own terminal: `ssh -t nserver 'read -rs -p "token: " T; echo; cp -p /etc/haku/haku.env /etc/haku/haku.env.bak-<date>-token; sed -i "s|^HAKU_HA_TOKEN=.*|HAKU_HA_TOKEN=$T|" /etc/haku/haku.env; unset T; systemctl restart haku-sidecar; sleep 3; curl -s http://127.0.0.1:1986/api/health'` and paste when prompted. `ha_connected: true` means the new token works.
+3. Back in HA as `haku`, delete the previous `haku-server*` token.
+
+HA refuses to mint a long-lived token over a WebSocket that is itself authenticated with one, so step 1 is a UI (or password-login) step by design.
