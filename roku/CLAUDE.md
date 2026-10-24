@@ -57,6 +57,7 @@ Launch args (`hubBase`, `setDefault`) are read only on a cold `/launch/dev`; the
 - The dev passwords live in `~/.config/haku/fleet.env` (`ROKU_PW_FLEET` for living/kids/master/den, `ROKU_PW_OFFICE` for office `.55` and dad `.56`) and in `/etc/haku/fleet.env` on nserver; `fleet.env.example` lists the keys.
 - **Before sideloading a wall Roku, check what it's showing**: `curl -s http://<ip>:8060/query/active-app`. Skip any TV not on HAku (`<app id="dev" …>HAku</app>`): a sideload relaunches the channel over whatever is playing.
 - Nothing auto-updates: each Roku runs whatever was last sideloaded. Check `/query/apps` (or the console's `event=launch`) rather than assuming.
+- Fleet: `scripts/fleet-deploy.sh [ip…]` sideloads only to Rokus currently showing HAku (skips any other app, reports unreachable TVs) and prints the version each device runs afterwards.
 - Stream server deploy: `../stream/README.md` § Deploy. Sidecar deploy: `../sidecar/CLAUDE.md`.
 
 ## Architecture
