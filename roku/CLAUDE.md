@@ -44,7 +44,7 @@ Launch args (`haToken`/`haUrl`, `hubBase`, `setDefault`) are read only on a cold
 
 ## Deploy
 
-`ROKU_IP=<ip> ROKU_DEV_PASSWORD=<pw> npm run deploy` (roku-deploy posts to `http://<ip>/plugin_install` as `rokudev`).
+`ROKU_IP=<ip> ROKU_DEV_PASSWORD=<pw> npm run deploy` (roku-deploy posts to `http://<ip>/plugin_install` as `rokudev`).  Passwords come from `~/.config/haku/fleet.env` (`source` it first): `ROKU_PW_FLEET` for living/kids/master/den, `ROKU_PW_OFFICE` for office `.55` and dad `.56`. nserver holds the same file at `/etc/haku/fleet.env`.
 
 | Roku | IP | Model note |
 |---|---|---|
@@ -55,7 +55,7 @@ Launch args (`haToken`/`haUrl`, `hubBase`, `setDefault`) are read only on a cold
 | office (dev) | `192.0.2.55` | Premiere+, also a wall |
 | dad | `192.0.2.56` | Stick 3840CA; ECP Limited mode (no `/keypress`, no `/query/media-player`) |
 
-- The dev password is `$ROKU_PW_FLEET` on every Roku except the office `.55` and dad `.56`, which use `$ROKU_PW_OFFICE`.
+- The dev passwords live in `~/.config/haku/fleet.env` (`ROKU_PW_FLEET` for living/kids/master/den, `ROKU_PW_OFFICE` for office `.55` and dad `.56`) and in `/etc/haku/fleet.env` on nserver; `fleet.env.example` lists the keys.
 - **Before sideloading a wall Roku, check what it's showing**: `curl -s http://<ip>:8060/query/active-app`. Skip any TV not on HAku (`<app id="dev" …>HAku</app>`): a sideload relaunches the channel over whatever is playing.
 - Nothing auto-updates: each Roku runs whatever was last sideloaded. Check `/query/apps` (or the console's `event=launch`) rather than assuming.
 - Stream server deploy: `../stream/README.md` § Deploy. Sidecar deploy: `../sidecar/CLAUDE.md`.

@@ -45,8 +45,8 @@ Physical placement (confirmed 2026-05-08): .32 (HA's "Back Yard") is the Reolink
 | kids | `192.0.2.52` | Roku Express (3930) | USB-powered by the bedroom TV; reachability = TV-power state proxy in HA `packages/kids_tv.yaml`; `housewall_kids_relaunch` (via `media_player.kids_roku`) brings HAku back from the home screen |
 | master | `192.0.2.53` | Roku Streaming Stick | HA calls it `bedroom` (`rest_command.housewall_bedroom`); `housewall_master_relaunch` (via `media_player.primary_bedroom_master_bedroom`) brings HAku back from the home screen. |
 | den | `192.0.2.54` | Roku Express 4K (3940) | HA's `media_player.media_room_denroku`; `housewall_den_relaunch` brings HAku back from the home screen, like the office. |
-| office | `192.0.2.55` | Roku Premiere+ | Dev box in the office, also a wall; HA's `housewall_office`, reached by the broadcasts. Its own dev password; the fleet's is `$ROKU_PW_FLEET`. |
-| dad | `192.0.2.56` | Roku Streaming Stick (3840CA) | Added 2026-10-23 on 1.3.1. Dev password `$ROKU_PW_OFFICE`, like the office. ECP is in Limited mode: `/input`, `/launch` and `/query/active-app` work, but `/query/media-player` and `/keypress` are refused. Not in HA's Roku integration; `housewall_dad_relaunch` polls ECP to bring HAku back from the home screen. |
+| office | `192.0.2.55` | Roku Premiere+ | Dev box in the office, also a wall; HA's `housewall_office`, reached by the broadcasts. Its own dev password (`ROKU_PW_OFFICE` in `fleet.env`); the fleet's is `ROKU_PW_FLEET`. |
+| dad | `192.0.2.56` | Roku Streaming Stick (3840CA) | Added 2026-10-23 on 1.3.1. Dev password `ROKU_PW_OFFICE`, like the office. ECP is in Limited mode: `/input`, `/launch` and `/query/active-app` work, but `/query/media-player` and `/keypress` are refused. Not in HA's Roku integration; `housewall_dad_relaunch` polls ECP to bring HAku back from the home screen. |
 
 Not running HAku: a garage Roku was never seen on a scan.
 
