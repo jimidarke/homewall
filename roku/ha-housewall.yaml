@@ -18,13 +18,14 @@
 #
 # Contents:
 #   rest_command.housewall_<room>     one per Roku (living .51, kids .52,
-#                                     bedroom .53, den .54, office .55)
+#                                     bedroom .53, den .54, office .55, dad .56)
+#   rest_command.housewall_dad_*      dad's active-app query and HAku launch
 #   sensor.housewall_active_service   which Roku to target, from sensor.jimi_phone_room
-#   script.housewall_broadcast        the same payload to all five Rokus
+#   script.housewall_broadcast        the same payload to all six Rokus
 #   automations                       front steps view, front door opened,
 #                                     after-hours back motion / back door,
-#                                     motion-timestamp heartbeat, office
-#                                     relaunch (Roku home screen → HAku)
+#                                     motion-timestamp heartbeat, office and
+#                                     dad relaunch (Roku home screen → HAku)
 #
 # Sensors used: binary_sensor.front_motion_occupancy, binary_sensor.front_doorcontact_contact,
 # binary_sensor.back_doorcontact_contact, binary_sensor.backyard_motion_occupancy,
@@ -59,6 +60,21 @@ rest_command:
     url: "http://192.0.2.55:8060/input?{{ payload }}"
     method: POST
     timeout: 5
+  # Dad's Roku. Not in HA's Roku integration and its ECP is in Limited mode
+  # (/query/media-player refused; /input, /launch and /query/active-app work), so
+  # its relaunch reads the active app over ECP instead of a media_player.
+  housewall_dad:
+    url: "http://192.0.2.56:8060/input?{{ payload }}"
+    method: POST
+    timeout: 5
+  housewall_dad_active_app:
+    url: "http://192.0.2.56:8060/query/active-app"
+    method: GET
+    timeout: 5
+  housewall_dad_launch:
+    url: "http://192.0.2.56:8060/launch/dev"
+    method: POST
+    timeout: 5
 
 #-------------------------------------------------------------------------------
 # ACTIVE-ROKU SELECTOR — the rest_command for the Roku in the room ESPresense
@@ -78,13 +94,13 @@ template:
           {% endif %}
 
 #-------------------------------------------------------------------------------
-# BROADCAST SCRIPT — send one payload to all five Rokus in parallel.
+# BROADCAST SCRIPT — send one payload to all six Rokus in parallel.
 # Used by the front steps view and the motion-timestamp heartbeat.
 #-------------------------------------------------------------------------------
 script:
   housewall_broadcast:
     alias: HouseWall broadcast
-    description: Fan a payload to all 5 HAku Rokus in parallel.
+    description: Fan a payload to all 6 HAku Rokus in parallel.
     # queued: two automations can broadcast in the same instant (the motion-
     # timestamp heartbeat and the front steps revert both fire when motion clears).
     # single mode would drop the second call, and parallel lets two POSTs hit one
@@ -114,6 +130,10 @@ script:
             data:
               payload: "{{ payload }}"
           - service: rest_command.housewall_office
+            continue_on_error: true
+            data:
+              payload: "{{ payload }}"
+          - service: rest_command.housewall_dad
             continue_on_error: true
             data:
               payload: "{{ payload }}"
@@ -274,3 +294,26 @@ automation:
           entity_id: media_player.office_office
         data:
           source: HAku
+
+  # --- Dad relaunch --------------------------------------------------------------
+  # Same rule as the office: every 5 min, Roku home screen (app 562859) → HAku.
+  # Asks the Roku directly; an unreachable Roku (TV off) leaves no response and
+  # the condition fails.
+  - alias: "HouseWall · Dad relaunch"
+    id: housewall_dad_relaunch
+    description: >-
+      Every 5 min: dad's Roku on the Roku home screen → launch HAku
+      (ECP /launch/dev). Netflix, HAku or any other app: no-op.
+    mode: single
+    trigger:
+      - platform: time_pattern
+        minutes: "/5"
+    action:
+      - service: rest_command.housewall_dad_active_app
+        continue_on_error: true
+        response_variable: active
+      - condition: template
+        value_template: >-
+          {{ active is defined and active.status == 200
+             and 'id="562859"' in (active.content | string) }}
+      - service: rest_command.housewall_dad_launch

@@ -35,7 +35,7 @@ Physical placement (confirmed 2026-05-08): .32 (HA's "Back Yard") is the Reolink
 
 **nserver** (`192.0.2.20`) runs the camera pipeline ([Camera pipeline](#camera-pipeline-server-side-nserver)) and the sidecar ([Sidecar](#sidecar-haku-sidecar)). HA's `camera.camerafeed` (`mjpeg` integration entry `<config-entry-id>`) points at go2rtc's mosaic MJPEG, with snapshot `…/api/frame.jpeg?src=mosaic`. One Reolink is also integrated in HA directly (`camera.back_yard_fluent`); despite the name it is `yardcam` (.32).
 
-**Roku fleet** — five Rokus run HAku, all dev-unlocked. The fleet doesn't auto-update: each runs whatever was last sideloaded.
+**Roku fleet** — six Rokus run HAku, all dev-unlocked. The fleet doesn't auto-update: each runs whatever was last sideloaded.
 
 | Friendly | LAN IP | Model | Notes |
 |---|---|---|---|
@@ -44,8 +44,9 @@ Physical placement (confirmed 2026-05-08): .32 (HA's "Back Yard") is the Reolink
 | master | `192.0.2.53` | Roku Streaming Stick | HA calls it `bedroom` (`rest_command.housewall_bedroom`) |
 | den | `192.0.2.54` | Roku Express 4K (3940) | |
 | office | `192.0.2.55` | Roku Premiere+ | Dev box in the office, also a wall; HA's `housewall_office` (broadcasts and the front-door takeover). Its own dev password; the fleet's is `$ROKU_PW_FLEET`. |
+| dad | `192.0.2.56` | Roku Streaming Stick (3840CA) | Added 2026-10-23 on 1.3.1. Dev password `$ROKU_PW_OFFICE`, like the office. ECP is in Limited mode: `/input`, `/launch` and `/query/active-app` work, but `/query/media-player` and `/keypress` are refused. Not in HA's Roku integration; `housewall_dad_relaunch` polls ECP to bring HAku back from the home screen. |
 
-Not running HAku: `dad=.56` (Streaming Stick, not dev-unlocked); a garage Roku was never seen on a scan.
+Not running HAku: a garage Roku was never seen on a scan.
 
 **Kitchen tablet**: Fire 7 at `192.0.2.60` ([Tablet client](#tablet-client-kitchen-fire-7)).
 
@@ -659,7 +660,7 @@ The home camera card has its own simpler loop: the same backoff, then after 4 er
 | Camera picker: OK on home → list of every camera + the NVR mosaic → full screen until Back | ✅ (Roku 1.3.0) |
 | Per-cam direct RTSP → deep HLS, discovery schema v2 | ✅ (backyard camera offline) |
 | ECP severity routing + `focusModule=` takeovers with return-home | ✅ |
-| HA push package (`housewall.yaml`, 5 Rokus, active-Roku selector, queued broadcast) | ✅; follow-me effectively always "living" ([Open items](#open-items)) |
+| HA push package (`housewall.yaml`, 6 Rokus, active-Roku selector, queued broadcast) | ✅; follow-me effectively always "living" ([Open items](#open-items)) |
 | Overlay layer (door / text / weather / sensor / pip) | ✅ in the channel; HA sends none |
 | Dim mode | built (bound to the Info key); never tuned |
 
