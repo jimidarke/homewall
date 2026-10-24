@@ -1,0 +1,128 @@
+# Water cost tracking — feeds HA Energy dashboard with tier-aware pricing.
+#
+# Bill structure (EPCOR statement 2026-08-12, reads Jul 2 → Jul 31, 29 days,
+# 17.522 m³; water $64.35 + wastewater $89.02, validated to the cent):
+#   WATER:
+#     Tier 1 (≤10 m³/cycle): $2.5258/m³
+#     Tier 2 (>10 m³):       $2.7593/m³
+#   WASTEWATER sanitary:      $1.27331/m³ (flat, every drop)
+#   WASTEWATER treatment:     $1.3020/m³  (flat, every drop)
+#   Fixed charges are billed per day (stormwater line is explicitly × days).
+#   For the 29-day July bill:
+#     Water service charge:   $15.54
+#     Fire protection:        $2.79
+#     Sanitary service fee:   $10.51
+#     Stormwater (564.805 m² × 1.00 × 0.5 × $0.003274/m²/day × 29): $26.81
+#     Treatment service fee:  $6.58
+#     ─────────────────────── $62.23 = $2.14586/day → $65.32 per average month (30.44 d)
+#   No GST on water or wastewater. Waste services ($42.63/month flat) are on
+#   the same EPCOR bill but are not counted here.
+#
+# Marginal $/m³ (variable only):
+#   Tier 1: 2.5258 + 1.27331 + 1.3020 = 5.10111
+#   Tier 2: 2.7593 + 1.27331 + 1.3020 = 5.33461
+#
+# After this loads:
+#   Settings → Dashboards → Energy → Water consumption →
+#     Add water source: sensor.water_meter_total
+#     Use a price calculated by an entity → sensor.water_marginal_cost_per_m3
+#   HA will auto-create the cost sensor and chart it on the dashboard.
+#
+# Note: cycle is monthly (resets day 1). Real billing cycle anchors to ~day 3,
+# so the first/last few days of each cycle may straddle. For ±$1 accuracy this
+# is fine; if it bothers later, switch to a `template` utility_meter or use
+# long-term statistics by billing month.
+
+utility_meter:
+  water_monthly:
+    source: sensor.water_meter_total
+    name: Water Monthly Usage
+    cycle: monthly
+    always_available: true
+
+template:
+  - sensor:
+      - name: Water Marginal Cost Per M3
+        unique_id: water_marginal_cost_per_m3
+        unit_of_measurement: "CAD/m³"
+        device_class: monetary
+        state: >
+          {% set used = states('sensor.water_monthly_usage') | float(0) %}
+          {% if used >= 10 %}
+            5.33461
+          {% else %}
+            5.10111
+          {% endif %}
+        availability: >
+          {{ states('sensor.water_monthly_usage') not in ['unknown','unavailable','none'] }}
+
+      - name: Water Monthly Estimated Cost
+        unique_id: water_monthly_estimated_cost
+        unit_of_measurement: CAD
+        device_class: monetary
+        state_class: total
+        state: >
+          {% set used = states('sensor.water_monthly_usage') | float(0) %}
+          {% set fixed = 65.32 %}
+          {% set tier1_qty = [used, 10] | min %}
+          {% set tier2_qty = [used - 10, 0] | max %}
+          {% set water = tier1_qty * 2.5258 + tier2_qty * 2.7593 %}
+          {% set sewer = used * (1.27331 + 1.3020) %}
+          {{ (fixed + water + sewer) | round(2) }}
+        availability: >
+          {{ states('sensor.water_monthly_usage') not in ['unknown','unavailable','none'] }}
+
+      - name: Water Flow Lpm
+        unique_id: water_flow_lpm
+        unit_of_measurement: L/min
+        device_class: volume_flow_rate
+        state_class: measurement
+        icon: mdi:water-pump
+        # ESP reports flow in m³/min; ×1000 → L/min so taps read as whole-ish numbers
+        # instead of 0.00x fractions (a running tap is ~6–12 L/min).
+        state: >
+          {{ (states('sensor.water_meter_flow') | float(0) * 1000) | round(1) }}
+        availability: >
+          {{ states('sensor.water_meter_flow') not in ['unknown','unavailable','none'] }}
+
+      - name: Water Tier 2 Headroom
+        unique_id: water_tier2_headroom
+        unit_of_measurement: m³
+        icon: mdi:gauge
+        state: >
+          {% set used = states('sensor.water_monthly_usage') | float(0) %}
+          {{ ([10 - used, 0] | max) | round(3) }}
+        availability: >
+          {{ states('sensor.water_monthly_usage') not in ['unknown','unavailable','none'] }}
+
+      # All utility bills for the month in one number: the electricity, water
+      # (incl. wastewater) and gas estimates, each with its fixed charges, plus the
+      # flat EPCOR waste services fee ($42.63/month, no GST, 2026-08-12 bill).
+      # Lives here rather than in its own package so it deploys with a template
+      # reload instead of a restart.
+      - name: Utilities Monthly Estimated Cost
+        unique_id: utilities_monthly_estimated_cost
+        unit_of_measurement: CAD
+        device_class: monetary
+        state_class: total
+        icon: mdi:cash-multiple
+        state: >
+          {% set waste = 42.63 %}
+          {{ (states('sensor.electricity_monthly_estimated_cost') | float(0)
+              + states('sensor.water_monthly_estimated_cost') | float(0)
+              + states('sensor.gas_monthly_cost') | float(0)
+              + waste) | round(2) }}
+        availability: >
+          {{ has_value('sensor.electricity_monthly_estimated_cost')
+             and has_value('sensor.water_monthly_estimated_cost')
+             and has_value('sensor.gas_monthly_cost') }}
+
+  - binary_sensor:
+      - name: Water In Tier 2
+        unique_id: water_in_tier_2
+        device_class: problem
+        state: >
+          {{ states('sensor.water_monthly_usage') | float(0) >= 10 }}
+        delay_on: "00:01:00"
+        availability: >
+          {{ states('sensor.water_monthly_usage') not in ['unknown','unavailable','none'] }}

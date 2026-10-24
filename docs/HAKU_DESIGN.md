@@ -490,7 +490,7 @@ roku boot
 HA talks to HAku two ways:
 
 - **The sidecar pulls** everything the wall shows: one REST poll of `/api/states` every second for all clients, plus on-demand forecast, history, logbook and statistics reads ([Sidecar](#sidecar-haku-sidecar)). The Rokus poll the sidecar every 1 s, except the Roku Express 3930 (kids) at 2 s: at 1 s its camera square rebuffered and drifted up to 30 s behind live. The tablet polls every 1 s.
-- **HA pushes events** to the Rokus over ECP `/input`. The push side is one package on mserver, `packages/housewall.yaml` (byte-for-byte copy in the repo at `roku/ha-housewall.yaml`; deploy steps in `roku/CLAUDE.md` § HA push side); everything below summarizes it. One package file, no custom integration.
+- **HA pushes events** to the Rokus over ECP `/input`. The push side is one package on mserver, `packages/housewall.yaml` (byte-for-byte copy in the repo at `ha/packages/housewall.yaml`; deploy steps in `roku/CLAUDE.md` § HA push side); everything below summarizes it. One package file, no custom integration.
 
 ### Routing primitives
 

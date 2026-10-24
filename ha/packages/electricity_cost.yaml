@@ -1,0 +1,74 @@
+# Electricity cost tracking — feeds HA Energy dashboard with per-kWh pricing.
+#
+# Bill structure (EPCOR statement 2026-08-12, period Jul 3 – Jul 31 2026,
+# 1,156 kWh, $261.30 incl. GST; validated against the bill to the cent):
+#   Energy (RoLR, AUC-set Jan 2025 – Dec 2026): 12.010 ¢/kWh = $0.12010
+#   Delivery, flattened ($103.35 / 1156 kWh):                  $0.08940
+#     distribution 41.74 + transmission 46.82 + balancing pool 1.50
+#     − deferral rider 2.58 − true-up rider 0.18 + local access fee 16.05
+#   ─────── Variable pre-GST: $0.20950/kWh
+#   GST 5% applies to the whole electricity charge.
+#   ─────── Variable incl. GST: $0.21998/kWh (← price entity for Energy dashboard)
+#   Fixed monthly (admin charge $6.67 + GST): $7.00
+#
+# Previous bill (2026-03-13, 1019 kWh) flattened delivery to $0.09295/kWh, so
+# the flat per-kWh model holds within ~4 % across seasons. Emporia read 1,138 kWh
+# against the bill's 1,156 for the July read window (−1.6 %), so no correction.
+# RoLR energy rate is fixed through Dec 2026; update energy in Jan 2027.
+#
+# Note: emporia_total_daily_energy reports in Wh. We convert to kWh in a
+# template sensor, then feed utility_meter from that.
+#
+# After this loads:
+#   Settings → Dashboards → Energy → Electricity grid →
+#     Add consumption: sensor.emporia_total_daily_energy_kwh
+#     Use a price calculated by an entity → sensor.electricity_marginal_cost_per_kwh
+
+utility_meter:
+  electricity_monthly:
+    source: sensor.emporia_total_daily_energy_kwh
+    name: Electricity Monthly Usage
+    cycle: monthly
+
+template:
+  - sensor:
+      - name: Emporia Total Daily Energy kWh
+        unique_id: emporia_total_daily_energy_kwh
+        unit_of_measurement: kWh
+        device_class: energy
+        state_class: total_increasing
+        state: >
+          {% set wh = states('sensor.emporia_total_daily_energy') | float(0) %}
+          {{ (wh / 1000) | round(3) }}
+        availability: >
+          {{ states('sensor.emporia_total_daily_energy') not in ['unknown','unavailable','none'] }}
+
+      - name: Electricity Marginal Cost Per kWh
+        unique_id: electricity_marginal_cost_per_kwh
+        unit_of_measurement: "CAD/kWh"
+        device_class: monetary
+        state: "0.21998"
+
+      - name: Electricity Monthly Estimated Cost
+        unique_id: electricity_monthly_estimated_cost
+        unit_of_measurement: CAD
+        device_class: monetary
+        state_class: total
+        state: >
+          {% set used = states('sensor.electricity_monthly_usage') | float(0) %}
+          {% set fixed = 7.00 %}
+          {% set variable = used * 0.21998 %}
+          {{ (fixed + variable) | round(2) }}
+        availability: >
+          {{ states('sensor.electricity_monthly_usage') not in ['unknown','unavailable','none'] }}
+
+      - name: Electricity Daily Cost
+        unique_id: electricity_daily_cost
+        unit_of_measurement: CAD
+        device_class: monetary
+        state_class: total  # monetary sensors may not be total_increasing (HA warning 2026-08-24)
+        state: >
+          {% set wh = states('sensor.emporia_total_daily_energy') | float(0) %}
+          {{ ((wh / 1000) * 0.21998) | round(2) }}
+        availability: >
+          {{ states('sensor.emporia_total_daily_energy') not in ['unknown','unavailable','none'] }}

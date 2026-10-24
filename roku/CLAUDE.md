@@ -189,7 +189,7 @@ A schema change needs matching updates in `OverlayLayer`, `MainScene.dispatchEcp
 
 ### HA push side
 
-`ha-housewall.yaml` is a byte-for-byte copy of mserver's `/root/docker/homeassistantV3/config/ha/packages/housewall.yaml`: one `rest_command` per Roku, the active-Roku selector, `script.housewall_broadcast` and the automations (its header comments describe each). Its entities are `housewall_*` because the package predates the HAku name. To change it: edit here, `md5sum` the live file against the repo first, back the live file up next to itself, copy over, run HA's config check (`POST /api/config/core/check_config`), then reload what changed (`automation.reload`, `script.reload`, `rest_command.reload`, `template.reload`).
+`../ha/packages/housewall.yaml` is a byte-for-byte copy of mserver's `/root/docker/homeassistantV3/config/ha/packages/housewall.yaml`: one `rest_command` per Roku, the active-Roku selector, `script.housewall_broadcast` and the automations (its header comments describe each). Its entities are `housewall_*` because the package predates the HAku name. To change it: edit here, `md5sum` the live file against the repo first, back the live file up next to itself, copy over, run HA's config check (`POST /api/config/core/check_config`), then reload what changed (`automation.reload`, `script.reload`, `rest_command.reload`, `template.reload`).
 
 ### Registry
 

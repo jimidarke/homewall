@@ -1,0 +1,624 @@
+#===============================================================================
+# LAUNDRY NOTIFIER — all state computation for the esp-laundry* fleet
+#
+# CONTRACT WITH THE DEVICES (see laundryNotifier/firmware/.laundry-base.yaml):
+#   sensor.laundry_<m>_mode   idle | running | overtime | done | done_calm
+#   sensor.laundry_<m>_leds   0..4   pixels lit; only meaningful while running
+#
+# The ESPs import these with `platform: homeassistant` and render LEVEL-TRIGGERED
+# from them every frame. They hold no state. Adding another notifier unit needs
+# no change here except the `units:` list in script.laundry_chirp.
+#
+# WHY THIS FILE EXISTS
+# The firmware used to derive idle/running/done from EDGES of
+# input_boolean.washerpower/dryerpower and keep the result in restore_value
+# globals. That desyncs permanently, for two independent reasons:
+#   1. ESPHome's binary_sensor codegen defaults trigger_on_initial_state to
+#      False, so the FIRST state HA pushes after a connect fires no
+#      on_press/on_release.
+#   2. BinarySensor::send_state_internal() dedups, so a reconnect push with an
+#      unchanged value fires nothing either.
+# Observed 2026-08-12: the device sat at `idle` for 20+ minutes with both
+# machines running (washer 186 W, dryer 5544 W) and a reboot did not fix it.
+# Values are immune to both bugs — HA re-sends the current state of every
+# subscribed entity on every API connect — so all state lives here now.
+#
+# WHY input_datetime AND NOT last_changed
+# input_boolean uses RestoreEntity: the VALUE survives an HA restart but
+# last_changed is re-stamped with the restart time. The cycle clocks have to
+# survive a restart, so they live in input_datetime. Read them via the
+# `timestamp` attribute (epoch seconds).
+#
+# WHY TRIGGER-BASED TEMPLATES
+# State-based template entities are NOT restored across an HA restart;
+# trigger-based ones are (and need a unique_id). After a restart the ESPs get
+# the right value from the restored state immediately, before any trigger fires.
+#
+# Timestamps below 1e9 (i.e. 1970-ish) are the "never set" sentinel throughout.
+#===============================================================================
+
+#-------------------------------------------------------------------------------
+# HELPERS
+#
+# `initial:` is deliberately omitted on the tunables — setting it makes HA
+# clobber the value on every restart, which would silently undo UI tuning.
+# First load therefore lands on `min`; the deploy runbook seeds them once.
+#-------------------------------------------------------------------------------
+input_datetime:
+  laundry_washer_started:
+    name: Laundry washer started
+    has_date: true
+    has_time: true
+    icon: mdi:play
+  laundry_washer_finished:
+    name: Laundry washer finished
+    has_date: true
+    has_time: true
+    icon: mdi:flag-checkered
+  laundry_washer_acked:
+    name: Laundry washer acknowledged
+    has_date: true
+    has_time: true
+    icon: mdi:check
+  laundry_dryer_started:
+    name: Laundry dryer started
+    has_date: true
+    has_time: true
+    icon: mdi:play
+  laundry_dryer_finished:
+    name: Laundry dryer finished
+    has_date: true
+    has_time: true
+    icon: mdi:flag-checkered
+  laundry_dryer_acked:
+    name: Laundry dryer acknowledged
+    has_date: true
+    has_time: true
+    icon: mdi:check
+  laundry_last_chirp:
+    name: Laundry last chirp
+    has_date: true
+    has_time: true
+    icon: mdi:bell
+
+input_boolean:
+  # NOTE: washerpower / dryerpower are NOT declared here. They are UI-managed in
+  # .storage and redeclaring them would be a duplicate-entity error.
+  laundry_chirp_enabled:
+    name: Laundry chirp enabled
+    icon: mdi:bell-ring
+
+input_number:
+  laundry_washer_expected_minutes:
+    name: Laundry washer expected minutes
+    min: 5
+    max: 240
+    step: 1
+    mode: box
+    unit_of_measurement: min
+    icon: mdi:washing-machine
+  laundry_dryer_expected_minutes:
+    name: Laundry dryer expected minutes
+    min: 5
+    max: 240
+    step: 1
+    mode: box
+    unit_of_measurement: min
+    icon: mdi:tumble-dryer
+  laundry_off_confirm_minutes:
+    name: Laundry off-confirm minutes
+    min: 0
+    max: 15
+    step: 0.5
+    mode: box
+    unit_of_measurement: min
+    icon: mdi:timer-sand
+  laundry_done_burst_minutes:
+    name: Laundry done burst minutes
+    min: 0
+    max: 60
+    step: 1
+    mode: box
+    unit_of_measurement: min
+    icon: mdi:flash
+  laundry_done_timeout_minutes:
+    name: Laundry done auto-clear minutes
+    min: 0
+    max: 720
+    step: 5
+    mode: box
+    unit_of_measurement: min
+    icon: mdi:timer-off
+  laundry_nag_minutes:
+    name: Laundry nag interval minutes
+    min: 0
+    max: 240
+    step: 5
+    mode: box
+    unit_of_measurement: min
+    icon: mdi:bell-alert
+
+input_text:
+  # Display-layer override, replacing the firmware's Simulate buttons. Format
+  # "<mode>:<leds>", e.g. "running:2". Empty means live. This exercises the
+  # ENTIRE chain (template -> subscription -> render) on every unit at once,
+  # which the old on-device sim buttons could not, and touches no power boolean
+  # so it fires no ledSign/activenotification traffic.
+  # initial: "" is intentional — a stale override must not survive a restart.
+  laundry_washer_override:
+    name: Laundry washer override
+    min: 0
+    max: 32
+    initial: ""
+    icon: mdi:test-tube
+  laundry_dryer_override:
+    name: Laundry dryer override
+    min: 0
+    max: 32
+    initial: ""
+    icon: mdi:test-tube
+
+#-------------------------------------------------------------------------------
+# STATE MACHINE
+#
+# One trigger-based template block. The whole computation runs once into the
+# `laundry` variable, so the four sensors are one-liners and cannot disagree
+# with each other. Block-level `variables:` render after the trigger and before
+# the entities, giving one consistent snapshot per update.
+#-------------------------------------------------------------------------------
+template:
+  - unique_id: laundry_state
+    triggers:
+      - trigger: state
+        id: change
+        entity_id:
+          - input_boolean.washerpower
+          - input_boolean.dryerpower
+          - input_datetime.laundry_washer_started
+          - input_datetime.laundry_washer_finished
+          - input_datetime.laundry_washer_acked
+          - input_datetime.laundry_dryer_started
+          - input_datetime.laundry_dryer_finished
+          - input_datetime.laundry_dryer_acked
+          - input_number.laundry_washer_expected_minutes
+          - input_number.laundry_dryer_expected_minutes
+          - input_number.laundry_off_confirm_minutes
+          - input_number.laundry_done_burst_minutes
+          - input_number.laundry_done_timeout_minutes
+          - input_text.laundry_washer_override
+          - input_text.laundry_dryer_override
+      # now() does NOT self-refresh inside a trigger-based template (that is
+      # state-based behaviour only), so the countdown needs an explicit clock.
+      - trigger: time_pattern
+        id: tick
+        minutes: "/1"
+      - trigger: homeassistant
+        id: boot
+        event: start
+
+    # Recorder hygiene: swallow the once-a-minute tick when nothing is happening,
+    # which is ~95% of the day. Real changes always pass, because the gate only
+    # applies to trigger.id == 'tick'.
+    #
+    # `unknown`/`unavailable` are DELIBERATELY NOT excluded here. Listing them
+    # deadlocks the whole block: after a template reload (as opposed to a restart)
+    # a trigger-based sensor has no state, so if both machines were off, every
+    # clause went false, the tick was swallowed, and the sensors stayed `unknown`
+    # FOREVER — pushing `unavailable` down to the ESPs, which then sat on the
+    # violet comet with no way to recover. Observed 2026-08-12; it only self-healed
+    # because the washer happened to be running. An uncomputed sensor must always
+    # force a tick.
+    conditions:
+      - condition: template
+        value_template: >
+          {{ trigger.id != 'tick'
+             or is_state('input_boolean.washerpower', 'on')
+             or is_state('input_boolean.dryerpower', 'on')
+             or states('sensor.laundry_washer_mode') != 'idle'
+             or states('sensor.laundry_dryer_mode')  != 'idle' }}
+
+    variables:
+      now_ts: "{{ now().timestamp() }}"
+      guard_s: "{{ states('input_number.laundry_off_confirm_minutes') | float(2) * 60 }}"
+      burst_s: "{{ states('input_number.laundry_done_burst_minutes')  | float(3) * 60 }}"
+      timeout_s: "{{ states('input_number.laundry_done_timeout_minutes') | float(0) * 60 }}"
+      laundry: >
+        {% set ns = namespace(out={}) %}
+        {% for m in ['washer', 'dryer'] %}
+          {% set pw  = 'input_boolean.' ~ m ~ 'power' %}
+          {% set st  = state_attr('input_datetime.laundry_' ~ m ~ '_started',  'timestamp') | float(0) %}
+          {% set fin = state_attr('input_datetime.laundry_' ~ m ~ '_finished', 'timestamp') | float(0) %}
+          {% set ack = state_attr('input_datetime.laundry_' ~ m ~ '_acked',    'timestamp') | float(0) %}
+          {% set exp = states('input_number.laundry_' ~ m ~ '_expected_minutes') | float(50) %}
+          {% set lc  = states[pw].last_changed.timestamp() if states[pw] is not none else 0 %}
+          {% set on  = is_state(pw, 'on') %}
+          {# `running` holds through the off-confirm window so the bar does not #}
+          {# drop to idle for two minutes between power-off and the finish stamp. #}
+          {% set running = on or (st > fin and (now_ts - lc) < guard_s) %}
+          {% set over    = running and st > 1e9 and (now_ts - st) > exp * 60 %}
+          {% set doneable = (not running) and fin > 1e9 and fin > ack
+                            and (timeout_s <= 0 or (now_ts - fin) < timeout_s) %}
+          {% set mode = 'overtime' if over
+                   else 'running'  if running
+                   else ('done' if (now_ts - fin) < burst_s else 'done_calm') if doneable
+                   else 'idle' %}
+          {% set rem  = (1 - ((now_ts - st) / 60) / exp) if exp > 0 else 1 %}
+          {% set leds = 0 if mode != 'running'
+                   else 4 if st < 1e9
+                   else [[ (rem * 4) | round(0, 'ceil') | int, 1 ] | max, 4 ] | min %}
+          {% set ov = states('input_text.laundry_' ~ m ~ '_override') %}
+          {% if ov not in ['', 'unknown', 'unavailable', 'none', 'None'] %}
+            {% set mode = ov.split(':')[0] %}
+            {% set leds = (ov ~ ':0').split(':')[1] | int(0) %}
+          {% endif %}
+          {% set ns.out = dict(ns.out, **{ m: {'mode': mode, 'leds': leds} }) %}
+        {% endfor %}
+        {{ ns.out }}
+
+    sensor:
+      # If a source boolean vanishes, go unavailable ON PURPOSE: HA then pushes
+      # the literal "unavailable" to the ESPs, which trips their no-data guard
+      # and shows the violet comet instead of a stale bar that lies.
+      - name: "Laundry washer mode"
+        unique_id: laundry_washer_mode
+        icon: mdi:washing-machine
+        state: "{{ laundry.washer.mode }}"
+        availability: >
+          {{ states('input_boolean.washerpower') not in ['unknown', 'unavailable'] }}
+      - name: "Laundry washer leds"
+        unique_id: laundry_washer_leds
+        icon: mdi:led-strip-variant
+        state: "{{ laundry.washer.leds }}"
+        availability: >
+          {{ states('input_boolean.washerpower') not in ['unknown', 'unavailable'] }}
+      - name: "Laundry dryer mode"
+        unique_id: laundry_dryer_mode
+        icon: mdi:tumble-dryer
+        state: "{{ laundry.dryer.mode }}"
+        availability: >
+          {{ states('input_boolean.dryerpower') not in ['unknown', 'unavailable'] }}
+      - name: "Laundry dryer leds"
+        unique_id: laundry_dryer_leds
+        icon: mdi:led-strip-variant
+        state: "{{ laundry.dryer.leds }}"
+        availability: >
+          {{ states('input_boolean.dryerpower') not in ['unknown', 'unavailable'] }}
+
+#-------------------------------------------------------------------------------
+# SCRIPTS
+#-------------------------------------------------------------------------------
+script:
+  laundry_chirp:
+    alias: Laundry — chirp on every notifier
+    description: >-
+      Fan an rtttl tune to every notifier unit.
+
+      THE `probe` GATE IS LOAD-BEARING. When a unit is offline its ESPHome
+      actions are DEREGISTERED entirely, so esphome.<node>_chirp raises
+      ServiceNotFound — and HA treats that as FATAL: `continue_on_error` does
+      NOT catch it (verified 2026-08-12, the whole repeat aborted at iteration
+      1). Without this gate a single offline unit silently kills the chirp for
+      every ONLINE unit too. So each unit carries a probe entity and we skip
+      units whose probe is unavailable. `continue_on_error` stays as a second
+      net for transient failures that ARE catchable.
+
+      ADD NEW UNITS TO `units:` BELOW AND NOWHERE ELSE — one entry per physical
+      device, `action` = esphome.<device_name with - replaced by _>_chirp,
+      `probe` = any entity belonging to that device.
+    mode: queued
+    max: 5
+    fields:
+      tune:
+        description: rtttl string
+        example: "washer:d=8,o=6,b=140:c,e,g,4c7"
+        required: true
+        selector:
+          text:
+      gain:
+        description: 0.0-1.0 buzzer gain
+        example: 0.7
+        selector:
+          number:
+            min: 0
+            max: 1
+            step: 0.05
+    variables:
+      units:
+        - action: esp_laundry_chirp
+          probe: sensor.kitchen_laundry_notifier_uptime
+    sequence:
+      - repeat:
+          for_each: "{{ units }}"
+          sequence:
+            - if:
+                - condition: template
+                  value_template: >
+                    {{ states(repeat.item.probe) not in ['unavailable', 'unknown'] }}
+              then:
+                - action: "esphome.{{ repeat.item.action }}"
+                  continue_on_error: true
+                  data:
+                    tune: "{{ tune }}"
+                    gain: "{{ gain | default(0.6) | float }}"
+      - action: input_datetime.set_datetime
+        target:
+          entity_id: input_datetime.laundry_last_chirp
+        data:
+          timestamp: "{{ now().timestamp() }}"
+
+  laundry_acknowledge:
+    alias: Laundry — acknowledge
+    description: >-
+      Clear the latched done state. Implemented as an ack TIMESTAMP, not a
+      boolean: `done` is defined as finished > acked, so a new cycle finishing
+      after an ack re-arms itself with no reset automation, and acking twice or
+      acking while idle is a harmless no-op. A boolean would need a second
+      automation to clear it at cycle start — another edge, another desync.
+    fields:
+      machine:
+        description: washer | dryer | both
+        example: both
+        selector:
+          select:
+            options: [washer, dryer, both]
+    sequence:
+      - variables:
+          targets: >
+            {{ ['washer', 'dryer'] if (machine | default('both')) == 'both'
+               else [machine] }}
+      - repeat:
+          for_each: "{{ targets }}"
+          sequence:
+            - action: input_datetime.set_datetime
+              target:
+                entity_id: "input_datetime.laundry_{{ repeat.item }}_acked"
+              data:
+                timestamp: "{{ now().timestamp() }}"
+
+  laundry_reset:
+    alias: Laundry — reset all state
+    description: Hard reset both machines to idle. Replaces the firmware's Clear State button.
+    sequence:
+      - repeat:
+          for_each: [washer, dryer]
+          sequence:
+            - action: input_datetime.set_datetime
+              target:
+                entity_id: "input_datetime.laundry_{{ repeat.item }}_started"
+              data:
+                timestamp: 0
+            - action: input_datetime.set_datetime
+              target:
+                entity_id: "input_datetime.laundry_{{ repeat.item }}_finished"
+              data:
+                timestamp: 0
+            - action: input_datetime.set_datetime
+              target:
+                entity_id: "input_datetime.laundry_{{ repeat.item }}_acked"
+              data:
+                timestamp: "{{ now().timestamp() }}"
+            - action: input_text.set_value
+              target:
+                entity_id: "input_text.laundry_{{ repeat.item }}_override"
+              data:
+                value: ""
+
+  laundry_sim_cycle:
+    alias: Laundry — simulate a cycle (display test)
+    description: >-
+      Walk one machine's display through every visual state via the override
+      helper. Touches no power boolean, so it fires no ledSign or
+      activenotification traffic, and it exercises template -> subscription ->
+      render on every unit at once. Leaves the override cleared.
+    mode: restart
+    fields:
+      machine:
+        description: washer | dryer
+        example: washer
+        selector:
+          select:
+            options: [washer, dryer]
+      step:
+        description: seconds per step
+        example: 4
+        selector:
+          number:
+            min: 1
+            max: 60
+    sequence:
+      - variables:
+          m: "{{ machine | default('washer') }}"
+          s: "{{ step | default(4) | int }}"
+      - repeat:
+          for_each:
+            - "running:4"
+            - "running:3"
+            - "running:2"
+            - "running:1"
+            - "overtime:0"
+            - "done:4"
+            - "done_calm:4"
+            - "idle:0"
+          sequence:
+            - action: input_text.set_value
+              target:
+                entity_id: "input_text.laundry_{{ m }}_override"
+              data:
+                value: "{{ repeat.item }}"
+            - delay:
+                seconds: "{{ s }}"
+      - action: input_text.set_value
+        target:
+          entity_id: "input_text.laundry_{{ m }}_override"
+        data:
+          value: ""
+
+#-------------------------------------------------------------------------------
+# AUTOMATIONS
+#-------------------------------------------------------------------------------
+automation:
+  - alias: "Laundry · Cycle started"
+    id: laundry_cycle_started
+    mode: parallel
+    description: >-
+      `from: 'off'` is load-bearing: on HA start, RestoreEntity replays the
+      boolean as None -> on, and a to-only trigger WOULD match that and stomp
+      the real start time with the restart time.
+    triggers:
+      - trigger: state
+        entity_id:
+          - input_boolean.washerpower
+          - input_boolean.dryerpower
+        from: "off"
+        to: "on"
+    variables:
+      machine: "{{ 'washer' if trigger.entity_id == 'input_boolean.washerpower' else 'dryer' }}"
+    actions:
+      - action: input_datetime.set_datetime
+        target:
+          entity_id: "input_datetime.laundry_{{ machine }}_started"
+        data:
+          timestamp: "{{ trigger.to_state.last_changed.timestamp() }}"
+      - action: input_datetime.set_datetime
+        target:
+          entity_id: "input_datetime.laundry_{{ machine }}_finished"
+        data:
+          timestamp: 0
+
+  - alias: "Laundry · Cycle finished"
+    id: laundry_cycle_finished
+    mode: parallel
+    description: >-
+      Package-side confirm window on top of the retuned watt automations — belt
+      and braces against a mid-cycle drain blip.
+
+      The stamp uses trigger.to_state.last_changed (when the BOOLEAN flipped),
+      not when the trigger fired, so THIS automation's confirm delay is not
+      baked into the done-burst window. It does not undo the upstream watt
+      automation's own off-debounce though: observed 2026-08-12, true power-off
+      was ~22:37 and the boolean flipped at 22:41 under `below 5 W for 4 min`,
+      so the finish stamp trails reality by that debounce. That is the
+      deliberate latency traded for ~9 fewer false "done" events per week.
+    triggers:
+      - trigger: state
+        entity_id:
+          - input_boolean.washerpower
+          - input_boolean.dryerpower
+        from: "on"
+        to: "off"
+        for:
+          minutes: "{{ states('input_number.laundry_off_confirm_minutes') | int(2) }}"
+    variables:
+      machine: "{{ 'washer' if trigger.entity_id == 'input_boolean.washerpower' else 'dryer' }}"
+    actions:
+      - action: input_datetime.set_datetime
+        target:
+          entity_id: "input_datetime.laundry_{{ machine }}_finished"
+        data:
+          timestamp: "{{ trigger.to_state.last_changed.timestamp() }}"
+
+  - alias: "Laundry · Chirp when a machine finishes"
+    id: laundry_chirp_on_done
+    mode: queued
+    max: 4
+    triggers:
+      - trigger: state
+        entity_id:
+          - sensor.laundry_washer_mode
+          - sensor.laundry_dryer_mode
+        to: "done"
+    variables:
+      machine: "{{ 'washer' if 'washer' in trigger.entity_id else 'dryer' }}"
+      tune: >
+        {{ 'washer:d=8,o=6,b=140:c,e,g,4c7' if machine == 'washer'
+           else 'dryer:d=8,o=5,b=140:g,d6,4g6' }}
+    conditions:
+      # Trigger-based template sensors RESTORE on HA start, which produces a
+      # None -> 'done' state_changed. Both guards kill that: the from_state check
+      # catches the restore, and the freshness check makes the automation
+      # idempotent against anything else that replays the transition.
+      - condition: template
+        value_template: >
+          {{ trigger.from_state is not none
+             and trigger.from_state.state not in ['unknown', 'unavailable', 'done', 'done_calm'] }}
+      - condition: template
+        value_template: >
+          {{ now().timestamp()
+             - (state_attr('input_datetime.laundry_' ~ machine ~ '_finished', 'timestamp') | float(0))
+             < 300 }}
+      - condition: state
+        entity_id: input_boolean.laundry_chirp_enabled
+        state: "on"
+    actions:
+      - action: script.laundry_chirp
+        data:
+          tune: "{{ tune }}"
+          gain: 0.7
+
+  - alias: "Laundry · Nag while unacknowledged"
+    id: laundry_nag
+    description: Off by default (input_number.laundry_nag_minutes == 0). 20 is a sane value.
+    mode: single
+    triggers:
+      - trigger: time_pattern
+        minutes: "/5"
+    conditions:
+      - condition: template
+        value_template: "{{ states('input_number.laundry_nag_minutes') | float(0) > 0 }}"
+      - condition: template
+        value_template: >
+          {{ states('sensor.laundry_washer_mode') in ['done', 'done_calm']
+             or states('sensor.laundry_dryer_mode') in ['done', 'done_calm'] }}
+      - condition: state
+        entity_id: input_boolean.laundry_chirp_enabled
+        state: "on"
+      - condition: template
+        value_template: >
+          {{ now().timestamp()
+             - (state_attr('input_datetime.laundry_last_chirp', 'timestamp') | float(0))
+             > states('input_number.laundry_nag_minutes') | float(20) * 60 }}
+    actions:
+      - action: script.laundry_chirp
+        data:
+          tune: "nag:d=16,o=6,b=200:c,p,c"
+          gain: 0.5
+
+  - alias: "Laundry · Notifier button"
+    id: laundry_button
+    description: >-
+      esphome.* events are not gated by the ESPHome integration's
+      "allow service calls" option, so this needs no config-entry change.
+      trigger.event.data.device_id identifies which unit was pressed; ack is
+      deliberately global across all machines and all units.
+    mode: queued
+    max: 5
+    triggers:
+      - trigger: event
+        event_type: esphome.laundry_button
+    actions:
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: "{{ trigger.event.data.gesture == 'ack' }}"
+            sequence:
+              - action: script.laundry_acknowledge
+                data:
+                  machine: both
+          - conditions:
+              - condition: template
+                value_template: "{{ trigger.event.data.gesture == 'reset' }}"
+            sequence:
+              # Fired by the device's "Reset Laundry State" diagnostic button.
+              # There is no physical-button gesture for this on purpose — a hard
+              # reset should take more intent than a press on the wall.
+              - action: script.laundry_reset
+          - conditions:
+              - condition: template
+                value_template: "{{ trigger.event.data.gesture == 'short' }}"
+            sequence:
+              # Deliberate no-op hook. A short press must never clear the latch —
+              # the latch IS the feature. Logged so presses are visible.
+              - action: logbook.log
+                data:
+                  name: Laundry notifier
+                  message: "short press (no action)"

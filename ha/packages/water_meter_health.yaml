@@ -1,0 +1,95 @@
+# Water meter health watchdog
+#
+# esp-watermeter can fail "quietly": during the 2026-06-06 I²C fault it stayed
+# online and kept publishing a well-formed but frozen Total. Plain
+# last_changed doesn't catch that, because every crash reboot or API reconnect
+# (unavailable → same value) resets it. The ESP has been crash-rebooting
+# (interrupt watchdog) every 1–2 days since 2026-10-03.
+#
+# So this tracks the last time Total actually went UP, keeps that timestamp in
+# a trigger-based template sensor (survives HA restarts), and alerts when there
+# has been no increase for 12 h.
+#
+# Why 12 h is safe: since 2026-06-07 the longest run of hours with zero counted
+# water was 6 h. Even on away weekends (e.g. 2026-10-09 → 10-12) the
+# house trickles 1–3 L/h (humidifier, fridge, toilet refill), so the counter
+# keeps moving. A truly empty, dry house for 12 h would trip it — that's an
+# acceptable false positive.
+#
+# A second alert covers the device being unavailable for 30 min.
+
+template:
+  - trigger:
+      - trigger: state
+        entity_id: sensor.water_meter_total
+    sensor:
+      - name: Water Meter Last Count
+        unique_id: water_meter_last_count
+        device_class: timestamp
+        icon: mdi:water-check
+        state: >
+          {% set new = trigger.to_state.state | float(none) %}
+          {% set old = this.attributes.total | default(none) | float(none) %}
+          {% if new is not none and (old is none or new > old) %}
+            {{ now().isoformat() }}
+          {% else %}
+            {{ this.state }}
+          {% endif %}
+        attributes:
+          total: >
+            {% set new = trigger.to_state.state | float(none) %}
+            {{ new if new is not none else this.attributes.total | default(none) }}
+
+  - binary_sensor:
+      - name: Water Meter Stalled
+        unique_id: water_meter_stalled
+        device_class: problem
+        icon: mdi:water-alert
+        state: >
+          {% set last = states('sensor.water_meter_last_count') | as_datetime %}
+          {{ last is not none and (now() - last).total_seconds() > 12 * 3600 }}
+        availability: >
+          {{ states('sensor.water_meter_last_count') not in ['unknown', 'unavailable', 'none'] }}
+
+automation:
+  - alias: "Water meter · counter stalled"
+    id: water_meter_counter_stalled
+    mode: single
+    triggers:
+      - trigger: state
+        entity_id: binary_sensor.water_meter_stalled
+        to: "on"
+        for: "00:05:00"
+    actions:
+      - action: notify.mobile_app_phone
+        data:
+          title: "Water meter stalled"
+          message: >
+            No water counted since
+            {{ as_timestamp(states('sensor.water_meter_last_count')) | timestamp_custom('%a %H:%M') }}
+            (12 h+). Either the house is empty or esp-watermeter is reporting a frozen
+            total — check sensor.water_meter_flow while running a tap.
+      - action: persistent_notification.create
+        data:
+          notification_id: water_meter_stalled
+          title: "Water meter stalled"
+          message: >
+            sensor.water_meter_total hasn't increased since
+            {{ states('sensor.water_meter_last_count') }}. See docs/services/water-meter.md.
+
+  - alias: "Water meter · offline"
+    id: water_meter_offline
+    mode: single
+    triggers:
+      - trigger: state
+        entity_id: sensor.water_meter_total
+        to: "unavailable"
+        for: "00:30:00"
+    actions:
+      - action: notify.mobile_app_phone
+        data:
+          title: "Water meter offline"
+          message: >
+            esp-watermeter has been unavailable for 30 min. Water used meanwhile is
+            still counted if the ESP is up but off WiFi; if it's down, it's lost
+            (reconcile against the meter face).

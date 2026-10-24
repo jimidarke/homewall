@@ -1,0 +1,33 @@
+# Recorder retention package
+#
+# HA has one global purge_keep_days (90, set in configuration.yaml). This trims
+# the metering domains back to 14 days so the long window only covers what the
+# activity log shows. Measured 2026-10-12 over 14 days: sensor 798k rows (87%),
+# media_player + camera 61k (mostly attribute churn the logbook ignores),
+# everything else 61k.
+#
+# purge_entities only touches states. Long-term statistics stay forever and
+# 5-min short-term statistics follow the global 90 days, so sensor graphs and
+# energy dashboards keep working.
+#
+# The trigger time is after the built-in auto_purge (04:12), so the two purges don't overlap.
+# The space freed is reclaimed by the monthly auto_repack (second Sunday).
+#
+# Trade-off: text-style sensors (e.g. laundry *_mode) and media_player on/off
+# rows also drop out of the logbook after 14 days.
+
+automation:
+  - alias: "Recorder · Trim metering history to 14 days"
+    id: recorder_trim_metering_history
+    mode: single
+    triggers:
+      - trigger: time
+        at: "04:40:00"
+    actions:
+      - action: recorder.purge_entities
+        data:
+          keep_days: 14
+          domains:
+            - sensor
+            - camera
+            - media_player

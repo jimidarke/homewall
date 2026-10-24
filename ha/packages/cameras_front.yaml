@@ -1,0 +1,85 @@
+# Front genbolt dual-lens IP camera (192.0.2.31) → HA cameras.
+#
+# Standalone XM/XiongMai (Genbolt) cam, WAN-blocked on the Mikrotik (was beaconing
+# UDP/32100 China P2P) — reachable on the LAN only. Two physical lenses, each its own
+# RTSP channel:
+#   /11 = FIXED lens   -> camera.front_cam_fixed
+#   /21 = PTZ lens      -> camera.front_cam_ptz   (the PTZ motor drives /21)
+#
+# Uses the ffmpeg camera platform (the generic platform dropped YAML setup). Credentials
+# are NOT stored here — the full RTSP URLs live in secrets.yaml as genbolt_fixed_stream /
+# genbolt_ptz_stream. -rtsp_transport tcp for stability
+# on this cheap cam.
+#
+# PTZ (only /21 moves; /11 is a fixed lens): ONVIF SOAP over rest_command, unauthenticated,
+# LAN-only. The firmware mislabels PTZConfig0 onto the /11 MainStreamProfile, but commands
+# still move /21, so ProfileToken=MainStreamProfileToken. Pan has no AbsoluteMove, so moves
+# are timed ContinuousMove + Stop with no position feedback.
+#   rest_command.front_cam_ptz_move / front_cam_ptz_stop  -> raw ONVIF calls
+#   script.front_cam_ptz_nudge (pan/tilt/zoom/duration)   -> move, wait, stop
+#   script.front_cam_ptz_stop                             -> halt all motion
+# Original bash recipe: git show fad4a8c:infra/mikrotik/scripts/ptz-genbolt-cam.sh
+
+camera:
+  - platform: ffmpeg
+    name: "Front Cam Fixed"
+    input: !secret genbolt_fixed_stream
+    extra_arguments: "-rtsp_transport tcp"
+
+  - platform: ffmpeg
+    name: "Front Cam PTZ"
+    input: !secret genbolt_ptz_stream
+    extra_arguments: "-rtsp_transport tcp"
+
+rest_command:
+  front_cam_ptz_move:
+    url: "http://192.0.2.31:8080/onvif/ptz_service"
+    method: post
+    content_type: "application/soap+xml; charset=utf-8"
+    timeout: 6
+    payload: >-
+      <?xml version="1.0"?><s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope"><s:Body><ContinuousMove xmlns="http://www.onvif.org/ver20/ptz/wsdl"><ProfileToken>MainStreamProfileToken</ProfileToken><Velocity><PanTilt x="{{ pan }}" y="{{ tilt }}" xmlns="http://www.onvif.org/ver10/schema"/><Zoom x="{{ zoom }}" xmlns="http://www.onvif.org/ver10/schema"/></Velocity></ContinuousMove></s:Body></s:Envelope>
+
+  front_cam_ptz_stop:
+    url: "http://192.0.2.31:8080/onvif/ptz_service"
+    method: post
+    content_type: "application/soap+xml; charset=utf-8"
+    timeout: 6
+    payload: >-
+      <?xml version="1.0"?><s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope"><s:Body><Stop xmlns="http://www.onvif.org/ver20/ptz/wsdl"><ProfileToken>MainStreamProfileToken</ProfileToken><PanTilt>true</PanTilt><Zoom>true</Zoom></Stop></s:Body></s:Envelope>
+
+script:
+  front_cam_ptz_nudge:
+    alias: Front Cam PTZ Nudge
+    icon: mdi:cctv
+    description: Move the front PTZ lens (/21) for a short time, then stop. Velocities are -1.0 to 1.0.
+    mode: restart
+    fields:
+      pan:
+        description: Pan velocity (negative = left)
+        default: 0
+      tilt:
+        description: Tilt velocity (negative = down)
+        default: 0
+      zoom:
+        description: Zoom velocity (negative = out)
+        default: 0
+      duration:
+        description: Seconds to move before stopping
+        default: 1.0
+    sequence:
+      - action: rest_command.front_cam_ptz_move
+        data:
+          pan: "{{ pan | default(0) }}"
+          tilt: "{{ tilt | default(0) }}"
+          zoom: "{{ zoom | default(0) }}"
+      - delay:
+          seconds: "{{ duration | default(1.0) | float }}"
+      - action: rest_command.front_cam_ptz_stop
+
+  front_cam_ptz_stop:
+    alias: Front Cam PTZ Stop
+    icon: mdi:stop
+    mode: single
+    sequence:
+      - action: rest_command.front_cam_ptz_stop

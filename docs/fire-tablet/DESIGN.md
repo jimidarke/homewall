@@ -393,7 +393,7 @@ The mapping from mode to segment frames is a **pure function** of `(mode, leds, 
 
 ## 7. Open items
 
-1. ~~**Gas rate is broken.**~~ Fixed 2026-10-01 (v3). `sensor.home_gas_usage` held the last burn's rate and was unknown after every HA restart. The gas tile now reads `sensor.gas_flow`, which falls to 0 when the furnace is idle, and `sensor.gas_meter_total`, which keeps the last meter reading across restarts; a daily utility meter gives "today's gas" (HA `packages/gas_cost.yaml`, repo copy `sidecar/ha-gas-cost.yaml`).
+1. ~~**Gas rate is broken.**~~ Fixed 2026-10-01 (v3). `sensor.home_gas_usage` held the last burn's rate and was unknown after every HA restart. The gas tile now reads `sensor.gas_flow`, which falls to 0 when the furnace is idle, and `sensor.gas_meter_total`, which keeps the last meter reading across restarts; a daily utility meter gives "today's gas" (HA `packages/gas_cost.yaml`, repo copy `ha/packages/gas_cost.yaml`).
 2. **Mount orientation:** landscape is assumed. Portrait would be a second layout (2×4), configured in `dashboard.json` with no code change.
 3. **Alex is missing from the activity feed.** `person.alex` is `unknown`, so that person never appears. This is an HA and phone issue, separate from this work.
 4. **HA Companion app:** it stays for now. It provides battery and charging sensors, which the charge-management plan will need, at a cost of about 96 MB of RAM. Revisit once charging is solved.
@@ -403,7 +403,7 @@ The mapping from mode to segment frames is a **pure function** of `(mode, leds, 
 8. **Faster recovery:** after WiFi returns, the app can take up to 30 s (the backoff) to go live again. A connectivity callback that polls right away would remove that delay. Minor.
 9. **Water `active` flaps at a trickle.** On 2026-10-01, from about 07:55 to 09:00, the water flow alternated between 0.0 and 0.4 L/min every 10 to 20 s. Each flip turns the Water card on or off, and each turn-on pulsed, so the wall was never still. The tablet holds back the ring for 120 s after a card stops (§8.6), so a run of flips rings once, but the accent still fades in and out on every flip. A hold time or hysteresis on `running` in the sidecar's water module, like the displayed-rate rule for gas, would fix it at the source. Not built.
 10. **The ESP water meter keeps dropping off.** `esp-watermeter` (`192.0.2.41`) fails its ESPHome API handshake several times a day (12 outages in 7 days, 5 of them in one hour checked). v3 stops the wall from blanking (HA `always_available` on the water meters, held values, §8.5, §8.10), but the meter itself is not fixed. Stabilise its WiFi, its power or the ESPHome API keepalive.
-11. **Gas price (resolved 2026-10-14).** `packages/gas_cost.yaml` now carries the real bill figures (repo copy `sidecar/ha-gas-cost.yaml`: $0.09487/m³ incl. franchise fee and GST), and the Energy dashboard prices gas with `sensor.gas_marginal_cost_per_m3`, so the gas cost lines and per-day costs show. The energy rate changes monthly; update `energy_per_gj` from each bill. Gas history also only starts on 2026-10-01, so its graph fills in over a week.
+11. **Gas price (resolved 2026-10-14).** `packages/gas_cost.yaml` now carries the real bill figures (repo copy `ha/packages/gas_cost.yaml`: $0.09487/m³ incl. franchise fee and GST), and the Energy dashboard prices gas with `sensor.gas_marginal_cost_per_m3`, so the gas cost lines and per-day costs show. The energy rate changes monthly; update `energy_per_gj` from each bill. Gas history also only starts on 2026-10-01, so its graph fills in over a week.
 12. **The Emporia daily energy counter reset to 0 at 8:32 PM on 2026-10-01**, likely a device restart. Consider `restore: true` on its `total_daily_energy` in ESPHome.
 13. **24 h soak with panels.** The v3 release build has been measured over minutes, not a day (§8.9). Run the 24 h PSS soak with panel opens and peeks.
 
@@ -729,7 +729,7 @@ A tap on the header (the clock and date bar) fades the UI layer and the backdrop
   - `packages/haku_water.yaml`: both water utility meters get `always_available: true`, so a drop-out of the ESP water meter no longer makes every water helper unavailable; and `sensor.water_cost_today`.
   - `packages/water_cost.yaml`: `water_monthly` is also `always_available`.
   - `packages/gas_cost.yaml` (new): the gas daily and monthly utility meters, `sensor.gas_marginal_cost_per_m3` (the bill figures, filled in from a gas bill on 2026-10-14), `sensor.gas_cost_today` and `sensor.gas_monthly_cost`.
-  - The repo copies are `~/code/homewall/sidecar/ha-water-helpers.yaml` and `ha-gas-cost.yaml`.
+  - The repo copies are `~/code/homewall/ha/packages/haku_water.yaml` and `gas_cost.yaml`.
 
 ### 8.11 Door camera
 
