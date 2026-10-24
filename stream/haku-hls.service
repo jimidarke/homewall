@@ -28,6 +28,9 @@ RuntimeDirectoryPreserve=yes
 # its player and drift back. Segments only cut on keyframes, so a camera with a
 # longer GOP gets longer segments (yard: ~4s). hls_delete_threshold keeps 4
 # segments on disk after they leave the playlist, for a Roku that slips behind.
+# Clear this unit's own stale playlist and segments (un-prefixed seg_NNNNN.ts) before
+# starting, as the haku-hls@ template does for its %i-prefixed files.
+ExecStartPre=/bin/sh -c 'rm -f /run/haku-hls/mosaic.m3u8 /run/haku-hls/seg_*.ts'
 ExecStart=/usr/bin/ffmpeg \
   -hide_banner -loglevel warning \
   -fflags +genpts -avoid_negative_ts make_zero \

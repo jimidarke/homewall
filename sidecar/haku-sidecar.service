@@ -16,6 +16,8 @@ Group=media
 #   HAKU_SIDECAR_BASE=http://192.0.2.20:1986
 #   HAKU_CONFIG=/etc/haku/dashboard.json
 EnvironmentFile=/etc/haku/haku.env
+# matplotlib needs a writable cache dir; media has no home (journal warned at every start).
+Environment=MPLCONFIGDIR=/tmp/haku-matplotlib
 WorkingDirectory=/opt/haku/sidecar
 ExecStart=/opt/haku/sidecar/venv/bin/python -m haku_sidecar.app
 Restart=always
