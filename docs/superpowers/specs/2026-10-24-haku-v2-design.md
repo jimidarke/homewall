@@ -28,7 +28,7 @@ Debt themes the design answers: polling at every hop (T1); the same decision in 
 2. **The server owns the view-model.** It decides every display token: text, severity, accent, stale/hold, door order, day labels, LED frame parameters, overlay timing. Clients lay out, animate and play video. Both displays keep their current glass look.
 3. **HA decides, the server delivers.** HA automations stay the rule engine and emit `haku_event` on HA's event bus; the server subscribes and delivers takeovers, overlays and toasts to every client over the same change stream. `rest_command`s, `script.housewall_broadcast`, ECP pushes and the six hard-coded Roku IPs are retired.
 4. **Compose stack on nserver.** Server, stream packager/discovery and fleet watcher in docker-compose with memory limits and healthchecks; go2rtc stays bare-metal (it needs the GPU and the USB capture stick); git-pull deploy with drift detection; behind the existing nginx-proxy for humans.
-5. **Time zone: Edmonton.** HA core `time_zone` becomes `America/Edmonton` in Phase 0, before 2026-11-01.
+5. **Time zone: Edmonton.** HA core `time_zone` becomes `America/Edmonton` in Phase 0, before 2026-11-01. Done 2026-10-24 via `config/core/update`; HA now reports `America/Edmonton`.
 6. **Dad's Roku is a wall like the others:** it receives takeovers (`targets: all`) and the fleet watcher relaunches it over ECP.
 7. **Tablet door camera: Media3 ExoPlayer RTSP** from go2rtc (sub-second), HLS `VideoView` kept behind a flag as fallback, gated at 95 MB PSS.
 8. **After cutover the v1 directories are deleted** in one commit after tagging `v1-final`.
