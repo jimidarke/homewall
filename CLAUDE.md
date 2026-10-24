@@ -9,6 +9,7 @@
 | `sidecar/` | `haku-sidecar`, Python/Flask `:1986`: HA state → config/state JSON + PNG cards | nserver (`192.0.2.20`) |
 | `stream/` | go2rtc + ffmpeg HLS + SSDP discovery (`:1985`) systemd units | nserver |
 | `ha/` | Home Assistant packages HAku depends on (byte-for-byte copies of mserver's `packages/`), deploy notes in `ha/README.md` | mserver (`192.0.2.10`) |
+| `config/` | the live sidecar config as deployed (`config/live/dashboard.json` + `SHA256SUMS`; drift check in `config/README.md`) | nserver `/etc/haku/` |
 | `docs/` | `HAKU_DESIGN.md` (system design), `fire-tablet/DESIGN.md` (tablet design), `superpowers/` specs and plans, `brand/` source art | — |
 
 Home Assistant is on mserver (`192.0.2.10`). The sidecar pulls from it; HA pushes urgent events straight to the Rokus over ECP.
