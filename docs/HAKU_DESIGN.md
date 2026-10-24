@@ -708,5 +708,5 @@ Checked 2026-10-14 against HA's `/api/states`, a port probe and nserver's units:
 - [ ] **Orphaned `automation.housewall_front_motion`** — the removed front-motion takeover still has an `unavailable` entry in HA's entity registry; delete it.
 - [ ] **Layout retry** — after a `layout_fallback` (sidecar answered 404 for `?layout=roku`) the channel stays on the default view until the next config fetch; retrying the layout on its own is parked.
 - [ ] **Reconnect curtain on a fast takeover** — LIVE shows "Waiting for discovery…" at once when it has no stream URL yet; a ~400 ms debounce was suggested and never done.
-- [ ] **HA token rotation** — the long-lived token seeded to the Rokus in May 2026 appeared in a chat transcript; rotate it in HA if that hasn't happened (nothing on the Roku reads it now).
+- [x] **HA token rotation** — the long-lived token seeded to the Rokus in May 2026 appeared in a chat transcript; rotate it in HA if that hasn't happened (nothing on the Roku reads it now). **Done 2026-10-24:** the sidecar runs on a dedicated `haku` administrator user's token; `rokuapp` is revoked (see `ha/README.md` § Rotate).
 - [ ] **Rotation order** — confirm `front → yard → side → backyard` matches the user's mental model and the NVR's quadrant order.

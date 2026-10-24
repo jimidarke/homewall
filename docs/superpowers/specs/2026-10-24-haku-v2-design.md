@@ -199,13 +199,15 @@ Same pinned Compose stack; theme, fonts, glyph data, cards and detail panels car
 
 Disable `haku-hls@backyard` and comment the stream out of `go2rtc.yaml`, `STREAM_METADATA` and `dashboard.json` until the camera returns. Set HA's time zone to Edmonton. Guard the Roku `hkSetHubBase` registry write so it only writes on change. Fix the `Documentation=` line and set `MPLCONFIGDIR` in `haku-sidecar.service`; give the mosaic `haku-hls.service` the template's cleanup. Add a git remote; bring the untracked HA packages (`electricity_cost`, `water_cost`, `laundry`, `cameras_front`, `recorder_retention`, `water_meter_health`) and the live `dashboard.json` into the repo; move Roku dev passwords out of `docs/HAKU_DESIGN.md`, `roku/CLAUDE.md` and the four `docs/superpowers/plans/*.md` files that quote them (`roku/dist/haku.zip` is already ignored and untracked, nothing to do there). Create the HA administrator user `haku`, mint its long-lived token into `/etc/haku/haku.env`, revoke the owner-account token the sidecar uses today, and delete the unused `haToken`/`haUrl` registry write on the Roku. Reserve static DHCP leases for the six Rokus and the tablet. Cap qBittorrent's memory on nserver. Commit `tools/baseline.sh` and its output as the number to beat.
 
+**Phase 0 leftovers (2026-10-24):** living `.51` (Plex was playing), kids `.52` and dad `.56` (TVs off) are still on Roku 1.3.1: re-run `roku/scripts/fleet-deploy.sh` when they show HAku. Router leases and DNS names: paste the commands in `docs/fleet-leases.md` (router is WinBox-only) and add the kids/dad MACs. The `haku-server` token was pasted into the working chat: re-mint it per `ha/README.md` § Rotate and delete the pasted one; the owner account also still holds an unused `claude2` token from 2026-04. The mosaic `haku-hls.service` was not restarted (someone was fetching it), so its new pre-start cleanup applies at the next restart.
+
 ## 10. Roadmap
 
 v1 stays live throughout. Phases 1–5 and 8 (shadow) are invisible to the walls; 6 touches only the office Roku; 7 only the tablet when installed. Each phase gets its own implementation plan.
 
 | # | Phase | Size | Exit criteria | Rollback |
 |---|---|---|---|---|
-| 0 | Hygiene, baseline, this document | S | backyard 0 restarts/24 h; tz aligned; remote pushed; secrets out of docs; `baseline-2026-10.md` committed | tz revert |
+| 0 | Hygiene, baseline, this document | S | backyard 0 restarts/24 h; tz aligned; remote pushed; secrets out of docs; `docs/baseline/2026-10-24.md` committed. **Done 2026-10-24** (leftovers in § 9) | tz revert |
 | 1 | Server skeleton + HA WS feed on :1987 | M | `/v2/health` shows `ha_link.ok`, `snapshotAgeS < 2` for 24 h; HA shows one extra WS session, zero extra REST; RSS < 100 MB | `compose down` |
 | 2 | Contract v2 + fixtures | M | `validate.py` green; no `null`; `view_roku.json` < 12 KB | none |
 | 3 | View-model, layouts, `/v2/config`, `/v2/view`, `/v2/detail`, backgrounds, Pillow chart, parity tool vs v1 | L | goldens byte-exact; parity shows only intended differences for 3 days; long-poll releases within 500 ms of a door toggle | none |
