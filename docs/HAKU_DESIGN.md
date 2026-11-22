@@ -12,45 +12,27 @@ It's a Roku channel because Rokus are the box that's already in every room. Home
 
 > **Paths in this document.** Paths are in the `homewall` monorepo layout (`roku/`, `sidecar/`, `stream/`, `fire-tablet/`, `docs/`). The live HA config is on mserver at `/root/docker/homeassistantV3/config/ha/` (HA runs in Docker). HAku's push side is the package `packages/housewall.yaml` there ([Home Assistant integration shape](#home-assistant-integration-shape)); it predates the HAku name, so its entities are `housewall_*`. The sidecar-side helper packages are `electricity_cost.yaml`, `gas_cost.yaml`, `water_cost.yaml` and `haku_water.yaml`. There is no `packages/haku.yaml` or `rest_commands.yaml`. The current state of each part is in its own folder's README/CLAUDE.md.
 
-> **Status (2026-10-14).** Roku 1.2.1 on all five Rokus (the four fleet Rokus and the office dev Roku), tablet 1.1.1, sidecar 1.1.0. The Rokus boot to the read-only 6×4 glass wall (spec `docs/superpowers/specs/2026-10-07-roku-wall-6x4-design.md`, baseline `docs/roku/screens/home.png`) over the shared drone photos (`…/2026-10-07-shared-backgrounds-design.md`). Front motion switches the camera square to the steps (`…/2026-10-14-front-steps-view-design.md`); the front door takes the office Roku and the kitchen tablet to the steps for a minute, and polling is 1 s end to end (`…/2026-10-14-door-camera-and-1s-polling-design.md`). The tablet runs its v3 touch UI.
+> **Status (2026-10-14).** Roku 1.2.1 on all five Rokus (the four fleet Rokus and the office dev Roku), tablet 1.1.1, sidecar 1.1.0. The Rokus boot to the read-only 6×4 glass wall (spec `docs/superpowers/specs/2026-10-07-roku-wall-6x4-design.md`) over the shared background photos (`…/2026-10-07-shared-backgrounds-design.md`). Front motion switches the camera square to the steps (`…/2026-10-14-front-steps-view-design.md`); the front door takes the office Roku and the kitchen tablet to the steps for a minute, and polling is 1 s end to end (`…/2026-10-14-door-camera-and-1s-polling-design.md`). The tablet runs its v3 touch UI.
 
 > **v2 in progress (2026-10-24):** the next generation is designed in [superpowers/specs/2026-10-24-haku-v2-design.md](superpowers/specs/2026-10-24-haku-v2-design.md). This document describes v1, which stays live until the v2 cutover.
 
 ---
 
-## Inventory (what's actually on the LAN)
+## Inventory (roles on the LAN)
 
-**Network**: `192.0.2.0/24`, gateway `192.0.2.1`, domain `home.lan`.
+Addresses in this repo are [RFC 5737](https://www.rfc-editor.org/rfc/rfc5737) documentation placeholders in `192.0.2.0/24`, one per device role. The real inventory (addresses, MACs, models, rooms) lives in the gitignored `PRIVATE.md` at the repo root; deploy-time values come from env files and HA `secrets.yaml` (see the root `README.md` § Private configuration).
 
-**Cameras** (RTSP direct, bypassing the NVR's HDMI-capture path; URLs in [Cameras](#cameras)). Validated 2026-05-08 against Mikrotik DHCP leases and a TCP-port probe; port 554 re-probed 2026-10-14:
-
-| Friendly | LAN IP | MAC | Vendor | Open ports | Notes |
-|---|---|---|---|---|---|
-| frontcam   | `192.0.2.31` | `xx:xx:xx:xx:xx:xx` | **Genbolt** dual-lens (XiongMai), WAN-blocked | 80, 554, 8080 (ONVIF) | PTZ lens `/21` (HEVC 1080p15, mounted sideways; `/22` sub) → `front`; fixed lens on the steps `/11` → `front_steps`. Own login (`HAKU_FRONT_*`). |
-| yardcam    | `192.0.2.32` | `xx:xx:xx:xx:xx:xx` | **Reolink** PTZ (DHCP host-name `Back`) | 80, 554, 8000 | Main stream is HEVC 4K, so HAku uses the H.264 sub-stream |
-| sidecam    | `192.0.2.33` | `xx:xx:xx:xx:xx:xx` | **Amcrest** (`<serial>`) | 80, 554, 37777 | |
-| backyardcam| `192.0.2.34` | `xx:xx:xx:xx:xx:xx` | **Reolink-family IPC** | 80, 443, 554, 8000 | **Offline** (554 closed 2026-10-14; the NVR can't reach it either) |
-
-Physical placement (confirmed 2026-05-08): .32 (HA's "Back Yard") is the Reolink PTZ on the house corner facing the back yard / drive pad / fence, mapped to `yard`; .34 is the no-PTZ Reolink-family behind the garage facing the playground, mapped to `backyard`. The old front Amcrest at `.35` is gone.
-
-**NVR (16-channel)**: `192.0.2.30` `NVR-16` (OUI `xx:xx:xx`, Lorex/Dahua family) — ports 80, 554 open. Its HDMI-out 4-up split is the source of the `mosaic` stream. Its own RTSP (`rtsp://USER:PW@192.0.2.30:554/cam/realmonitor?channel={1..4}&subtype=0`) is a fallback if a per-cam path turns out to be flaky on a given firmware.
-
-**nserver** (`192.0.2.20`) runs the camera pipeline ([Camera pipeline](#camera-pipeline-server-side-nserver)) and the sidecar ([Sidecar](#sidecar-haku-sidecar)). HA's `camera.camerafeed` (`mjpeg` integration entry `<config-entry-id>`) points at go2rtc's mosaic MJPEG, with snapshot `…/api/frame.jpeg?src=mosaic`. One Reolink is also integrated in HA directly (`camera.back_yard_fluent`); despite the name it is `yardcam` (.32).
-
-**Roku fleet** — six Rokus run HAku, all dev-unlocked. The fleet doesn't auto-update: each runs whatever was last sideloaded.
-
-| Friendly | LAN IP | Model | Notes |
-|---|---|---|---|
-| living | `192.0.2.51` | Roku Streaming Stick+ | HA's `media_player.living_room_roku`; `housewall_living_relaunch` brings HAku back from the home screen. |
-| kids | `192.0.2.52` | Roku Express (3930) | USB-powered by the bedroom TV; reachability = TV-power state proxy in HA `packages/kids_tv.yaml`; `housewall_kids_relaunch` (via `media_player.kids_roku`) brings HAku back from the home screen |
-| master | `192.0.2.53` | Roku Streaming Stick | HA calls it `bedroom` (`rest_command.housewall_bedroom`); `housewall_master_relaunch` (via `media_player.primary_bedroom_master_bedroom`) brings HAku back from the home screen. |
-| den | `192.0.2.54` | Roku Express 4K (3940) | HA's `media_player.media_room_denroku`; `housewall_den_relaunch` brings HAku back from the home screen, like the office. |
-| office | `192.0.2.55` | Roku Premiere+ | Dev box in the office, also a wall; HA's `housewall_office`, reached by the broadcasts. Its own dev password (`ROKU_PW_OFFICE` in `fleet.env`); the fleet's is `ROKU_PW_FLEET`. |
-| dad | `192.0.2.56` | Roku Streaming Stick (3840CA) | Added 2026-10-23 on 1.3.1. Dev password `ROKU_PW_OFFICE`, like the office. ECP is in Limited mode: `/input`, `/launch` and `/query/active-app` work, but `/query/media-player` and `/keypress` are refused. Not in HA's Roku integration; `housewall_dad_relaunch` polls ECP to bring HAku back from the home screen. |
-
-Not running HAku: a garage Roku was never seen on a scan.
-
-**Kitchen tablet**: Fire 7 at `192.0.2.60` ([Tablet client](#tablet-client-kitchen-fire-7)).
+| Role | Placeholder | What it is |
+|---|---|---|
+| `ha-host` (mserver) | `192.0.2.10` | Home Assistant in Docker. Pushes events to the Rokus over ECP. |
+| `media-host` (nserver) | `192.0.2.20` | The camera pipeline ([Camera pipeline](#camera-pipeline-server-side-nserver)) and the sidecar ([Sidecar](#sidecar-haku-sidecar)). HA's `camera.camerafeed` (an `mjpeg` entry) reads go2rtc's mosaic MJPEG. |
+| `nvr` | `192.0.2.30` | 16-channel NVR. Its HDMI-out 4-up split, through a USB capture device on the media host, is the `mosaic` stream; its own RTSP is a fallback. |
+| `cam-front` | `192.0.2.31` | Dual-lens camera (Genbolt/XiongMai), blocked from the WAN. PTZ lens `/21` (HEVC, mounted sideways) → `front`; fixed lens on the steps `/11` → `front_steps`. Own login (`HAKU_FRONT_*`). |
+| `cam-yard` | `192.0.2.32` | Reolink PTZ. Main stream is HEVC 4K, so HAku uses the H.264 sub-stream. |
+| `cam-side` | `192.0.2.33` | Amcrest PTZ (Dahua-style RTSP paths). |
+| `cam-backyard` | `192.0.2.34` | Reolink-family, no PTZ. **Offline** since 2026-10-14 and retired from the pipeline. |
+| `roku-*` | `192.0.2.51`–`.56` | Six wall Rokus, all dev-unlocked: `living`, `kids`, `master` (HA calls it `bedroom`), `den`, `office` (the dev Roku, also a wall) and `dad`. They don't auto-update: each runs whatever was last sideloaded. Two dev passwords, `ROKU_PW_FLEET` and `ROKU_PW_OFFICE` (in `fleet.env`, never committed). `dad`'s ECP is in Limited mode (`/input`, `/launch` and `/query/active-app` work; `/query/media-player` and `/keypress` are refused), so its relaunch polls ECP instead of a `media_player`. |
+| `tablet` | `192.0.2.60` | The kitchen Fire 7 ([Tablet client](#tablet-client-kitchen-fire-7)). |
 
 **HA entities.** The sidecar's module→entity map is `/etc/haku/dashboard.json` on nserver (template `sidecar/dashboard.json.example`): weather (`weather.edmonton_forecast`), calendar (`calendar.family`), Emporia energy, the gas and water meter packages, the ecobee, door contacts and people. The push side (`housewall.yaml`) keys off:
 - Door contacts: `binary_sensor.front_doorcontact_contact`, `back_doorcontact_contact`
@@ -494,7 +476,7 @@ HA talks to HAku two ways:
 
 ### Routing primitives
 
-- `rest_command.housewall_living` / `_kids` / `_bedroom` / `_den` / `_office` — one POST to `http://<roku>:8060/input?{{ payload }}` per Roku, hardcoded LAN IP. **The payload goes in the URL:** ECP `/input` ignores a POST body. `_office` (`.55`) is never picked by the active-Roku selector.
+- `rest_command.housewall_living` / `_kids` / `_bedroom` / `_den` / `_office` — one POST to `http://<roku>:8060/input?{{ payload }}` per Roku; each URL is an HA `secrets.yaml` entry (`haku_roku_<room>_input`). **The payload goes in the URL:** ECP `/input` ignores a POST body. `_office` (`.55`) is never picked by the active-Roku selector.
 - `sensor.housewall_active_service` (template sensor) — resolves to the `rest_command.housewall_*` for `sensor.jimi_phone_room`: `bedroom` → bedroom, `den` → den, everything else (kitchen, living, unknown, `not_home`) → living. With most ESPresense rooms offline it nearly always says living.
 - `script.housewall_broadcast` — fires all 5 `rest_command.housewall_*` in parallel with the same payload (`continue_on_error`, so an off TV doesn't block the rest). It is `mode: queued`: two broadcasts in the same instant (the heartbeat and the front-steps revert both fire when motion clears) run back to back. `single` would drop the second, and two POSTs landing on one Roku at once can reach the channel as one request's params twice.
 
@@ -701,9 +683,8 @@ HAku's second kind of display client is a native Android app (`io.haku.tablet`) 
 
 Checked 2026-10-14 against HA's `/api/states`, a port probe and nserver's units:
 
-- [x] **`backyard` camera (.34) offline** — RTSP closed; the NVR can't reach it either, and `haku-hls@backyard` restarts in a loop until it returns. Both after-hours back automations and GRID's bottom-right quadrant point at it. **Done 2026-10-24:** `haku-hls@backyard` disabled, the stream removed from go2rtc/discovery/`dashboard.json`, and the after-hours automations use `yard`. Re-enable: uncomment it in `stream/go2rtc.yaml` and `stream/haku-discovery.py`, deploy, `systemctl enable --now haku-hls@backyard`, add it back to `streams`, and revert `cam=yard` in `ha/packages/housewall.yaml`.
+- [x] **`backyard` camera offline** — RTSP closed; the NVR can't reach it either, and `haku-hls@backyard` restarts in a loop until it returns. Both after-hours back automations and GRID's bottom-right quadrant point at it. **Done 2026-10-24:** `haku-hls@backyard` disabled, the stream removed from go2rtc/discovery/`dashboard.json`, and the after-hours automations use `yard`. Re-enable: uncomment it in `stream/go2rtc.yaml` and `stream/haku-discovery.py`, deploy, `systemctl enable --now haku-hls@backyard`, add it back to `streams`, and revert `cam=yard` in `ha/packages/housewall.yaml`.
 - [ ] **ESPresense rooms** — only `office` reports, and `sensor.jimi_phone_room` is `not_home`/unmapped most of the time, so follow-me always lands on the living-room Roku.
-- [ ] **`person.alex`** — `unknown`; that phone's tracker isn't reporting.
 - [ ] **Garage and backyard-corner sensors** — `garage_doorcontact_contact` and `backyard_corner_motion_occupancy` no longer exist in HA, so yard and side have no event source. `binary_sensor.gate_doorcontact_contact` is back (2026-11-12) and on Recent Activity as "Gate", but nothing ties it to the `side` camera yet.
 - [ ] **Orphaned `automation.housewall_front_motion`** — the removed front-motion takeover still has an `unavailable` entry in HA's entity registry; delete it.
 - [ ] **Layout retry** — after a `layout_fallback` (sidecar answered 404 for `?layout=roku`) the channel stays on the default view until the next config fetch; retrying the layout on its own is parked.

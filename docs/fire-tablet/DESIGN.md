@@ -343,7 +343,7 @@ The mapping from mode to segment frames is a **pure function** of `(mode, leds, 
 
 **Night dim.** Between `nightDim.start` and `nightDim.end`, the window brightness drops to `nightDim.brightness`. The schedule comes from the layout config, so it can change without reinstalling. This is needed because the tablet has no light sensor.
 
-**Network.** A `network_security_config` allows cleartext HTTP to `192.0.2.20` only. The sidecar address defaults to `http://192.0.2.20:1986`. It can be overridden over ADB with `am start -n <pkg>/.MainActivity --es sidecar http://…`, which is stored in SharedPreferences. There's no settings screen in v1. (Not built: the address is the build constant `BuildConfig.SIDECAR_BASE`, and the app keeps no SharedPreferences.)
+**Network.** A `network_security_config` allows cleartext HTTP to the sidecar's host only (generated at build time from `haku.sidecarBase`). The sidecar address defaults to `http://192.0.2.20:1986`. It can be overridden over ADB with `am start -n <pkg>/.MainActivity --es sidecar http://…`, which is stored in SharedPreferences. There's no settings screen in v1. (Not built: the address is the build constant `BuildConfig.SIDECAR_BASE`, and the app keeps no SharedPreferences.)
 
 **Failure modes.**
 
@@ -395,7 +395,7 @@ The mapping from mode to segment frames is a **pure function** of `(mode, leds, 
 
 1. ~~**Gas rate is broken.**~~ Fixed 2026-10-01 (v3). `sensor.home_gas_usage` held the last burn's rate and was unknown after every HA restart. The gas tile now reads `sensor.gas_flow`, which falls to 0 when the furnace is idle, and `sensor.gas_meter_total`, which keeps the last meter reading across restarts; a daily utility meter gives "today's gas" (HA `packages/gas_cost.yaml`, repo copy `ha/packages/gas_cost.yaml`).
 2. **Mount orientation:** landscape is assumed. Portrait would be a second layout (2×4), configured in `dashboard.json` with no code change.
-3. **Alex is missing from the activity feed.** `person.alex` is `unknown`, so that person never appears. This is an HA and phone issue, separate from this work.
+3. *(Removed: a household-specific presence note.)*
 4. **HA Companion app:** it stays for now. It provides battery and charging sensors, which the charge-management plan will need, at a cost of about 96 MB of RAM. Revisit once charging is solved.
 5. **Laundry acknowledge on tap:** deferred. It would need a POST endpoint on the sidecar (it's read-only today) or an HA token on the tablet, and v1 is read-only.
 6. **Lockscreen:** `locksettings set-disabled true` is not yet applied or verified (see §4.5). If Fire OS overrides it, the fallback is device-owner mode, which needs a factory reset with no Amazon account.
