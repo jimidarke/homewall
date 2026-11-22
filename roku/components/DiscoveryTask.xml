@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  DiscoveryTask: finds the HAku media host on the LAN, off the render thread.
+
+  One run (control = "RUN"; setting a field alone does not start a Task):
+    1. multicast an SSDP M-SEARCH for urn:haku:service:dashboard:1 and take the first
+       reply's LOCATION header;
+    2. GET that discovery.json and check its schemaVersion.
+
+  Output `result` (MainScene observes it):
+    { ok: true, streams, host, sidecar, schemaVersion, version }
+    { ok: false, error: "ssdp_no_response" | "discovery_fetch_failed" | "schema_mismatch"
+                        | "no_streams_in_payload", ... }
+  The server side and the schema: ../../stream/haku-discovery.py.
+-->
+<component name="DiscoveryTask" extends="Task">
+    <interface>
+        <field id="result" type="assocarray" />
+    </interface>
+    <script type="text/brightscript" uri="DiscoveryTask.brs" />
+    <script type="text/brightscript" uri="pkg:/source/Http.brs" />
+</component>

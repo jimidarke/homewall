@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  LiveGroup: one camera full screen. HLS player, lower-third HUD, a blinking LIVE tag,
+  left/right paging through the camera roster, and a stream supervisor that retries a
+  failed or stalled stream and, when retries run out, asks MainScene to re-discover.
+
+  Inputs (MainScene writes):
+    streams       : discovery's streams map { cam: { hls, ... } }
+    cam           : camera on screen; "" stops nothing but plays nothing (observed)
+    requestSwitch : { cam, replay } a takeover: switch, then seek `replay` s back
+    motion        : { cam, ts } latest motion push, for the HUD's "motion N min ago"
+
+  Outputs (MainScene observes):
+    requestGrid   : true on a long OK press
+    rediscover    : true when a camera keeps failing (the cached streams may be stale)
+-->
+<component name="LiveGroup" extends="Group" initialFocus="keyTarget">
+    <interface>
+        <field id="streams" type="assocarray" onChange="onStreams" />
+        <field id="cam" type="string" value="" onChange="onCam" />
+        <field id="requestSwitch" type="assocarray" alwaysNotify="true" onChange="onSwitch" />
+        <field id="motion" type="assocarray" alwaysNotify="true" onChange="onMotion" />
+        <field id="requestGrid" type="boolean" value="false" alwaysNotify="true" />
+        <field id="rediscover" type="boolean" value="false" alwaysNotify="true" />
+    </interface>
+
+    <script type="text/brightscript" uri="LiveGroup.brs" />
+    <script type="text/brightscript" uri="pkg:/source/Config.brs" />
+    <script type="text/brightscript" uri="pkg:/source/Glyphs.brs" />
+
+    <children>
+        <Rectangle width="1920" height="1080" color="0x2B2A26FF" />
+        <Video id="player" width="1920" height="1080" />
+
+        <!-- LIVE tag, inside the title-safe area (top-left 192,106 at 1080p). -->
+        <Group id="liveTag" translation="[200, 110]">
+            <Rectangle id="liveDot" width="14" height="14" translation="[0, 8]" color="0xD4673EFF" />
+            <Label translation="[24, 0]" font="font:SmallSystemFont" color="0xFAF6EEFF" text="LIVE" />
+            <Animation id="liveBlink" duration="1.0" repeat="true" easeFunction="linear">
+                <FloatFieldInterpolator key="[0.0, 0.5, 1.0]" keyValue="[1.0, 0.3, 1.0]"
+                                        fieldToInterp="liveDot.opacity" />
+            </Animation>
+        </Group>
+
+        <Hud id="hud" />
+
+        <!-- Paging affordances (baked PNGs: the system font has no arrow glyphs). They sit
+             under the retry curtain, which hides them while a stream is down. -->
+        <Poster uri="pkg:/images/chevron_left.png" width="56" height="84"
+                translation="[80, 498]" opacity="0.5" />
+        <Poster uri="pkg:/images/chevron_right.png" width="56" height="84"
+                translation="[1784, 498]" opacity="0.5" />
+        <Label translation="[0, 1016]" width="1920" horizAlign="center" opacity="0.65"
+               font="font:SmallSystemFont" color="0xF3EFE6B3"
+               text="Left / Right  switch camera        Back  home        Hold OK  grid" />
+
+        <!-- Retry curtain: cream over the dark player while a stream is (re)connecting. -->
+        <Rectangle id="retryCurtain" width="1920" height="1080" color="0xF7F1E3F2" visible="false">
+            <LayoutGroup translation="[960, 460]" horizAlignment="center" itemSpacings="[20, 4]">
+                <Poster uri="pkg:/images/haku_wordmark.png" width="500" height="100" />
+                <Label id="retryTitle" width="900" horizAlign="center"
+                       font="font:LargeBoldSystemFont" color="0x2B2A26FF" text="" />
+                <Label id="retryDetail" width="900" horizAlign="center"
+                       font="font:SmallestSystemFont" color="0x2B2A2699" text="" />
+            </LayoutGroup>
+        </Rectangle>
+
+        <!-- Invisible node that holds focus so onKeyEvent sees the remote. -->
+        <Rectangle id="keyTarget" width="1" height="1" color="0x00000000" />
+
+        <Timer id="hudHide" repeat="false" duration="5" />
+        <Timer id="stallCheck" repeat="true" duration="30" />
+        <Timer id="retryWait" repeat="false" />
+        <Timer id="holdOk" repeat="false" duration="0.5" />
+        <Timer id="restartLong" repeat="false" />  <!-- HK_STREAM_REFRESH_S: ahead of the OS 4 h stream stop -->
+    </children>
+</component>

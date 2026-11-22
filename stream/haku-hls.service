@@ -17,10 +17,10 @@ RuntimeDirectoryMode=0755
 # drop-in haku-hls.service.d/10-preserve-runtime-dir.conf (added 2026-09-11).
 RuntimeDirectoryPreserve=yes
 
-# Why this exists: go2rtc's built-in HLS publishes only ~2 segments × 0.5s
-# = ~1s of buffer, which underflows the Roku player on any 500ms+ network
-# blip (AlexxIT/go2rtc#1699). This sidecar pulls the already-encoded H.264
-# stream from go2rtc's RTSP output and remuxes it as proper HLS. No re-encode (CPU≈0).
+# go2rtc can serve HLS itself, but its playlist holds about a second of media
+# (AlexxIT/go2rtc#1699) and the Roku player runs dry on the smallest Wi-Fi hiccup.
+# So this unit reads go2rtc's RTSP output and writes our own HLS with ffmpeg
+# (-c copy: a remux, no re-encode, next to no CPU).
 #
 # Window = latency: a Roku plays from the oldest segment in the playlist, so
 # 3 × 2s segments puts it ~5s behind live (6 × 2s was ~12s). Measured on all five

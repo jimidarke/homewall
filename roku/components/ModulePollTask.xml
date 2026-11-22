@@ -4,7 +4,6 @@
   render thread. MainScene sets hubBase from discovery and `layout` (HK_LAYOUT), fires
   control="RUN" on a Timer, observes `snapshot` and `config`. `activeLayout` is the
   layout the sidecar actually served: "" after falling back to the default view.
-  (Descends from sallynet StatePollTask.)
 -->
 <component name="ModulePollTask" extends="Task">
     <interface>

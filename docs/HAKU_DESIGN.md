@@ -239,7 +239,7 @@ Fullscreen single-camera HLS feed, reached by an HA camera takeover (`cam=…` o
 │                          └─────────────┘                             │
 │                                                                      │
 │                       Stream error — retrying                        │
-│                       attempt 2 in 5s                                │
+│                       attempt 2 in 4s                                │
 │                                                                      │
 └──────────────────────────────────────────────────────────────────────┘
 ```
@@ -536,7 +536,7 @@ Python/Flask on nserver `:1986`, the data and rendering half of the server side;
 
 ## Camera pipeline (server side, nserver)
 
-**Source of truth lives in this repo at `stream/`** — `go2rtc.yaml`, the `go2rtc`, `haku-hls` and `haku-discovery` units plus the `haku-hls@` template, and the Python discovery service, with a `README.md` holding the deploy script. Encoding uses Intel Quick Sync (`h264_qsv`) since nserver has an Iris Plus G1 iGPU rather than NVIDIA. go2rtc 1.9.x runs as a dedicated `media` user with `video,render` supplementary groups for QSV. Boot order: `go2rtc` → `haku-hls*` → `haku-discovery`.
+**Source of truth lives in this repo at `stream/`** — `go2rtc.yaml`, the `go2rtc`, `haku-hls` and `haku-discovery` units plus the `haku-hls@` template, and the Python discovery service, with a `README.md` holding the deploy script. Encoding uses Intel Quick Sync (`h264_qsv`), since nserver has an Iris Plus G1 iGPU. go2rtc 1.9.x runs as a dedicated `media` user with `video,render` supplementary groups for QSV. Boot order: `go2rtc` → `haku-hls*` → `haku-discovery`.
 
 - **Capture.** NVR HDMI-out → USB 3.0 capture card at `/dev/v4l/by-id/usb-MACROSILICON_USB3.0_Video_67807015-video-index0` (Macrosilicon `345f:2131`).
 - **go2rtc** encodes the mosaic and serves every camera over RTSP (below).
@@ -636,13 +636,13 @@ Per-cam exponential backoff with re-discovery escalation (`hkNextBackoffSeconds`
 
 ```
 error 1: wait 2 s, retry same URL
-error 2: wait 5 s, retry same URL
-error 3: wait 10 s, retry same URL
-error 4: wait 30 s, retry same URL
-error 5: clear streams → MainScene re-runs discovery (fresh SSDP), drops the registry cache, retries with the new URL
+error 2: wait 4 s, retry same URL
+error 3: wait 8 s, retry same URL
+error 4: wait 16 s, retry same URL
+error 5: `rediscover` → MainScene drops the registry cache and re-runs discovery (fresh SSDP), then plays the new URL
 ```
 
-`reconnectOverlay` shows from the first error, sub-label "attempt N in Ns", and hides on the first `playing` state. Retry counters are per cam and survive cam switches, so a flaky cam doesn't keep healthy ones from backing off correctly. A separate watchdog restarts a stream stuck out of `playing` for >90 s.
+The `retryCurtain` shows from the first error, sub-label "attempt N in Ns", and hides on the first `playing` state. Failure counts are per camera and survive camera switches, so a flaky camera doesn't reset a healthy one's backoff. A separate 30 s `stallCheck` restarts a stream stuck out of `playing` for over 90 s.
 
 The home camera card has its own simpler loop: the same backoff, then after 4 errors in a row "Camera offline" and a 5-minute rest before trying again.
 

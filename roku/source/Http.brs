@@ -1,6 +1,5 @@
 ' HAku — shared blocking HTTP JSON GET. Task-thread only (blocks the caller).
-' Mirrors DiscoveryTask.fetchDiscoveryJson / sallynet Http.brs so the module poll,
-' discovery, and any future feed all fetch the same tested way.
+' The module poll, discovery and any future feed all fetch through these helpers.
 
 function hkHttpGetJson(url as string) as object
     body = hkHttpGetString(url)

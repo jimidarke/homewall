@@ -89,9 +89,10 @@ sub test_hwNextBackoffSeconds()
     print "== hkNextBackoffSeconds =="
     assertEq("attempt=0",  hkNextBackoffSeconds(0),  2)
     assertEq("attempt=1",  hkNextBackoffSeconds(1),  2)
-    assertEq("attempt=2",  hkNextBackoffSeconds(2),  5)
-    assertEq("attempt=3",  hkNextBackoffSeconds(3), 10)
-    assertEq("attempt=4",  hkNextBackoffSeconds(4), 30)
+    assertEq("attempt=2",  hkNextBackoffSeconds(2),  4)
+    assertEq("attempt=3",  hkNextBackoffSeconds(3),  8)
+    assertEq("attempt=4",  hkNextBackoffSeconds(4), 16)
+    assertEq("attempt=5",  hkNextBackoffSeconds(5), 30)
     assertEq("attempt=99", hkNextBackoffSeconds(99), 30)
 end sub
 

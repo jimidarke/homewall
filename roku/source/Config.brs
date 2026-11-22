@@ -229,12 +229,15 @@ end sub
 
 ' --- Pure helpers (also exercised by tests/unit) -------------------------
 
-' Exponential backoff schedule for stream reconnects: 2s, 5s, 10s, 30s, 30s…
+' Retry delay after the attempt-th consecutive stream failure: doubling from 2 s,
+' capped at 30 s (2, 4, 8, 16, 30, 30…).
 function hkNextBackoffSeconds(attempt as integer) as integer
-    if attempt <= 1 then return 2
-    if attempt = 2 then return 5
-    if attempt = 3 then return 10
-    return 30
+    s = 2
+    for i = 2 to attempt
+        s = s * 2
+        if s >= 30 then return 30
+    end for
+    return s
 end function
 
 ' The HLS URL discovery gives `cam`, else the mosaic's (a partial payload), else "".

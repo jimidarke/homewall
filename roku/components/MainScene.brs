@@ -43,7 +43,7 @@ sub init()
     m.inputPump.observeField("event", "onInputEvent")
     m.rediscoverTimer.observeField("fire", "onRediscoverFire")
     m.live.observeField("requestGrid", "onRequestGrid")
-    m.live.observeField("streams", "onLiveStreamsCleared")
+    m.live.observeField("rediscover", "onLiveRediscover")
     m.grid.observeField("selectedCam", "onGridSelected")
     m.grid.observeField("cancel", "onGridCancel")
     m.modules.observeField("config", "onModuleConfig")
@@ -193,19 +193,14 @@ sub onRediscoverFire()
     m.discover.control = "RUN"
 end sub
 
-sub onLiveStreamsCleared()
-    streams = m.live.streams
-    if streams = invalid then return
-    has = false
-    for each k in streams
-        has = true
-        exit for
-    end for
-    if not has then
-        hkLog("LiveGroup escalated to re-discovery")
-        clearCachedStreams()
-        m.discover.control = "RUN"
-    end if
+' LiveGroup gave up on a camera: the cached streams may be stale. Empty its map (it
+' shows "Waiting for discovery…") and run discovery again.
+sub onLiveRediscover()
+    if not m.live.rediscover then return
+    hkLog("LiveGroup asked for re-discovery")
+    clearCachedStreams()
+    m.live.streams = {}
+    m.discover.control = "RUN"
 end sub
 
 function streamsKeys(streams as object) as string

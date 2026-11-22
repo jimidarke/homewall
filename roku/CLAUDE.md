@@ -155,11 +155,11 @@ The sidecar owns display formatting (`values.tile.{hero,sub,detail,severity,glyp
 
 **If the discovery JSON shape changes**, bump together: `schemaVersion` in `../stream/haku-discovery.py`, `EXPECTED_SCHEMA_VERSION` in `tests/contract/discovery_contract.py`, and the `HK_REG_KEY_DISCOVERY()` key name. The key name is what stops the Roku reading back an old cache (`HK_REG_CACHE_VER()` is defined but nothing reads it).
 
-`hkStreamUrl(streams, cam)` (used by `LiveGroup.streamUrlFor` and `CameraBody`) returns `streams[cam].hls`, falling back to `streams.mosaic.hls` for a partial discovery payload.
+`hkStreamUrl(streams, cam)` (used by `LiveGroup.playCam` and `CameraBody`) returns `streams[cam].hls`, falling back to `streams.mosaic.hls` for a partial discovery payload.
 
 ### Watchdog / reconnect
 
-`LiveGroup` runs a watchdog Timer comparing `lastPlayingTimestamp` to now and restarts the stream if it hasn't been "playing" for over 90 s. Per-cam retry counters (`m.retryAttempts`) follow `hkNextBackoffSeconds`: 2, 5, 10, 30, 30… s. Past `RETRY_BEFORE_REDISCOVERY` (4) consecutive errors, `LiveGroup` clears its `streams` field and `MainScene.onLiveStreamsCleared` re-runs discovery. **Don't reset retry counters on cam switch**: the per-cam dictionary keeps a flaky cam from resetting a healthy one's backoff.
+`LiveGroup`'s `stallCheck` Timer (30 s) restarts a stream that hasn't been "playing" for `LIVE_STALL_S` (90 s). Errors and end-of-stream count per camera in `m.failures` and retry after `hkNextBackoffSeconds`: 2, 4, 8, 16, 30… s. Past `LIVE_MAX_RETRIES` (4) failures in a row `LiveGroup` sets `rediscover`, and `MainScene.onLiveRediscover` drops the cached streams and re-runs discovery. **Don't reset the failure counts on a camera switch**: per-camera counts keep a flaky camera from resetting a healthy one's backoff.
 
 ### Severity routing
 
