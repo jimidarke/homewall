@@ -13,7 +13,7 @@ Boot order: `go2rtc` → `haku-hls*` (`After=`/`Requires=go2rtc`) → `haku-disc
 ## Rules
 
 - **Deploy is a manual copy** (`README.md` § Deploy). Diff each deployed file against the repo first: nserver has drifted before.
-- **Never commit camera creds.** `go2rtc.yaml` reads `${HAKU_CAM_USER}`/`${HAKU_CAM_PASSWORD}` and the Genbolt's `${HAKU_FRONT_USER}`/`${HAKU_FRONT_PASSWORD}` from `/etc/haku/cam-creds.env` (0640 `root:media`, nserver only).
+- **Never commit camera creds or addresses.** Camera hosts are `${HAKU_CAM_*_HOST}` too. `go2rtc.yaml` reads `${HAKU_CAM_USER}`/`${HAKU_CAM_PASSWORD}` and the Genbolt's `${HAKU_FRONT_USER}`/`${HAKU_FRONT_PASSWORD}` from `/etc/haku/cam-creds.env` (0640 `root:media`, nserver only).
 - **Discovery is a contract with the Roku channel.** If the `discovery.json` shape changes, bump together: `SCHEMA_VERSION` in `haku-discovery.py` (currently 2), `EXPECTED_SCHEMA_VERSION` in `../roku/tests/contract/discovery_contract.py`, and the `HK_REG_KEY_DISCOVERY()` key name in `../roku/source/Config.brs` (the key name is what stops the Roku reading back an old cache).
 - **Rokus need H.264.** The Express and Stick can't decode HEVC, so any HEVC camera gets a QSV transcode like `front`.
 - `haku-hls.service` and `haku-hls@.service` share `RuntimeDirectory=haku-hls`; both must keep `RuntimeDirectoryPreserve=yes`, or one unit stopping deletes every camera's segments.

@@ -1,4 +1,4 @@
-# Front genbolt dual-lens IP camera (192.0.2.31) → HA cameras.
+# Front genbolt dual-lens IP camera → HA cameras.
 #
 # Standalone XM/XiongMai (Genbolt) cam, WAN-blocked on the Mikrotik (was beaconing
 # UDP/32100 China P2P) — reachable on the LAN only. Two physical lenses, each its own
@@ -8,11 +8,11 @@
 #
 # Uses the ffmpeg camera platform (the generic platform dropped YAML setup). Credentials
 # are NOT stored here — the full RTSP URLs live in secrets.yaml as genbolt_fixed_stream /
-# genbolt_ptz_stream. -rtsp_transport tcp for stability
-# on this cheap cam.
+# genbolt_ptz_stream. -rtsp_transport tcp for stability on this cheap cam.
 #
 # PTZ (only /21 moves; /11 is a fixed lens): ONVIF SOAP over rest_command, unauthenticated,
-# LAN-only. The firmware mislabels PTZConfig0 onto the /11 MainStreamProfile, but commands
+# LAN-only; its URL is the secret genbolt_onvif_ptz_url
+# (http://<camera>:8080/onvif/ptz_service). The firmware mislabels PTZConfig0 onto the /11 MainStreamProfile, but commands
 # still move /21, so ProfileToken=MainStreamProfileToken. Pan has no AbsoluteMove, so moves
 # are timed ContinuousMove + Stop with no position feedback.
 #   rest_command.front_cam_ptz_move / front_cam_ptz_stop  -> raw ONVIF calls
@@ -33,7 +33,7 @@ camera:
 
 rest_command:
   front_cam_ptz_move:
-    url: "http://192.0.2.31:8080/onvif/ptz_service"
+    url: !secret genbolt_onvif_ptz_url
     method: post
     content_type: "application/soap+xml; charset=utf-8"
     timeout: 6
@@ -41,7 +41,7 @@ rest_command:
       <?xml version="1.0"?><s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope"><s:Body><ContinuousMove xmlns="http://www.onvif.org/ver20/ptz/wsdl"><ProfileToken>MainStreamProfileToken</ProfileToken><Velocity><PanTilt x="{{ pan }}" y="{{ tilt }}" xmlns="http://www.onvif.org/ver10/schema"/><Zoom x="{{ zoom }}" xmlns="http://www.onvif.org/ver10/schema"/></Velocity></ContinuousMove></s:Body></s:Envelope>
 
   front_cam_ptz_stop:
-    url: "http://192.0.2.31:8080/onvif/ptz_service"
+    url: !secret genbolt_onvif_ptz_url
     method: post
     content_type: "application/soap+xml; charset=utf-8"
     timeout: 6

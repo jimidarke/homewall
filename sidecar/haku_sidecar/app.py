@@ -35,15 +35,16 @@ from . import backgrounds
 from . import config as cfg
 from . import ha as ha_mod
 from . import modules
+from . import net
 
 app = Flask(__name__)
 log = logging.getLogger(__name__)
 
-HA_URL = os.environ.get("HAKU_HA_URL", "http://192.0.2.10:8123")
+HA_URL = os.environ.get("HAKU_HA_URL", "http://homeassistant.local:8123")
 HA_TOKEN = os.environ.get("HAKU_HA_TOKEN", "")
 POLL_INTERVAL = int(os.environ.get("HAKU_POLL_INTERVAL", "10"))
 HTTP_PORT = int(os.environ.get("HAKU_SIDECAR_HTTP_PORT", "1986"))
-SIDECAR_BASE = os.environ.get("HAKU_SIDECAR_BASE", "")  # e.g. http://192.0.2.20:1986
+SIDECAR_BASE = os.environ.get("HAKU_SIDECAR_BASE", "")  # e.g. http://<this host>:1986
 
 ha = ha_mod.HAClient(HA_URL, HA_TOKEN, poll_interval=POLL_INTERVAL)
 
@@ -55,20 +56,8 @@ _LAYOUT_BG_SLOTS = threading.BoundedSemaphore(2)
 def _sidecar_block():
     base = SIDECAR_BASE
     if not base:
-        base = f"http://{_lan_ip()}:{HTTP_PORT}"
+        base = f"http://{net.lan_ip()}:{HTTP_PORT}"
     return {"base": base, "config": "/api/config", "state": "/api/state"}
-
-
-def _lan_ip():
-    import socket
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(("192.0.2.10", 80))
-        ip = s.getsockname()[0]
-        s.close()
-        return ip
-    except Exception:
-        return "127.0.0.1"
 
 
 def _config_for_request():

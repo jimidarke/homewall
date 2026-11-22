@@ -14,7 +14,7 @@ npm run build           # bsc: stage + transpile into out/.staging (no zip)
 npm run package         # bsc --create-package -> dist/haku.zip (unsigned)
 npm run test:unit       # brs runs source/Config.brs + Glyphs.brs + tests/unit/test_pure.brs; run.js fails on any FAIL
 npm run test:contract   # discovery_contract.py + layout_contract.py against live discovery / sidecar ?layout=roku
-HAKU_FIXTURE=1 npm run test:contract   # offline, against tests/fixtures/
+HAKU_FIXTURE=1 npm run test:contract   # offline, against tests/fixtures/ (live: export HAKU_DISCOVERY_URL / HAKU_SIDECAR_URL)
 npm test                # lint + unit + contract (no smoke: smoke needs a Roku)
 npm run test:smoke      # tests/smoke/smoke.sh (below)
 npm run deploy          # scripts/deploy.js: roku-deploy zips to dist/haku.zip and sideloads it
@@ -43,7 +43,7 @@ Launch args (`hubBase`, `setDefault`) are read only on a cold `/launch/dev`; the
 
 ## Deploy
 
-`ROKU_IP=<ip> ROKU_DEV_PASSWORD=<pw> npm run deploy` (roku-deploy posts to `http://<ip>/plugin_install` as `rokudev`).  Passwords come from `~/.config/haku/fleet.env` (`source` it first): `ROKU_PW_FLEET` for living/kids/master/den, `ROKU_PW_OFFICE` for office `.55` and dad `.56`. nserver holds the same file at `/etc/haku/fleet.env`.
+`ROKU_IP=<ip> ROKU_DEV_PASSWORD=<pw> npm run deploy` (roku-deploy posts to `http://<ip>/plugin_install` as `rokudev`).  Passwords and addresses come from `~/.config/haku/fleet.env` (`source` it first; keys in `fleet.env.example`): `ROKU_PW_OFFICE` for the Rokus in `ROKU_OFFICE_PW_IPS` (office and dad), `ROKU_PW_FLEET` for the rest. nserver holds the same file at `/etc/haku/fleet.env`. The addresses below are documentation placeholders; the real ones are in `fleet.env` and `PRIVATE.md`.
 
 | Roku | IP | Model note |
 |---|---|---|
@@ -54,7 +54,7 @@ Launch args (`hubBase`, `setDefault`) are read only on a cold `/launch/dev`; the
 | office (dev) | `192.0.2.55` | Premiere+, also a wall |
 | dad | `192.0.2.56` | Stick 3840CA; ECP Limited mode (no `/keypress`, no `/query/media-player`) |
 
-- The dev passwords live in `~/.config/haku/fleet.env` (`ROKU_PW_FLEET` for living/kids/master/den, `ROKU_PW_OFFICE` for office `.55` and dad `.56`) and in `/etc/haku/fleet.env` on nserver; `fleet.env.example` lists the keys.
+- The dev passwords and the fleet's addresses live in `~/.config/haku/fleet.env` and in `/etc/haku/fleet.env` on nserver; `fleet.env.example` lists the keys.
 - **Before sideloading a wall Roku, check what it's showing**: `curl -s http://<ip>:8060/query/active-app`. Skip any TV not on HAku (`<app id="dev" …>HAku</app>`): a sideload relaunches the channel over whatever is playing.
 - Nothing auto-updates: each Roku runs whatever was last sideloaded. Check `/query/apps` (or the console's `event=launch`) rather than assuming.
 - Fleet: `scripts/fleet-deploy.sh [ip…]` sideloads only to Rokus currently showing HAku (skips any other app, reports unreachable TVs) and prints the version each device runs afterwards.

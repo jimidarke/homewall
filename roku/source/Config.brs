@@ -91,11 +91,31 @@ function HK_OVERLAY_WEATHER_MS() as integer : return 10000 : end function
 function HK_OVERLAY_SENSOR_MS()  as integer : return 8000  : end function
 function HK_OVERLAY_TEXT_MS()    as integer : return 4000  : end function
 
-' Default discovery server base for the JPEG snapshot endpoint. Discovery may
-' override this at runtime once the SSDP payload lands; the constant keeps the
-' PIP usable on a cold launch before discovery completes.
 function HK_OVERLAY_PIP_INTERVAL_MS() as integer : return 500 : end function
-function HK_OVERLAY_SNAPSHOT_BASE() as string : return "http://192.0.2.20:1984" : end function
+
+' Default base for the PIP's JPEG snapshots (go2rtc, http://<media host>:1984) when the
+' push names none: read from the streams the last discovery cached in the registry, so
+' the PIP also works on a cold launch before this run's discovery lands. "" before any.
+function HK_OVERLAY_SNAPSHOT_BASE() as string
+    raw = regRead(HK_REG_KEY_DISCOVERY())
+    if raw = "" then return ""
+    return hkSnapshotBase(ParseJson(raw))
+end function
+
+' The scheme://host:port part of the first stream's `snapshot` URL in a discovery
+' streams map, or "".
+function hkSnapshotBase(streams as dynamic) as string
+    if type(streams) <> "roAssociativeArray" then return ""
+    for each name in streams
+        s = streams[name]
+        if type(s) = "roAssociativeArray" and s.snapshot <> invalid then
+            url = s.snapshot.toStr()
+            cut = Instr(1, url, "/api/")
+            if cut > 1 then return Left(url, cut - 1)
+        end if
+    end for
+    return ""
+end function
 
 ' Resolve a per-overlay-kind duration. Honours user-supplied `dwell` (seconds)
 ' or `duration` (seconds) on the params; falls back to the kind's HK_OVERLAY_*_MS

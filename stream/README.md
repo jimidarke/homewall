@@ -43,18 +43,26 @@ Three services on nserver (`192.0.2.20`) turn the NVR's HDMI-out (via a USB capt
 
 The go2rtc binary is `/usr/local/bin/go2rtc`, a static x86_64 build from the GitHub releases (1.9.14 on nserver). QSV on nserver's Ice Lake GPU under Ubuntu 24.04 needs `libmfx1` (not `libmfx-gen1.2`), installed by hand.
 
-### Camera credentials (never committed)
+### Camera credentials and addresses (never committed)
 
 `go2rtc.service` loads `/etc/haku/cam-creds.env` (mode `0640`, `root:media`) with `EnvironmentFile=`, and `go2rtc.yaml` references the values as `${VAR}`, so the yaml stays committable:
 
 ```
-HAKU_CAM_USER=admin
-HAKU_CAM_PASSWORD=<from HA Reolink integration / 1Password>
+HAKU_CAM_USER=<shared camera login>
+HAKU_CAM_PASSWORD=<from HA Reolink integration / password manager>
 HAKU_FRONT_USER=<the Genbolt's login: HA secrets.yaml genbolt_ptz_stream>
 HAKU_FRONT_PASSWORD=<...>
+HAKU_CAM_FRONT_HOST=<front camera LAN address>
+HAKU_CAM_YARD_HOST=<...>
+HAKU_CAM_SIDE_HOST=<...>
+HAKU_CAM_BACKYARD_HOST=<...>
 ```
 
+`haku-discovery` detects the address it advertises; to pin it, put `HAKU_DISCOVERY_HOST` / `HAKU_DISCOVERY_BIND_IP` in the optional `/etc/haku/discovery.env`.
+
 To add a key, append to the live file.
+
+Addresses below are `192.0.2.0/24` documentation placeholders (nserver is `192.0.2.20`); the real ones are in `/etc/haku/cam-creds.env` and the gitignored `PRIVATE.md`.
 
 ## Streams
 
@@ -134,10 +142,14 @@ usermod -aG video,render media
 mkdir -p /etc/haku
 if [ ! -e /etc/haku/cam-creds.env ]; then
   install -m 0640 -o root -g media /dev/stdin /etc/haku/cam-creds.env <<'CREDS'
-HAKU_CAM_USER=admin
+HAKU_CAM_USER=<set me>
 HAKU_CAM_PASSWORD=<set me>
 HAKU_FRONT_USER=<set me>
 HAKU_FRONT_PASSWORD=<set me>
+HAKU_CAM_FRONT_HOST=<set me>
+HAKU_CAM_YARD_HOST=<set me>
+HAKU_CAM_SIDE_HOST=<set me>
+HAKU_CAM_BACKYARD_HOST=<set me>
 CREDS
 fi
 

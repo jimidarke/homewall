@@ -61,7 +61,7 @@ automation:
         to: "on"
         for: "00:05:00"
     actions:
-      - action: notify.mobile_app_phone
+      - action: !secret haku_owner_notify
         data:
           title: "Water meter stalled"
           message: >
@@ -86,7 +86,7 @@ automation:
         to: "unavailable"
         for: "00:30:00"
     actions:
-      - action: notify.mobile_app_phone
+      - action: !secret haku_owner_notify
         data:
           title: "Water meter offline"
           message: >

@@ -5,13 +5,19 @@
 # The HA token is read inside the mserver shell and never leaves it. tcpdump runs on
 # nserver for the capture window (default 20 s) and is killed on exit, even on Ctrl-C.
 #
+# Addresses come from the fleet env file (~/.config/haku/fleet.env or $HAKU_FLEET_ENV; see
+# roku/fleet.env.example): ROKU_FLEET, HA_HOST (mserver) and HAKU_HOST (nserver).
+#
 # Usage: tools/baseline.sh 20 | tee docs/baseline/$(date +%F).md
 # Compare against docs/superpowers/specs/2026-10-24-haku-v2-design.md § 2 and § 11.
 set -uo pipefail
 
 SECS="${1:-20}"
-ROKUS="192.0.2.51 192.0.2.52 192.0.2.53 192.0.2.54 192.0.2.56 192.0.2.55"
-HA_HOST=192.0.2.10
+ENV_FILE="${HAKU_FLEET_ENV:-$HOME/.config/haku/fleet.env}"
+# shellcheck disable=SC1090
+[ -r "$ENV_FILE" ] && source "$ENV_FILE"
+: "${ROKU_FLEET:?set ROKU_FLEET in $ENV_FILE}" "${HA_HOST:?set HA_HOST in $ENV_FILE}" "${HAKU_HOST:?set HAKU_HOST in $ENV_FILE}"
+ROKUS="$ROKU_FLEET"
 # shellcheck disable=SC1091
 source "$(dirname "$0")/lib/redact.sh"
 OUT=$(mktemp)
@@ -40,9 +46,9 @@ ssh nserver "cd /tmp && timeout $SECS tcpdump -ni any -A -s 400 -l 'dst host $HA
 echo '--- sidecar -> HA requests (count method path)'
 grep -aoE '(GET|POST) /api/[a-z_/]*' /tmp/hk_ha.txt | sort | uniq -c | sort -rn | head -10
 echo '--- clients -> sidecar :1986 (count src path)'
-awk '/ > 192.0.2.20.1986/{for(i=1;i<=NF;i++) if(\$i ~ /^192\.0\.2\.[0-9]+\.[0-9]+\$/){ip=\$i; sub(/\.[0-9]+\$/,\"\",ip); break}} /GET \//{match(\$0,/GET \/[^ ]*/); print ip, substr(\$0,RSTART+4,RLENGTH-4)}' /tmp/hk_sc.txt | sed -E 's/\?.*layout=([a-z]+).*/?layout=\1/' | sort | uniq -c | sort -rn | head -12
+awk '/ > $HAKU_HOST.1986/{for(i=1;i<=NF;i++) if(\$i ~ /^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\$/){ip=\$i; sub(/\.[0-9]+\$/,\"\",ip); break}} /GET \//{match(\$0,/GET \/[^ ]*/); print ip, substr(\$0,RSTART+4,RLENGTH-4)}' /tmp/hk_sc.txt | sed -E 's/\?.*layout=([a-z]+).*/?layout=\1/' | sort | uniq -c | sort -rn | head -12
 echo '--- clients -> HLS :1985 (count src kind)'
-awk '/ > 192.0.2.20.1985/{for(i=1;i<=NF;i++) if(\$i ~ /^192\.0\.2\.[0-9]+\.[0-9]+\$/){ip=\$i; sub(/\.[0-9]+\$/,\"\",ip); break}} /GET \//{match(\$0,/GET \/[^ ]*/); p=substr(\$0,RSTART+4,RLENGTH-4); gsub(/_seg_[0-9]+\.ts/,\"_seg_N.ts\",p); gsub(/seg_[0-9]+\.ts/,\"seg_N.ts\",p); print ip, p}' /tmp/hk_hls.txt | sort | uniq -c | sort -rn | head -12
+awk '/ > $HAKU_HOST.1985/{for(i=1;i<=NF;i++) if(\$i ~ /^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\$/){ip=\$i; sub(/\.[0-9]+\$/,\"\",ip); break}} /GET \//{match(\$0,/GET \/[^ ]*/); p=substr(\$0,RSTART+4,RLENGTH-4); gsub(/_seg_[0-9]+\.ts/,\"_seg_N.ts\",p); gsub(/seg_[0-9]+\.ts/,\"seg_N.ts\",p); print ip, p}' /tmp/hk_hls.txt | sort | uniq -c | sort -rn | head -12
 echo '--- bytes'; cat /tmp/hk_b1.txt /tmp/hk_b2.txt /tmp/hk_b3.txt
 rm -f /tmp/hk_ha.txt /tmp/hk_sc.txt /tmp/hk_hls.txt /tmp/hk_b1.txt /tmp/hk_b2.txt /tmp/hk_b3.txt" | code
 

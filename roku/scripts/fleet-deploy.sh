@@ -6,9 +6,10 @@
 # Netflix, Apple TV or the Roku menu is skipped (come back later). An unreachable
 # Roku (TV off; the kids' Express is USB-powered by its TV) is reported, not failed.
 #
-# Passwords: ~/.config/haku/fleet.env (or $HAKU_FLEET_ENV) with ROKU_PW_FLEET for
-# living/kids/master/den and ROKU_PW_OFFICE for office .55 and dad .56; see
-# fleet.env.example. Uses scripts/deploy.js (ROKU_IP, ROKU_DEV_PASSWORD).
+# Addresses and passwords: ~/.config/haku/fleet.env (or $HAKU_FLEET_ENV), see
+# fleet.env.example: ROKU_FLEET (every wall Roku), ROKU_OFFICE_PW_IPS (the Rokus on
+# ROKU_PW_OFFICE) and ROKU_PW_FLEET for the rest. Uses scripts/deploy.js (ROKU_IP,
+# ROKU_DEV_PASSWORD).
 #
 # Exit 0 when every reachable, HAku-showing Roku ends up on VERSION.txt's version;
 # skips and unreachable devices are not failures. Exit 1 if any deploy failed or a
@@ -24,9 +25,10 @@ fi
 # shellcheck disable=SC1090
 source "$ENV_FILE"
 : "${ROKU_PW_FLEET:?ROKU_PW_FLEET missing in $ENV_FILE}" "${ROKU_PW_OFFICE:?ROKU_PW_OFFICE missing in $ENV_FILE}"
+: "${ROKU_FLEET:?ROKU_FLEET missing in $ENV_FILE}"
 
-FLEET=(192.0.2.51 192.0.2.52 192.0.2.53 192.0.2.54 192.0.2.55 192.0.2.56)
-OFFICE_PW_IPS=" 192.0.2.55 192.0.2.56 "
+read -r -a FLEET <<<"$ROKU_FLEET"
+OFFICE_PW_IPS=" ${ROKU_OFFICE_PW_IPS:-} "
 if [ $# -gt 0 ]; then FLEET=("$@"); fi
 WANT=$(tr -d '[:space:]' < VERSION.txt)
 

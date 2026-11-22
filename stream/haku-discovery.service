@@ -17,13 +17,14 @@ RestartSec=5
 # we ever need a low port.
 AmbientCapabilities=CAP_NET_BIND_SERVICE
 
-# Override-able via /etc/systemd/system/haku-discovery.service.d/override.conf
-Environment="HAKU_DISCOVERY_HOST=192.0.2.20"
-Environment="HAKU_DISCOVERY_BIND_IP=192.0.2.20"
+# The advertised address is detected (the interface that routes to the SSDP group).
+# To pin it, set HAKU_DISCOVERY_HOST / HAKU_DISCOVERY_BIND_IP in /etc/haku/discovery.env
+# (optional, not committed); it overrides the defaults below.
 Environment="HAKU_DISCOVERY_HTTP_PORT=1985"
 Environment="HAKU_GO2RTC_API=http://127.0.0.1:1984/api/streams"
 Environment="HAKU_HLS_DIR=/run/haku-hls"
 Environment="HAKU_DISCOVERY_REFRESH=60"
+EnvironmentFile=-/etc/haku/discovery.env
 
 [Install]
 WantedBy=multi-user.target

@@ -16,6 +16,10 @@ Byte-for-byte copies of the packages HAku relies on in Home Assistant on mserver
 
 Not copied: `arr_pipeline.yaml`, `kids_tv.yaml`, `kids_fan.yaml`, `bathroom.yaml`, `den_tv_ir.yaml`, `espresense.yaml` (not HAku's; `arr_pipeline` embeds API keys).
 
+## Private values
+
+The packages are committed as deployed, so nothing house-specific is written in them: device URLs and the phone's notify action are `!secret` references, resolved from Home Assistant's own `secrets.yaml` on mserver. `secrets.example.yaml` lists every key with placeholder values; the filled-in copy may be kept locally as the gitignored `ha/secrets.private.yaml`. Add a new key to mserver's `secrets.yaml` **before** deploying a package that reads it, or HA rejects the package.
+
 ## Deploy a change
 
 1. Edit the repo copy. Confirm the live file still matches the committed version: `ssh mserver md5sum /root/docker/homeassistantV3/config/ha/packages/<name>.yaml` vs `git show HEAD:ha/packages/<name>.yaml | md5sum`. If they differ, the live side drifted: pull it in first.

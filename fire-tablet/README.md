@@ -8,7 +8,7 @@ Design: [docs/fire-tablet/DESIGN.md](../docs/fire-tablet/DESIGN.md) (§8 is the 
 
 ## Build
 
-Requires JDK 17+ and the Android SDK at `~/Android/Sdk` (`local.properties`, gitignored: `sdk.dir=~/Android/Sdk`). The toolchain resolves from the local Gradle cache, so build with `--offline`.
+Requires JDK 17+ and the Android SDK. `local.properties` (gitignored) holds `sdk.dir=<path to the SDK>` and `haku.sidecarBase=http://<nserver>:1986`, the sidecar the build talks to (`HAKU_SIDECAR_BASE` in the environment also works; without either the build uses the placeholder `http://192.0.2.20:1986`, fine for tests). The toolchain resolves from the local Gradle cache, so build with `--offline`.
 
 ```bash
 ./gradlew testDebugUnitTest --offline   # JVM unit tests (what they cover: DESIGN §4.6)

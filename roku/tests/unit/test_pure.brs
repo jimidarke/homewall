@@ -9,6 +9,7 @@ sub Main()
     m.fail = 0
 
     test_hwNextBackoffSeconds()
+    test_hkSnapshotBase()
     test_hwCamIndex()
     test_hwParseInt()
     test_hwGridQuadrantPos()
@@ -94,6 +95,14 @@ sub test_hwNextBackoffSeconds()
     assertEq("attempt=4",  hkNextBackoffSeconds(4), 16)
     assertEq("attempt=5",  hkNextBackoffSeconds(5), 30)
     assertEq("attempt=99", hkNextBackoffSeconds(99), 30)
+end sub
+
+sub test_hkSnapshotBase()
+    print "== hkSnapshotBase =="
+    streams = { front: { hls: "http://h:1985/hls/front.m3u8", snapshot: "http://h:1984/api/frame.jpeg?src=front" } }
+    assertEq("from snapshot url", hkSnapshotBase(streams), "http://h:1984")
+    assertEq("no snapshot", hkSnapshotBase({ front: { hls: "x" } }), "")
+    assertEq("not a map", hkSnapshotBase(invalid), "")
 end sub
 
 sub test_hwCamIndex()

@@ -3,7 +3,7 @@ build/
 .gradle/
 .kotlin/
 
-# machine-local SDK path (sdk.dir=~/Android/Sdk)
+# machine-local: sdk.dir and haku.sidecarBase (see README § Build)
 local.properties
 
 # Android Studio

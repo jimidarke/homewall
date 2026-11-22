@@ -13,7 +13,8 @@ Camera takeover: when `camera.door` opened less than `sec` ago, the values carry
 `takeover: {cam, hls, label, until}` (`until` = opening epoch + sec), and no key at all
 otherwise. The opening time is the HA client's `last_on` (an off->on edge between two
 of its snapshots), so it survives the door closing again and needs the 1 s poll to
-catch a quick open. `hls` is `$HAKU_HLS_BASE/<cam>.m3u8` (default the stream server).
+catch a quick open. `hls` is `<base>/<cam>.m3u8`, base from `net.stream_hls_base()`
+($HAKU_HLS_BASE, else the stream server on the sidecar's host).
 
 State: `on` -> open, `off` -> closed, anything else (unavailable/unknown/missing) -> unknown.
 
@@ -43,11 +44,11 @@ state and since (the same restart-proof logic as the tile), and "Today", every o
 since local midnight from the contacts' state history, newest first, with how long it
 stayed open ("open now" while it still is).
 """
-import os
 
 from .. import blocks
 from .. import config as cfg
 from .. import history as hist
+from ..net import stream_hls_base
 from ..store import iso_epoch, now_s, rel_age
 
 _DEFAULT_OPEN_ALERT_SEC = 300
@@ -57,7 +58,6 @@ _GLYPHS = {"open": "door-open", "closed": "door-closed", "unknown": "door"}
 _DEAD = ("unavailable", "unknown")
 _FRESH_SEC = 60    # a last_changed this recent is newer than the 30 s logbook cache
 _DEFAULT_CAMERA_SEC = 60
-_DEFAULT_HLS_BASE = "http://192.0.2.20:1985/hls"
 
 
 def values(ha, descriptor):
@@ -93,7 +93,7 @@ def _takeover(ha, cam, configured, doors, now):
             sec = _int(cam.get("sec"), _DEFAULT_CAMERA_SEC)
             if opened is None or not (0 <= now - opened < sec):
                 return None
-            base = os.environ.get("HAKU_HLS_BASE", _DEFAULT_HLS_BASE).rstrip("/")
+            base = stream_hls_base()
             return {"cam": cam["cam"], "hls": f"{base}/{cam['cam']}.m3u8",
                     "label": cam.get("label") or door["label"], "until": opened + sec}
     return None

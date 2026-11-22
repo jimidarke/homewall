@@ -17,8 +17,10 @@
 #   lastMotion=<cam>&lastMotionAt=<unix>   "motion N min ago" label on the live HUD
 #
 # Contents:
-#   rest_command.housewall_<room>     one per Roku (living .51, kids .52,
-#                                     bedroom .53, den .54, office .55, dad .56)
+#   rest_command.housewall_<room>     one per Roku (living, kids, bedroom, den,
+#                                     office, dad); each URL is the secrets.yaml
+#                                     entry haku_roku_<room>_input, e.g.
+#                                     "http://<roku>:8060/input?{{ payload }}"
 #   rest_command.housewall_dad_*      dad's active-app query and HAku launch
 #   sensor.housewall_active_service   which Roku to target, from sensor.jimi_phone_room
 #   script.housewall_broadcast        the same payload to all six Rokus
@@ -40,40 +42,40 @@
 # payload (already form-encoded, e.g. "cam=front&severity=normal") goes in the URL.
 rest_command:
   housewall_living:
-    url: "http://192.0.2.51:8060/input?{{ payload }}"
+    url: !secret haku_roku_living_input
     method: POST
     timeout: 5
   housewall_kids:
-    url: "http://192.0.2.52:8060/input?{{ payload }}"
+    url: !secret haku_roku_kids_input
     method: POST
     timeout: 5
   housewall_bedroom:
-    url: "http://192.0.2.53:8060/input?{{ payload }}"
+    url: !secret haku_roku_bedroom_input
     method: POST
     timeout: 5
   housewall_den:
-    url: "http://192.0.2.54:8060/input?{{ payload }}"
+    url: !secret haku_roku_den_input
     method: POST
     timeout: 5
   # Office Roku (the dev Roku, also a wall). Reached by the broadcast script;
   # the active-Roku selector never picks it.
   housewall_office:
-    url: "http://192.0.2.55:8060/input?{{ payload }}"
+    url: !secret haku_roku_office_input
     method: POST
     timeout: 5
   # Dad's Roku. Not in HA's Roku integration and its ECP is in Limited mode
   # (/query/media-player refused; /input, /launch and /query/active-app work), so
   # its relaunch reads the active app over ECP instead of a media_player.
   housewall_dad:
-    url: "http://192.0.2.56:8060/input?{{ payload }}"
+    url: !secret haku_roku_dad_input
     method: POST
     timeout: 5
   housewall_dad_active_app:
-    url: "http://192.0.2.56:8060/query/active-app"
+    url: !secret haku_roku_dad_active_app
     method: GET
     timeout: 5
   housewall_dad_launch:
-    url: "http://192.0.2.56:8060/launch/dev"
+    url: !secret haku_roku_dad_launch
     method: POST
     timeout: 5
 

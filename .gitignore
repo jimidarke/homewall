@@ -7,6 +7,12 @@
 *.env
 secrets.json
 
+# The house's specifics: kept on the workstation, never committed (see README § Private configuration)
+PRIVATE.md
+docs/private/
+config/live/
+ha/secrets.private.yaml
+
 # Claude Code local settings
 .claude/settings.local.json
 

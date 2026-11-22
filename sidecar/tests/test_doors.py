@@ -294,7 +294,9 @@ def _cam_doors(front=("on", 10), opened_ago=10, **extra):
     return doors.values(ha, _desc(**extra)), ha
 
 
-def test_takeover_while_inside_the_window():
+def test_takeover_while_inside_the_window(monkeypatch):
+    monkeypatch.delenv("HAKU_HLS_BASE", raising=False)
+    monkeypatch.setenv("HAKU_SIDECAR_BASE", "http://192.0.2.20:1986")  # HLS on the same host
     v, ha = _cam_doors(camera=CAMERA)
     t = ha.last_on(FRONT)
     assert v["takeover"] == {"cam": "front_steps", "label": "Front Steps", "until": t + 60,

@@ -1,17 +1,17 @@
-# go2rtc — HAku capture pipeline (nserver, 192.0.2.20)
+# go2rtc — HAku capture pipeline (nserver, the media host)
 #
 # Source:    Macrosilicon USB3.0 HDMI capture (/dev/v4l/by-id/...) fed from NVR HDMI-out (4-up mosaic)
 # Encoder:   Intel Quick Sync (Iris Plus G1, Ice Lake) via h264_qsv
 # Replaces:  legacy sendHDMI.service / mjpg_streamer @ :8090
 #
-# Endpoints (LAN, served on enp1s0 IP 192.0.2.20):
-#   RTSP        rtsp://192.0.2.20:8554/mosaic
-#   HLS shallow http://192.0.2.20:1984/api/stream.m3u8?src=mosaic   (go2rtc native, ~1s buffer)
-#   HLS (Roku)  http://192.0.2.20:1985/hls/mosaic.m3u8              (haku-hls.service, 3 × 2s window — Roku consumers use this)
-#   MJPEG       http://192.0.2.20:1984/api/stream.mjpeg?src=mosaic
-#   WebRTC      via http://192.0.2.20:1984/stream.html?src=mosaic
-#   JPEG snap   http://192.0.2.20:1984/api/frame.jpeg?src=mosaic
-#   Status UI   http://192.0.2.20:1984/
+# Endpoints (LAN; <host> is nserver's LAN address):
+#   RTSP        rtsp://<host>:8554/mosaic
+#   HLS shallow http://<host>:1984/api/stream.m3u8?src=mosaic   (go2rtc native, ~1s buffer)
+#   HLS (Roku)  http://<host>:1985/hls/mosaic.m3u8              (haku-hls.service, 3 × 2s window — Roku consumers use this)
+#   MJPEG       http://<host>:1984/api/stream.mjpeg?src=mosaic
+#   WebRTC      via http://<host>:1984/stream.html?src=mosaic
+#   JPEG snap   http://<host>:1984/api/frame.jpeg?src=mosaic
+#   Status UI   http://<host>:1984/
 
 api:
   listen: ":1984"
@@ -58,19 +58,21 @@ streams:
 
   # ----- Per-cam streams (credentials via EnvironmentFile) -----
   # Camera mapping:
-  #   front        192.0.2.31  Genbolt dual-lens, PTZ lens (/21, mounted sideways), front walk
-  #   front_steps  192.0.2.31  Genbolt dual-lens, fixed lens (/11), the front steps
-  #   yard      192.0.2.32  Reolink, PTZ, full back yard / drive pad / fence
-  #   side      192.0.2.33  Amcrest, PTZ, side gate
-  #   backyard  192.0.2.34  Reolink-family, no PTZ, playground behind garage
+  #   front        ${HAKU_CAM_FRONT_HOST}     Genbolt dual-lens, PTZ lens (/21, mounted sideways)
+  #   front_steps  ${HAKU_CAM_FRONT_HOST}     Genbolt dual-lens, fixed lens (/11), the front steps
+  #   yard         ${HAKU_CAM_YARD_HOST}      Reolink, PTZ, back yard
+  #   side         ${HAKU_CAM_SIDE_HOST}      Amcrest, PTZ, side gate
+  #   backyard     ${HAKU_CAM_BACKYARD_HOST}  Reolink-family, no PTZ
   #
-  # Reolink @ .32 main stream is HEVC 4K — Roku Video node won't decode HEVC over
+  # Reolink yard main stream is HEVC 4K — Roku Video node won't decode HEVC over
   # HLS reliably, so we use the H.264 sub-stream (h264Preview_01_sub, ~640x480).
   # If/when we want full-res, transcode via QSV like the mosaic.
-  # Reolink @ .34 main stream is already H.264 1536x2048 — use it directly.
+  # The backyard Reolink's main stream is already H.264 1536x2048 — use it directly.
   #
-  # Creds come from /etc/haku/cam-creds.env via the systemd unit:
-  #   HAKU_CAM_USER=admin
+  # Creds and camera addresses come from /etc/haku/cam-creds.env via the systemd unit
+  # (never committed; stream/README.md § Camera credentials):
+  #   HAKU_CAM_FRONT_HOST / _YARD_HOST / _SIDE_HOST / _BACKYARD_HOST=<camera LAN address>
+  #   HAKU_CAM_USER=<...>
   #   HAKU_CAM_PASSWORD=<...>
   #   HAKU_FRONT_USER=<...>       the Genbolt has its own login (HA keeps it as genbolt_ptz_stream)
   #   HAKU_FRONT_PASSWORD=<...>
@@ -87,7 +89,7 @@ streams:
       -hide_banner -loglevel warning
       -rtsp_transport tcp
       -hwaccel qsv -hwaccel_output_format qsv -c:v hevc_qsv
-      -i rtsp://${HAKU_FRONT_USER}:${HAKU_FRONT_PASSWORD}@192.0.2.31:554/21
+      -i rtsp://${HAKU_FRONT_USER}:${HAKU_FRONT_PASSWORD}@${HAKU_CAM_FRONT_HOST}:554/21
       -vf "vpp_qsv=w=1280:h=720"
       -c:v h264_qsv
       -preset veryfast
@@ -106,7 +108,7 @@ streams:
       -hide_banner -loglevel warning
       -rtsp_transport tcp
       -hwaccel qsv -hwaccel_output_format qsv -c:v hevc_qsv
-      -i rtsp://${HAKU_FRONT_USER}:${HAKU_FRONT_PASSWORD}@192.0.2.31:554/11
+      -i rtsp://${HAKU_FRONT_USER}:${HAKU_FRONT_PASSWORD}@${HAKU_CAM_FRONT_HOST}:554/11
       -vf "vpp_qsv=w=1280:h=720"
       -c:v h264_qsv
       -preset veryfast
@@ -116,13 +118,13 @@ streams:
       -an
       -f rtsp {output}
   yard:
-    - rtsp://${HAKU_CAM_USER}:${HAKU_CAM_PASSWORD}@192.0.2.32:554/h264Preview_01_sub
+    - rtsp://${HAKU_CAM_USER}:${HAKU_CAM_PASSWORD}@${HAKU_CAM_YARD_HOST}:554/h264Preview_01_sub
   side:
-    - rtsp://${HAKU_CAM_USER}:${HAKU_CAM_PASSWORD}@192.0.2.33:554/cam/realmonitor?channel=1&subtype=0
-  # disabled 2026-10-24: camera .34 offline (RTSP closed, NVR cannot reach it). Re-enable here,
+    - rtsp://${HAKU_CAM_USER}:${HAKU_CAM_PASSWORD}@${HAKU_CAM_SIDE_HOST}:554/cam/realmonitor?channel=1&subtype=0
+  # disabled 2026-10-24: backyard camera offline (RTSP closed, NVR cannot reach it). Re-enable here,
   # deploy, then `systemctl enable --now haku-hls@backyard` and add it back to the dashboard streams.
 #  backyard:
-#    - rtsp://${HAKU_CAM_USER}:${HAKU_CAM_PASSWORD}@192.0.2.34:554/h264Preview_01_main
+#    - rtsp://${HAKU_CAM_USER}:${HAKU_CAM_PASSWORD}@${HAKU_CAM_BACKYARD_HOST}:554/h264Preview_01_main
 
 log:
   level: info
