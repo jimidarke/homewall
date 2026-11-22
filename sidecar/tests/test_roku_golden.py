@@ -70,7 +70,7 @@ STATES = {
     **_st("binary_sensor.water_in_tier_2", "off", _iso(86400), device_class="moisture"),
     **_st("person.jimi", "home", _iso(1800)),
     **_st("person.alex", "not_home", _iso(5400)),
-    **_st("person.robin", "school", _iso(30000)),
+    **_st("person.robin", "work", _iso(30000)),
     **_st("sensor.home_gas_usage", "0.65", unit_of_measurement="m³/h"),
     **_st("sensor.gas_meter_gas_meter_direct", "17639.9", unit_of_measurement="m³"),
     **_st("climate.my_ecobee", "heat", current_temperature=21.3, current_humidity=48,
@@ -106,7 +106,7 @@ LOGBOOK = {
     "person.jimi": [_row("Jimi", "home", 1800)],
     "person.alex": [_row("Alex", "not_home", 5400)],
     # 21:40 the previous local evening: a YESTERDAY section header.
-    "person.robin": [_row("Robin", "school", 30000), _row("Robin", "home", 75600)],
+    "person.robin": [_row("Robin", "work", 30000), _row("Robin", "home", 75600)],
 }
 CALENDARS = [{"entity_id": "calendar.family", "name": "Family"}]
 EVENTS = {"calendar.family": [
